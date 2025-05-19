@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
+import BlogPage from './pages/BlogPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import AuthPage from './pages/AuthPage';
 
@@ -24,6 +25,7 @@ function App() {
         <Navbar />
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/blog" element={<BlogPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/auth" element={<AuthPage />} />
         </Routes>
