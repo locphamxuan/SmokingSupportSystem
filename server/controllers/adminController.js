@@ -1,5 +1,15 @@
 const User = require('../models/User');
 
+// Lấy danh sách user
+exports.getUsers = async (req, res) => {
+  try {
+    const users = await User.find();
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: 'Get users failed', error: error.message });
+  }
+};
+
 // Cập nhật thông tin user
 exports.updateUser = async (req, res) => {
   try {

@@ -16,7 +16,11 @@ const LoginPage = () => {
     try {
       const response = await axios.post('/api/auth/login', formData);
       localStorage.setItem('token', response.data.token);
-      navigate('/dashboard');
+      if (response.data.user.role === 'admin') {
+        navigate('/admin/users');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error) {
       alert(error.response?.data?.message || 'Có lỗi xảy ra!');
     }
