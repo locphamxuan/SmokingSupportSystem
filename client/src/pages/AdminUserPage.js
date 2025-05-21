@@ -3,19 +3,31 @@
 import React, { useEffect, useState } from 'react';
 import { getUsers, updateUser, deleteUser } from '../services/adminService';
 import { Button, Table, TableBody, TableCell, TableHead, TableRow, Dialog, DialogTitle, DialogContent, TextField, DialogActions } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
 const AdminUserPage = () => {
   const [users, setUsers] = useState([]);
   const [editUser, setEditUser] = useState(null);
   const [editData, setEditData] = useState({});
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchUsers();
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user || user.role !== 'admin') {
+      navigate('/'); // chuyển về trang chủ nếu không phải admin
+    } else {
+      fetchUsers();
+    }
+    // eslint-disable-next-line
   }, []);
 
   const fetchUsers = async () => {
-    const data = await getUsers();
-    setUsers(data);
+    try {
+      const data = await getUsers();
+      setUsers(data);
+    } catch (error) {
+      alert('Không thể tải danh sách user!');
+    }
   };
 
   const handleEdit = (user) => {
