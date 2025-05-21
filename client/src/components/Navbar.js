@@ -1,6 +1,6 @@
-import React from 'react';
-import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
+import React from "react";
+import { AppBar, Toolbar, Typography, Button, Box } from "@mui/material";
+import { Link as RouterLink } from "react-router-dom";
 
 const Navbar = () => {
   return (
@@ -19,8 +19,11 @@ const Navbar = () => {
           <Button color="inherit" component={RouterLink} to="/leaderboard">
             Bảng xếp hạng
           </Button>
-          <Button color="inherit" component={RouterLink} to="/auth">
+          <Button color="inherit" component={RouterLink} to="/login">
             Đăng nhập
+          </Button>
+          <Button color="inherit" component={RouterLink} to="/register">
+            Đăng ký
           </Button>
         </Box>
       </Toolbar>

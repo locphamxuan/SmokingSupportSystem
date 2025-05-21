@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Container, Typography, Box, TextField, Button, Paper, Tab, Tabs } from '@mui/material';
+import { Container,  Box, TextField, Button, Paper, Tab, Tabs } from '@mui/material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,7 +9,9 @@ const AuthPage = () => {
     username: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    phoneNumber: '',
+    address: ''
   });
   const navigate = useNavigate();
 
@@ -44,7 +46,9 @@ const AuthPage = () => {
         const response = await axios.post('/api/auth/register', {
           username: formData.username,
           email: formData.email,
-          password: formData.password
+          password: formData.password,
+          phoneNumber: formData.phoneNumber,
+          address: formData.address
         });
         localStorage.setItem('token', response.data.token);
         navigate('/dashboard');
@@ -66,15 +70,35 @@ const AuthPage = () => {
 
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
             {tab === 1 && (
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                label="Tên người dùng"
-                name="username"
-                value={formData.username}
-                onChange={handleInputChange}
-              />
+              <>
+                <TextField
+                  margin="normal"
+                  required
+                  fullWidth
+                  label="Tên người dùng"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleInputChange}
+                />
+                <TextField
+                  margin="normal"
+                  required
+                  fullWidth
+                  label="Số điện thoại"
+                  name="phoneNumber"
+                  value={formData.phoneNumber}
+                  onChange={handleInputChange}
+                />
+                <TextField
+                  margin="normal"
+                  required
+                  fullWidth
+                  label="Địa chỉ"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                />
+              </>
             )}
             <TextField
               margin="normal"
