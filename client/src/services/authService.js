@@ -41,3 +41,36 @@ export const getCurrentUser = () => {
 export const getToken = () => {
   return localStorage.getItem('token');
 };
+
+export const getAllUsers = async () => {
+  try {
+    const response = await axios.get('http://localhost:5000/api/admin/users', {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'An error occurred' };
+  }
+};
+
+export const updateUser = async (id, userData) => {
+  try {
+    const response = await axios.put(`http://localhost:5000/api/admin/user/${id}`, userData, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'An error occurred' };
+  }
+};
+
+export const deleteUser = async (id) => {
+  try {
+    const response = await axios.delete(`http://localhost:5000/api/admin/user/${id}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'An error occurred' };
+  }
+};
