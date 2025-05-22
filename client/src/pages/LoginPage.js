@@ -126,10 +126,10 @@ const LoginPage = () => {
       if (response.data.user.role === 'admin') {
         navigate('/admin/users');
       } else {
-        navigate('/dashboard');
+        navigate('/');
       }
     } catch (error) {
-      setError(error.response?.data?.message || 'Login failed. Please try again!');
+      setError(error.response?.data?.message || 'Registration failed. Please try again!');
     } finally {
       setLoading(false);
     }
@@ -150,7 +150,7 @@ const LoginPage = () => {
         address: registerData.address
       });
       localStorage.setItem('token', response.data.token);
-      navigate('/dashboard');
+      navigate('/');
     } catch (error) {
       setError(error.response?.data?.message || 'Registration failed. Please try again!');
     } finally {
