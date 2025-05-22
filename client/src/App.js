@@ -7,7 +7,6 @@ import BlogPage from './pages/BlogPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import AdminUserPage from './pages/AdminUserPage';
 import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
 const theme = createTheme({
   palette: {
     primary: {
@@ -30,7 +29,6 @@ function App() {
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/admin/users" element={<AdminUserPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
         </Routes>
       </Router>
     </ThemeProvider>
