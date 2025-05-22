@@ -29,10 +29,10 @@ const LeaderboardPage = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Xếp hạng</TableCell>
-                <TableCell>Tên người dùng</TableCell>
-                <TableCell align="right">Số ngày cai thuốc</TableCell>
-                <TableCell align="right">Điểm số</TableCell>
+                <TableCell>Ranking</TableCell>
+                <TableCell>Username</TableCell>
+                <TableCell align="right">Number of days of quitting smoking</TableCell>
+                <TableCell align="right">Score</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>

@@ -35,7 +35,7 @@ const RegisterPage = () => {
       localStorage.setItem('token', response.data.token);
       navigate('/dashboard');
     } catch (error) {
-      alert(error.response?.data?.message || 'Có lỗi xảy ra!');
+      alert(error.response?.data?.message || 'Error!');
     }
   };
 
@@ -107,7 +107,7 @@ const RegisterPage = () => {
               variant="contained"
               sx={{ mt: 3, mb: 2 }}
             >
-              Đăng ký
+              Register
             </Button>
           </Box>
         </Paper>

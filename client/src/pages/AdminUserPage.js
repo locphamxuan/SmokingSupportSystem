@@ -26,7 +26,7 @@ const AdminUserPage = () => {
       const data = await getUsers();
       setUsers(data);
     } catch (error) {
-      alert('Không thể tải danh sách user!');
+      alert('Cannot load user list!');
     }
   };
 
@@ -46,7 +46,7 @@ const AdminUserPage = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Bạn có chắc muốn xóa user này?')) {
+    if (window.confirm('Are you sure want to delete this user?')) {
       await deleteUser(id);
       fetchUsers();
     }
@@ -54,14 +54,14 @@ const AdminUserPage = () => {
 
   return (
     <div>
-      <h2>Quản lý người dùng</h2>
+      <h2>Mangage Users</h2>
       <Table>
         <TableHead>
           <TableRow>
-            <TableCell>Tên</TableCell>
+            <TableCell>Name</TableCell>
             <TableCell>Email</TableCell>
             <TableCell>Role</TableCell>
-            <TableCell>Hành động</TableCell>
+            <TableCell>Action</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -71,8 +71,8 @@ const AdminUserPage = () => {
               <TableCell>{user.email}</TableCell>
               <TableCell>{user.role}</TableCell>
               <TableCell>
-                <Button onClick={() => handleEdit(user)}>Sửa</Button>
-                <Button color="error" onClick={() => handleDelete(user._id)}>Xóa</Button>
+                <Button onClick={() => handleEdit(user)}>Edit</Button>
+                <Button color="error" onClick={() => handleDelete(user._id)}>Delete</Button>
               </TableCell>
             </TableRow>
           ))}
@@ -80,11 +80,11 @@ const AdminUserPage = () => {
       </Table>
 
       <Dialog open={!!editUser} onClose={() => setEditUser(null)}>
-        <DialogTitle>Cập nhật user</DialogTitle>
+        <DialogTitle>Update users</DialogTitle>
         <DialogContent>
           <TextField
             margin="normal"
-            label="Tên"
+            label="Name"
             name="username"
             value={editData.username || ''}
             onChange={handleEditChange}
@@ -108,8 +108,8 @@ const AdminUserPage = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditUser(null)}>Hủy</Button>
-          <Button onClick={handleEditSave} variant="contained">Lưu</Button>
+          <Button onClick={() => setEditUser(null)}>Cancel</Button>
+          <Button onClick={handleEditSave} variant="contained">Save</Button>
         </DialogActions>
       </Dialog>
     </div>

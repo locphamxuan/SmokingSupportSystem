@@ -22,7 +22,7 @@ const LoginPage = () => {
         navigate('/dashboard');
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'Có lỗi xảy ra!');
+      alert(error.response?.data?.message || 'Error!');
     }
   };
 
