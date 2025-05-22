@@ -22,9 +22,7 @@ const Navbar = () => {
           <Button color="inherit" component={RouterLink} to="/login">
             Login
           </Button>
-          <Button color="inherit" component={RouterLink} to="/register">
-            Register
-          </Button>
+          
         </Box>
       </Toolbar>
     </AppBar>
