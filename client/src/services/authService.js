@@ -11,7 +11,7 @@ export const register = async (userData) => {
     }
     return response.data;
   } catch (error) {
-    throw error.response?.data || { message: 'An error occurred' };
+    throw error.response?.data || { message: 'Đã xảy ra lỗi' };
   }
 };
 
@@ -24,7 +24,7 @@ export const login = async (credentials) => {
     }
     return response.data;
   } catch (error) {
-    throw error.response?.data || { message: 'An error occurred' };
+    throw error.response?.data || { message: 'Đã xảy ra lỗi' };
   }
 };
 
@@ -42,35 +42,92 @@ export const getToken = () => {
   return localStorage.getItem('token');
 };
 
-export const getAllUsers = async () => {
+// Profile related functions
+export const getProfile = async () => {
   try {
-    const response = await axios.get('http://localhost:5000/api/admin/users', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    const response = await axios.get(`${API_URL}/profile`, {
+      headers: { Authorization: `Bearer ${getToken()}` }
     });
     return response.data;
   } catch (error) {
-    throw error.response?.data || { message: 'An error occurred' };
+    throw error.response?.data || { message: 'Không thể lấy thông tin người dùng' };
+  }
+};
+
+export const updateProfile = async (userData) => {
+  try {
+    const response = await axios.put(`${API_URL}/profile`, userData, {
+      headers: { Authorization: `Bearer ${getToken()}` }
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Không thể cập nhật thông tin' };
+  }
+};
+
+export const updateSmokingStatus = async (smokingData) => {
+  try {
+    const response = await axios.put(`${API_URL}/smoking-status`, smokingData, {
+      headers: { Authorization: `Bearer ${getToken()}` }
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Không thể cập nhật tình trạng hút thuốc' };
+  }
+};
+
+export const createQuitPlan = async (planData) => {
+  try {
+    const response = await axios.post(`${API_URL}/quit-plan`, planData, {
+      headers: { Authorization: `Bearer ${getToken()}` }
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Không thể tạo kế hoạch cai thuốc' };
+  }
+};
+
+export const updateQuitPlan = async (planData) => {
+  try {
+    const response = await axios.put(`${API_URL}/quit-plan`, planData, {
+      headers: { Authorization: `Bearer ${getToken()}` }
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Không thể cập nhật kế hoạch cai thuốc' };
+  }
+};
+
+// Admin functions
+export const getAllUsers = async () => {
+  try {
+    const response = await axios.get('http://localhost:5000/api/admin/users', {
+      headers: { Authorization: `Bearer ${getToken()}` }
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Đã xảy ra lỗi' };
   }
 };
 
 export const updateUser = async (id, userData) => {
   try {
     const response = await axios.put(`http://localhost:5000/api/admin/user/${id}`, userData, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      headers: { Authorization: `Bearer ${getToken()}` }
     });
     return response.data;
   } catch (error) {
-    throw error.response?.data || { message: 'An error occurred' };
+    throw error.response?.data || { message: 'Đã xảy ra lỗi' };
   }
 };
 
 export const deleteUser = async (id) => {
   try {
     const response = await axios.delete(`http://localhost:5000/api/admin/user/${id}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      headers: { Authorization: `Bearer ${getToken()}` }
     });
     return response.data;
   } catch (error) {
-    throw error.response?.data || { message: 'An error occurred' };
+    throw error.response?.data || { message: 'Đã xảy ra lỗi' };
   }
 };
