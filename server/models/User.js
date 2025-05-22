@@ -31,9 +31,55 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['guest', 'user', 'admin'],
+    enum: ['guest', 'user', 'premium', 'admin'],
     default: 'user'
   },
+  smokingStatus: {
+    cigarettesPerDay: {
+      type: Number,
+      default: 0
+    },
+    costPerPack: {
+      type: Number,
+      default: 0
+    },
+    smokingFrequency: {
+      type: String,
+      default: ''
+    },
+    healthStatus: {
+      type: String,
+      default: ''
+    }
+  },
+  quitPlan: {
+    startDate: {
+      type: Date
+    },
+    targetDate: {
+      type: Date
+    },
+    milestones: [{
+      title: String,
+      date: Date,
+      completed: {
+        type: Boolean,
+        default: false
+      }
+    }],
+    currentProgress: {
+      type: Number,
+      default: 0
+    }
+  },
+  achievements: [{
+    title: String,
+    description: String,
+    date: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   createdAt: {
     type: Date,
     default: Date.now

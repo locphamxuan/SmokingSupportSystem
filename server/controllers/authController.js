@@ -4,20 +4,17 @@ const jwt = require('jsonwebtoken');
 // Register new user
 exports.register = async (req, res) => {
   try {
-    console.log('Registration attempt:', req.body);
     const { username, email, password, phoneNumber, address } = req.body;
 
     // Validate input
     if (!username || !email || !password || !phoneNumber || !address) {
-      console.log('Missing required fields');
-      return res.status(400).json({ message: 'All fields are required' });
+      return res.status(400).json({ message: 'Vui lòng điền đầy đủ thông tin' });
     }
 
     // Check if user already exists
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
-      console.log('User already exists:', { email, username });
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ message: 'Email hoặc tên người dùng đã tồn tại' });
     }
 
     // Create new user
@@ -26,11 +23,23 @@ exports.register = async (req, res) => {
       email,
       password,
       phoneNumber,
-      address
+      address,
+      smokingStatus: {
+        cigarettesPerDay: 0,
+        costPerPack: 0,
+        smokingFrequency: '',
+        healthStatus: ''
+      },
+      quitPlan: {
+        startDate: null,
+        targetDate: null,
+        milestones: [],
+        currentProgress: 0
+      },
+      achievements: []
     });
-    console.log('Saving new user:', { username, email, phoneNumber, address });
+
     await user.save();
-    console.log('User saved successfully');
 
     // Generate JWT token
     const token = jwt.sign(
@@ -40,7 +49,7 @@ exports.register = async (req, res) => {
     );
 
     res.status(201).json({
-      message: 'User registered successfully',
+      message: 'Đăng ký thành công',
       token,
       user: {
         id: user._id,
@@ -54,7 +63,7 @@ exports.register = async (req, res) => {
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({ 
-      message: 'Error registering user',
+      message: 'Lỗi khi đăng ký',
       error: error.message 
     });
   }
@@ -63,30 +72,24 @@ exports.register = async (req, res) => {
 // Login user
 exports.login = async (req, res) => {
   try {
-    console.log('Login attempt:', { email: req.body.email });
     const { email, password } = req.body;
 
     // Validate input
     if (!email || !password) {
-      console.log('Missing credentials');
-      return res.status(400).json({ message: 'Email and password are required' });
+      return res.status(400).json({ message: 'Vui lòng nhập email và mật khẩu' });
     }
 
     // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
-      console.log('User not found:', email);
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng' });
     }
 
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      console.log('Invalid password for user:', email);
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng' });
     }
-
-    console.log('Login successful for user:', email);
 
     // Generate JWT token
     const token = jwt.sign(
@@ -96,7 +99,7 @@ exports.login = async (req, res) => {
     );
 
     res.json({
-      message: 'Login successful',
+      message: 'Đăng nhập thành công',
       token,
       user: {
         id: user._id,
@@ -110,7 +113,193 @@ exports.login = async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ 
-      message: 'Error logging in',
+      message: 'Lỗi khi đăng nhập',
+      error: error.message 
+    });
+  }
+};
+
+// Get user profile
+exports.getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+    }
+
+    res.json({
+      username: user.username,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      address: user.address,
+      role: user.role,
+      createdAt: user.createdAt,
+      smokingStatus: user.smokingStatus || {
+        cigarettesPerDay: 0,
+        costPerPack: 0,
+        smokingFrequency: '',
+        healthStatus: ''
+      },
+      quitPlan: user.quitPlan || {
+        startDate: null,
+        targetDate: null,
+        milestones: [],
+        currentProgress: 0
+      },
+      achievements: user.achievements || [],
+      isPremium: user.role === 'premium'
+    });
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({ 
+      message: 'Lỗi khi lấy thông tin người dùng',
+      error: error.message 
+    });
+  }
+};
+
+// Update user profile
+exports.updateProfile = async (req, res) => {
+  try {
+    const { username, email, phoneNumber, address } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+    }
+
+    // Check if email or username is already taken
+    if (email !== user.email) {
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Email đã được sử dụng' });
+      }
+    }
+
+    if (username !== user.username) {
+      const existingUser = await User.findOne({ username });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Tên người dùng đã tồn tại' });
+      }
+    }
+
+    // Update user information
+    user.username = username || user.username;
+    user.email = email || user.email;
+    user.phoneNumber = phoneNumber || user.phoneNumber;
+    user.address = address || user.address;
+
+    await user.save();
+
+    res.json({
+      message: 'Cập nhật thông tin thành công',
+      user: {
+        username: user.username,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        address: user.address
+      }
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ 
+      message: 'Lỗi khi cập nhật thông tin',
+      error: error.message 
+    });
+  }
+};
+
+// Update smoking status
+exports.updateSmokingStatus = async (req, res) => {
+  try {
+    const { cigarettesPerDay, costPerPack, smokingFrequency, healthStatus } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+    }
+
+    user.smokingStatus = {
+      cigarettesPerDay: cigarettesPerDay || 0,
+      costPerPack: costPerPack || 0,
+      smokingFrequency: smokingFrequency || '',
+      healthStatus: healthStatus || ''
+    };
+
+    await user.save();
+
+    res.json({
+      message: 'Cập nhật tình trạng hút thuốc thành công',
+      smokingStatus: user.smokingStatus
+    });
+  } catch (error) {
+    console.error('Update smoking status error:', error);
+    res.status(500).json({ 
+      message: 'Lỗi khi cập nhật tình trạng hút thuốc',
+      error: error.message 
+    });
+  }
+};
+
+// Create quit plan
+exports.createQuitPlan = async (req, res) => {
+  try {
+    const { startDate, targetDate } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+    }
+
+    user.quitPlan = {
+      startDate: startDate || null,
+      targetDate: targetDate || null,
+      milestones: [],
+      currentProgress: 0
+    };
+
+    await user.save();
+
+    res.json({
+      message: 'Tạo kế hoạch cai thuốc thành công',
+      quitPlan: user.quitPlan
+    });
+  } catch (error) {
+    console.error('Create quit plan error:', error);
+    res.status(500).json({ 
+      message: 'Lỗi khi tạo kế hoạch cai thuốc',
+      error: error.message 
+    });
+  }
+};
+
+// Update quit plan
+exports.updateQuitPlan = async (req, res) => {
+  try {
+    const { milestones, currentProgress } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+    }
+
+    if (milestones) {
+      user.quitPlan.milestones = milestones;
+    }
+    if (currentProgress !== undefined) {
+      user.quitPlan.currentProgress = currentProgress;
+    }
+
+    await user.save();
+
+    res.json({
+      message: 'Cập nhật kế hoạch cai thuốc thành công',
+      quitPlan: user.quitPlan
+    });
+  } catch (error) {
+    console.error('Update quit plan error:', error);
+    res.status(500).json({ 
+      message: 'Lỗi khi cập nhật kế hoạch cai thuốc',
       error: error.message 
     });
   }
