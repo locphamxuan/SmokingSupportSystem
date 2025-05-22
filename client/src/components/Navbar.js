@@ -11,19 +11,19 @@ const Navbar = () => {
         </Typography>
         <Box>
           <Button color="inherit" component={RouterLink} to="/">
-            Trang chủ
+            Home 
           </Button>
           <Button color="inherit" component={RouterLink} to="/blog">
             Blog
           </Button>
           <Button color="inherit" component={RouterLink} to="/leaderboard">
-            Bảng xếp hạng
+            Rankings
           </Button>
           <Button color="inherit" component={RouterLink} to="/login">
-            Đăng nhập
+            Login
           </Button>
           <Button color="inherit" component={RouterLink} to="/register">
-            Đăng ký
+            Register
           </Button>
         </Box>
       </Toolbar>
