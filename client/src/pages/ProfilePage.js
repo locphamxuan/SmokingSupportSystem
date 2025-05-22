@@ -21,8 +21,10 @@ import {
   DialogContent,
   DialogActions,
   Alert,
-  Snackbar
+  Snackbar,
+  IconButton
 } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -155,9 +157,18 @@ const ProfilePage = () => {
   return (
     <Container maxWidth="lg">
       <Box sx={{ my: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          Hồ sơ cá nhân
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <IconButton 
+            onClick={() => navigate('/')} 
+            sx={{ mr: 2 }}
+            aria-label="back to home"
+          >
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h4" gutterBottom>
+            Hồ sơ cá nhân
+          </Typography>
+        </Box>
 
         <Tabs value={activeTab} onChange={handleTabChange} sx={{ mb: 3 }}>
           <Tab label="Thông tin cá nhân" />
