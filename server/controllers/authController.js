@@ -5,10 +5,10 @@ const jwt = require('jsonwebtoken');
 exports.register = async (req, res) => {
   try {
     console.log('Registration attempt:', req.body);
-    const { username, email, password } = req.body;
+    const { username, email, password, phoneNumber, address } = req.body;
 
     // Validate input
-    if (!username || !email || !password) {
+    if (!username || !email || !password || !phoneNumber || !address) {
       console.log('Missing required fields');
       return res.status(400).json({ message: 'All fields are required' });
     }
@@ -24,12 +24,13 @@ exports.register = async (req, res) => {
     const user = new User({
       username,
       email,
-      password
+      password,
+      phoneNumber,
+      address
     });
-    console.log('Saving new user:', { username, email });
+    console.log('Saving new user:', { username, email, phoneNumber, address });
     await user.save();
     console.log('User saved successfully');
-
 
     // Generate JWT token
     const token = jwt.sign(
@@ -45,6 +46,8 @@ exports.register = async (req, res) => {
         id: user._id,
         username: user.username,
         email: user.email,
+        phoneNumber: user.phoneNumber,
+        address: user.address,
         role: user.role
       }
     });
@@ -99,6 +102,8 @@ exports.login = async (req, res) => {
         id: user._id,
         username: user.username,
         email: user.email,
+        phoneNumber: user.phoneNumber,
+        address: user.address,
         role: user.role
       }
     });

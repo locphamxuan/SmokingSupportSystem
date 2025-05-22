@@ -1,6 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Typography, Box, Card, CardContent, CardMedia, Grid } from '@mui/material';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import {
+  Container,
+  Typography,
+  Box,
+  Card,
+  CardContent,
+  CardMedia,
+  Grid,
+} from "@mui/material";
+import axios from "axios";
 
 const BlogPage = () => {
   const [posts, setPosts] = useState([]);
@@ -8,10 +16,10 @@ const BlogPage = () => {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const response = await axios.get('/api/posts');
+        const response = await axios.get("/api/posts");
         setPosts(response.data);
       } catch (error) {
-        console.error('Error fetching posts:', error);
+        console.error("Error fetching posts:", error);
       }
     };
 
@@ -22,7 +30,7 @@ const BlogPage = () => {
     <Container maxWidth="lg">
       <Box sx={{ my: 4 }}>
         <Typography variant="h3" component="h1" gutterBottom align="center">
-          Chia sẻ kinh nghiệm cai thuốc
+          Share experiences of quitting smoking
         </Typography>
 
         <Grid container spacing={4}>
@@ -45,7 +53,8 @@ const BlogPage = () => {
                     {post.excerpt}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Đăng bởi: {post.author} - {new Date(post.createdAt).toLocaleDateString()}
+                    Posted by: {post.author} -{" "}
+                    {new Date(post.createdAt).toLocaleDateString()}
                   </Typography>
                 </CardContent>
               </Card>
