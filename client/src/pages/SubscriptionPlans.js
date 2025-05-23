@@ -1,6 +1,6 @@
 //trang đăng ký gói nâng cấp
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Grid,
@@ -98,6 +98,13 @@ const SubscriptionPlans = () => {
       navigate('/profile');
     }, 2000);
   };
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (user && user.role === "admin") {
+      navigate("/admin/users");
+    }
+  }, [navigate]);
 
   return (
     <Box sx={{ 
