@@ -30,6 +30,7 @@ const Navbar = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     handleClose();
     navigate('/login');
   };
@@ -101,7 +102,7 @@ const Navbar = () => {
                       navigate('/admin/users');
                     }}
                   >
-                    Quản lý người dùng
+                    Quản lý tài khoản
                   </MenuItem>
                 )}
                 <MenuItem onClick={handleLogout}>Đăng xuất</MenuItem>
@@ -109,7 +110,7 @@ const Navbar = () => {
             </>
           ) : (
             <Button color="inherit" component={RouterLink} to="/login">
-              Login
+              Đăng nhập
             </Button>
           )}
         </Box>

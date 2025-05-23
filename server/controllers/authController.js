@@ -309,4 +309,19 @@ exports.updateQuitPlan = async (req, res) => {
       error: error.message 
     });
   }
+};
+
+// Nâng cấp tài khoản lên premium
+exports.upgradePremium = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+    }
+    user.role = 'premium';
+    await user.save();
+    res.json({ message: 'Nâng cấp thành công', user });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi khi nâng cấp', error: error.message });
+  }
 }; 
