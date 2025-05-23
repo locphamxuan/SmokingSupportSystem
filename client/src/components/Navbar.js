@@ -48,6 +48,11 @@ const Navbar = () => {
           <Button color="inherit" component={RouterLink} to="/leaderboard">
             Rankings
           </Button>
+          {isLoggedIn && (
+            <Button color="inherit" component={RouterLink} to="/subscription">
+              Buy Package
+            </Button>
+          )}
           
           {isLoggedIn ? (
             <>
@@ -83,14 +88,14 @@ const Navbar = () => {
                     navigate('/profile');
                   }}
                 >
-                  Hồ sơ cá nhân
+                  Profile
                 </MenuItem>
-                <MenuItem onClick={handleLogout}>Đăng xuất</MenuItem>
+                <MenuItem onClick={handleLogout}>Logout</MenuItem>
               </Menu>
             </>
           ) : (
             <Button color="inherit" component={RouterLink} to="/login">
-              Đăng nhập
+              Login
             </Button>
           )}
         </Box>
