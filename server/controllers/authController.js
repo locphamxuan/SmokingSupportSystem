@@ -112,6 +112,12 @@ exports.login = async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ 
+        message: 'Dữ liệu không hợp lệ',
+        error: error.message 
+      });
+    }
     res.status(500).json({ 
       message: 'Lỗi khi đăng nhập',
       error: error.message 

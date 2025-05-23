@@ -68,18 +68,18 @@ const SubscriptionPlans = () => {
 
   const features = {
     free: [
-      'Track quit smoking time',
-      'Basic quit smoking journal',
-      'Simple statistics',
-      'Support community'
+      'Theo dõi thời gian cai thuốc',
+      'Nhật ký cai thuốc cơ bản',
+      'Thống kê đơn giản',
+      'Cộng đồng hỗ trợ'
     ],
     premium: [
-      'All Free features',
-      'Detailed journal with images',
-      'Advanced statistics',
-      'Expert consultation',
-      'Personalized quit plan',
-      'Ad-free experience'
+      'Tất cả tính năng Free',
+      'Nhật ký chi tiết với hình ảnh',
+      'Thống kê nâng cao',
+      'Tư vấn chuyên gia',
+      'Kế hoạch cai thuốc cá nhân hóa',
+      'Ứng dụng không quảng cáo'
     ]
   };
 
@@ -93,7 +93,7 @@ const SubscriptionPlans = () => {
   };
 
   const handlePaymentSuccess = () => {
-    setSuccess('Account upgrade successful!');
+    setSuccess('Nâng cấp tài khoản thành công!');
     setTimeout(() => {
       navigate('/profile');
     }, 2000);
@@ -107,20 +107,20 @@ const SubscriptionPlans = () => {
     }}>
       <Container>
         <Typography variant="h4" align="center" gutterBottom sx={{ mb: 5 }}>
-          Choose Your Plan
+          Chọn Gói Dịch Vụ Phù Hợp
         </Typography>
         <Typography variant="h6" align="center" color="text.secondary" paragraph>
-          Select the plan that best fits your needs
+          Lựa chọn gói dịch vụ phù hợp với nhu cầu của bạn
         </Typography>
         <Grid container spacing={4} justifyContent="center">
           <Grid item xs={12} md={6} lg={5}>
             <StyledCard>
               <CardContent sx={{ textAlign: 'center' }}>
                 <Typography variant="h5" gutterBottom sx={{ mb: 4 }}>
-                  Basic Plan
+                  Gói Cơ Bản
                 </Typography>
                 <Typography variant="h3" color="primary" gutterBottom>
-                  $0
+                  0đ
                 </Typography>
                 
                 <Divider sx={{ my: 2 }} />
@@ -141,10 +141,10 @@ const SubscriptionPlans = () => {
             <StyledCard isPremium>
               <CardContent sx={{ textAlign: 'center' }}>
                 <Typography variant="h5" gutterBottom sx={{ mb: 4 }}>
-                  Premium Plan
+                  Gói Premium
                 </Typography>
                 <Typography variant="h3" color="primary" gutterBottom>
-                  $199/month
+                  199.000đ/ month
                 </Typography>
                 
                 <Divider sx={{ my: 2 }} />
@@ -163,7 +163,7 @@ const SubscriptionPlans = () => {
                   size="large"
                   onClick={handleUpgrade}
                 >
-                  Upgrade Now
+                  Nâng Cấp Ngay
                 </UpgradeButton>
               </CardContent>
             </StyledCard>
