@@ -51,19 +51,19 @@ const Payment = ({ open, onClose, onSuccess }) => {
       maxWidth="sm"
       fullWidth
     >
-      <DialogTitle>Premium Plan Payment</DialogTitle>
+      <DialogTitle>Thanh toán gói Premium</DialogTitle>
       <DialogContent>
         <Box sx={{ mt: 2 }}>
           <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Payment Method</InputLabel>
+            <InputLabel>Phương thức thanh toán</InputLabel>
             <Select
               name="paymentMethod"
               value={paymentInfo.paymentMethod}
               onChange={handlePaymentInfoChange}
-              label="Payment Method"
+              label="Phương thức thanh toán"
             >
-              <MenuItem value="credit">Credit Card</MenuItem>
-              <MenuItem value="momo">MoMo Wallet</MenuItem>
+              <MenuItem value="credit">Thẻ tín dụng</MenuItem>
+              <MenuItem value="momo">Ví MoMo</MenuItem>
               <MenuItem value="vnpay">VNPay</MenuItem>
             </Select>
           </FormControl>
@@ -72,7 +72,7 @@ const Payment = ({ open, onClose, onSuccess }) => {
             <>
               <TextField
                 fullWidth
-                label="Card Number"
+                label="Số thẻ"
                 name="cardNumber"
                 value={paymentInfo.cardNumber}
                 onChange={handlePaymentInfoChange}
@@ -81,7 +81,7 @@ const Payment = ({ open, onClose, onSuccess }) => {
               />
               <TextField
                 fullWidth
-                label="Card Holder"
+                label="Tên chủ thẻ"
                 name="cardHolder"
                 value={paymentInfo.cardHolder}
                 onChange={handlePaymentInfoChange}
@@ -91,7 +91,7 @@ const Payment = ({ open, onClose, onSuccess }) => {
                 <Grid item xs={6}>
                   <TextField
                     fullWidth
-                    label="Expiry Date"
+                    label="Ngày hết hạn"
                     name="expiryDate"
                     value={paymentInfo.expiryDate}
                     onChange={handlePaymentInfoChange}
@@ -112,11 +112,11 @@ const Payment = ({ open, onClose, onSuccess }) => {
             </>
           ) : paymentInfo.paymentMethod === 'momo' ? (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-              You will be redirected to MoMo payment page to complete the transaction.
+              Bạn sẽ được chuyển đến trang thanh toán MoMo để hoàn tất giao dịch.
             </Typography>
           ) : paymentInfo.paymentMethod === 'vnpay' ? (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-              You will be redirected to VNPay payment page to complete the transaction.
+              Bạn sẽ được chuyển đến trang thanh toán VNPay để hoàn tất giao dịch.
             </Typography>
           ) : null}
 
@@ -132,14 +132,14 @@ const Payment = ({ open, onClose, onSuccess }) => {
           onClick={onClose} 
           disabled={loading}
         >
-          Cancel
+          Hủy
         </Button>
         <Button 
           onClick={handlePaymentSubmit} 
           variant="contained" 
           disabled={loading}
         >
-          {loading ? 'Processing...' : 'Pay $199'}
+          {loading ? 'Đang xử lý...' : 'Thanh toán 199.000đ'}
         </Button>
       </DialogActions>
     </Dialog>
