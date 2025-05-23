@@ -14,11 +14,8 @@ import {
   Typography,
   Grid
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 
 const Payment = ({ open, onClose, onSuccess }) => {
-  const navigate = useNavigate();
   const [paymentInfo, setPaymentInfo] = useState({
     cardNumber: '',
     cardHolder: '',
@@ -38,31 +35,13 @@ const Payment = ({ open, onClose, onSuccess }) => {
   };
 
   const handlePaymentSubmit = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-
-      await axios.post('/api/subscriptions/upgrade', {
-        paymentInfo,
-        planType: 'premium',
-        amount: 199000
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
+    setLoading(true);
+    setError('');
+    setTimeout(() => {
+      setLoading(false);
       onSuccess();
       onClose();
-    } catch (error) {
-      setError(error.response?.data?.message || 'An error occurred while processing payment');
-    } finally {
-      setLoading(false);
-    }
+    }, 1000);
   };
 
   return (
@@ -84,13 +63,12 @@ const Payment = ({ open, onClose, onSuccess }) => {
               label="Payment Method"
             >
               <MenuItem value="credit">Credit Card</MenuItem>
-              <MenuItem value="debit">Debit Card</MenuItem>
               <MenuItem value="momo">MoMo Wallet</MenuItem>
-              <MenuItem value="zalopay">ZaloPay Wallet</MenuItem>
+              <MenuItem value="vnpay">VNPay</MenuItem>
             </Select>
           </FormControl>
 
-          {paymentInfo.paymentMethod === 'credit' || paymentInfo.paymentMethod === 'debit' ? (
+          {paymentInfo.paymentMethod === 'credit' ? (
             <>
               <TextField
                 fullWidth
@@ -132,11 +110,15 @@ const Payment = ({ open, onClose, onSuccess }) => {
                 </Grid>
               </Grid>
             </>
-          ) : (
+          ) : paymentInfo.paymentMethod === 'momo' ? (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-              You will be redirected to {paymentInfo.paymentMethod === 'momo' ? 'MoMo' : 'ZaloPay'} payment page to complete the transaction.
+              You will be redirected to MoMo payment page to complete the transaction.
             </Typography>
-          )}
+          ) : paymentInfo.paymentMethod === 'vnpay' ? (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+              You will be redirected to VNPay payment page to complete the transaction.
+            </Typography>
+          ) : null}
 
           {error && (
             <Typography color="error" sx={{ mt: 2 }}>

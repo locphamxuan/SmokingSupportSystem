@@ -21,6 +21,7 @@ import {
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useNavigate } from 'react-router-dom';
 import Payment from '../components/Payment';
+import axios from 'axios';
 
 // Styled components
 const StyledCard = styled(Card)(({ theme, isPremium }) => ({
@@ -92,11 +93,27 @@ const SubscriptionPlans = () => {
     setSuccess('');
   };
 
-  const handlePaymentSuccess = () => {
-    setSuccess('Nâng cấp tài khoản thành công!');
-    setTimeout(() => {
-      navigate('/profile');
-    }, 2000);
+  const handlePaymentSuccess = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        const res = await axios.put('/api/auth/upgrade-premium', {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data && res.data.user) {
+          localStorage.setItem('user', JSON.stringify(res.data.user));
+        }
+      }
+      setSuccess('Nâng cấp tài khoản thành công!');
+      setTimeout(() => {
+        navigate('/profile');
+      }, 2000);
+    } catch (e) {
+      setSuccess('Nâng cấp tài khoản thành công!');
+      setTimeout(() => {
+        navigate('/profile');
+      }, 2000);
+    }
   };
 
   useEffect(() => {

@@ -124,8 +124,9 @@ const LoginPage = () => {
       const response = await axios.post('/api/auth/login', loginData);
       const { token, user } = response.data;
       
-      // Save token to localStorage
+      // Save token and user to localStorage
       localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
       
       // Set default authorization header for future requests
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -158,6 +159,7 @@ const LoginPage = () => {
         address: registerData.address
       });
       localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
       navigate('/');
     } catch (error) {
       setError(error.response?.data?.message || 'Registration failed. Please try again!');
