@@ -22,8 +22,10 @@ import {
   DialogActions,
   Alert,
   Snackbar,
-  Divider
+  Divider,
+  IconButton
 } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -166,7 +168,33 @@ const ProfilePage = () => {
       <Box sx={{ flexGrow: 1 }}>
         <Container maxWidth="lg">
           <Box sx={{ my: 4 }}>
-            <Typography variant="h4" gutterBottom>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+              <Button 
+                onClick={() => navigate('/')} 
+                startIcon={<ArrowBackIcon />}
+                sx={{ 
+                  mr: 2,
+                  color: '#1976d2',
+                  borderColor: '#1976d2',
+                  fontWeight: 500,
+                  padding: '8px 16px',
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  '&:hover': {
+                    backgroundColor: '#1976d2',
+                    color: 'white',
+                    transform: 'translateX(-2px)',
+                    transition: 'all 0.2s ease'
+                  }
+                }}
+                variant="outlined"
+                size="medium"
+              >
+                Back to Home
+              </Button>
+            </Box>
+            
+            <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: '#1976d2' }}>
               Personal Profile
             </Typography>
 
