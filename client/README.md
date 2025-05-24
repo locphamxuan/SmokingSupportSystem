@@ -1,70 +1,40 @@
-# Getting Started with Create React App
+# SmokingSupportSystem
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Hướng dẫn sử dụng database dùng chung (MongoDB)
 
-## Available Scripts
+### 1. Cấu hình kết nối MongoDB
 
-In the project directory, you can run:
+Dự án này sử dụng database MongoDB dùng chung cho nhiều máy. Khi clone code về, bạn chỉ cần cấu hình file `.env` như sau:
 
-### `npm start`
+```env
+MONGO_URI=mongodb://swpuser:swppass123@192.168.1.100:27017/SmokingSupportPlatform
+JWT_SECRET=your_jwt_secret_here
+PORT=5000
+```
+- Thay `192.168.1.100` bằng IP thật của máy chủ MongoDB.
+- Thay `swpuser` và `swppass123` bằng user/password bạn đã tạo trên MongoDB server.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 2. Cách chạy dự án
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+```bash
+npm install
+npm start
+```
 
-### `npm test`
+### 3. Lưu ý
+- Bạn **không cần cài MongoDB local** nếu đã dùng connection string trên.
+- Tất cả các máy dùng chung database, tài khoản, dữ liệu.
+- Nếu không kết nối được, hãy kiểm tra:
+  - Địa chỉ IP máy chủ MongoDB
+  - Đã mở cổng 27017 trên firewall máy chủ
+  - Đã sửa `bindIp: 0.0.0.0` trong file cấu hình MongoDB
+  - User/password đúng
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### 4. Bảo mật
+- Nếu dùng qua Internet, nên chỉ mở cổng cho IP tin cậy và đặt password mạnh cho user MongoDB.
+- Không commit file `.env` chứa thông tin nhạy cảm lên public repository.
 
-### `npm run build`
+---
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Thông tin liên hệ
+- Nếu cần hỗ trợ, liên hệ admin dự án.

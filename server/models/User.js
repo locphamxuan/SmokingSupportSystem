@@ -50,14 +50,56 @@ const userSchema = new mongoose.Schema({
     healthStatus: {
       type: String,
       default: ''
-    }
+    },
+    cigaretteType: {
+      type: String,
+      default: ''
+    },
+    quitReason: {
+      type: String,
+      default: ''
+    },
+    dailyLog: [{
+      date: {
+        type: Date,
+        default: Date.now
+      },
+      cigarettes: {
+        type: Number,
+        default: 0
+      },
+      feeling: String,
+      triggers: [String],
+      notes: String
+    }],
+    healthImprovements: [{
+      date: {
+        type: Date,
+        default: Date.now
+      },
+      improvement: String,
+      notes: String
+    }]
   },
   quitPlan: {
+    planType: {
+      type: String,
+      enum: ['gradual', 'cold-turkey', 'custom'],
+      default: 'gradual'
+    },
     startDate: {
       type: Date
     },
     targetDate: {
       type: Date
+    },
+    initialCigarettes: {
+      type: Number,
+      default: 0
+    },
+    dailyReduction: {
+      type: Number,
+      default: 1
     },
     milestones: [{
       title: String,
@@ -65,12 +107,33 @@ const userSchema = new mongoose.Schema({
       completed: {
         type: Boolean,
         default: false
-      }
+      },
+      type: {
+        type: String,
+        enum: ['time', 'money', 'health'],
+        default: 'time'
+      },
+      value: Number,
+      description: String
     }],
     currentProgress: {
       type: Number,
       default: 0
-    }
+    },
+    dailyProgress: [{
+      date: {
+        type: Date,
+        default: Date.now
+      },
+      cigarettes: Number,
+      moneySaved: Number,
+      notes: String,
+      mood: {
+        type: String,
+        enum: ['great', 'good', 'okay', 'bad', 'terrible'],
+        default: 'okay'
+      }
+    }]
   },
   achievements: [{
     title: String,
@@ -78,6 +141,34 @@ const userSchema = new mongoose.Schema({
     date: {
       type: Date,
       default: Date.now
+    },
+    type: {
+      type: String,
+      enum: ['time', 'money', 'health', 'streak'],
+      default: 'time'
+    },
+    value: Number,
+    icon: String,
+    shared: {
+      type: Boolean,
+      default: false
+    }
+  }],
+  notifications: [{
+    title: String,
+    message: String,
+    date: {
+      type: Date,
+      default: Date.now
+    },
+    type: {
+      type: String,
+      enum: ['milestone', 'motivation', 'health', 'reminder'],
+      default: 'milestone'
+    },
+    read: {
+      type: Boolean,
+      default: false
     }
   }],
   createdAt: {
