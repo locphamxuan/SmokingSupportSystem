@@ -132,8 +132,8 @@ const AdminUserPage = () => {
             onChange={(e) => setRoleFilter(e.target.value)}
           >
             <MenuItem value="all">Tất cả người dùng</MenuItem>
-            <MenuItem value="user">Người dùng thường</MenuItem>
-            <MenuItem value="premium">Người dùng Premium</MenuItem>
+            <MenuItem value="user">Tài khoản thường</MenuItem>
+            <MenuItem value="premium">Tài khoản Premium</MenuItem>
           </Select>
         </FormControl>
         
