@@ -98,6 +98,17 @@ export const updateQuitPlan = async (planData) => {
   }
 };
 
+export const updateQuitPlanProgress = async (progressData) => {
+  try {
+    const response = await axios.put(`${API_URL}/quit-plan/progress`, progressData, {
+      headers: { Authorization: `Bearer ${getToken()}` }
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Không thể cập nhật tiến độ' };
+  }
+};
+
 // Admin functions
 export const getAllUsers = async () => {
   try {
@@ -129,5 +140,16 @@ export const deleteUser = async (id) => {
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: 'Đã xảy ra lỗi' };
+  }
+};
+
+export const upgradeToAdmin = async (userId) => {
+  try {
+    const response = await axios.put(`${API_URL}/upgrade-admin`, { userId }, {
+      headers: { Authorization: `Bearer ${getToken()}` }
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Không thể nâng cấp tài khoản lên admin' };
   }
 };

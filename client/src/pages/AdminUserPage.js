@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { getUsers, updateUser, deleteUser } from "../services/adminService";
+import { upgradeToAdmin } from "../services/authService";
 import {
   Button,
   Table,
@@ -40,9 +41,11 @@ const AdminUserPage = () => {
   const fetchUsers = async () => {
     try {
       const data = await getUsers();
-      setUsers(data);
+      // Lọc ra các tài khoản không phải admin
+      const nonAdminUsers = data.filter(user => user.role !== 'admin');
+      setUsers(nonAdminUsers);
     } catch (error) {
-      alert("Cannot load user list!");
+      alert("Không thể tải danh sách người dùng!");
     }
   };
 
@@ -68,9 +71,21 @@ const AdminUserPage = () => {
     }
   };
 
+  const handleUpgradeToAdmin = async (userId) => {
+    if (window.confirm("Bạn có chắc muốn nâng cấp người dùng này lên admin?")) {
+      try {
+        await upgradeToAdmin(userId);
+        fetchUsers();
+        alert("Nâng cấp thành công!");
+      } catch (error) {
+        alert("Không thể nâng cấp người dùng: " + error.message);
+      }
+    }
+  };
+
   return (
-    <div>
-      <h2>Quản lý tài khoản</h2>
+    <div style={{ padding: '20px' }}>
+      <h2>Quản lý tài khoản người dùng</h2>
       <Table>
         <TableHead>
           <TableRow>
@@ -105,8 +120,28 @@ const AdminUserPage = () => {
               <TableCell>{user.smokingStatus?.smokingFrequency ?? ''}</TableCell>
               <TableCell>{user.smokingStatus?.healthStatus ?? ''}</TableCell>
               <TableCell>
-                <Button onClick={() => handleEdit(user)}>Cập nhập</Button>
-                <Button color="error" onClick={() => handleDelete(user._id)}>
+                <Button 
+                  variant="contained" 
+                  color="primary"
+                  onClick={() => handleEdit(user)}
+                  style={{ marginRight: '8px' }}
+                >
+                  Cập nhật
+                </Button>
+                <Button 
+                  variant="contained" 
+                  color="secondary"
+                  onClick={() => handleUpgradeToAdmin(user._id)}
+                  disabled={user.role === 'admin'}
+                  style={{ marginRight: '8px' }}
+                >
+                  Nâng cấp Admin
+                </Button>
+                <Button 
+                  variant="contained" 
+                  color="error" 
+                  onClick={() => handleDelete(user._id)}
+                >
                   Xóa
                 </Button>
               </TableCell>
@@ -116,11 +151,11 @@ const AdminUserPage = () => {
       </Table>
 
       <Dialog open={!!editUser} onClose={() => setEditUser(null)}>
-        <DialogTitle>Update users</DialogTitle>
+        <DialogTitle>Cập nhật thông tin người dùng</DialogTitle>
         <DialogContent>
           <TextField
             margin="normal"
-            label="Name"
+            label="Tên đăng nhập"
             name="username"
             value={editData.username || ""}
             onChange={handleEditChange}
@@ -136,15 +171,16 @@ const AdminUserPage = () => {
           />
           <TextField
             margin="normal"
-            label="Role"
+            label="Vai trò"
             name="role"
             value={editData.role || ""}
             onChange={handleEditChange}
             fullWidth
+            disabled
           />
           <TextField
             margin="normal"
-            label="Phone"
+            label="Số điện thoại"
             name="phoneNumber"
             value={editData.phoneNumber || ""}
             onChange={handleEditChange}
@@ -152,73 +188,17 @@ const AdminUserPage = () => {
           />
           <TextField
             margin="normal"
-            label="Address"
+            label="Địa chỉ"
             name="address"
             value={editData.address || ""}
             onChange={handleEditChange}
             fullWidth
           />
-          <TextField
-            margin="normal"
-            label="Cigarettes/Day"
-            name="smokingStatus.cigarettesPerDay"
-            value={editData.smokingStatus?.cigarettesPerDay || ""}
-            onChange={(e) => setEditData({
-              ...editData,
-              smokingStatus: {
-                ...editData.smokingStatus,
-                cigarettesPerDay: e.target.value
-              }
-            })}
-            fullWidth
-          />
-          <TextField
-            margin="normal"
-            label="Cost/Pack"
-            name="smokingStatus.costPerPack"
-            value={editData.smokingStatus?.costPerPack || ""}
-            onChange={(e) => setEditData({
-              ...editData,
-              smokingStatus: {
-                ...editData.smokingStatus,
-                costPerPack: e.target.value
-              }
-            })}
-            fullWidth
-          />
-          <TextField
-            margin="normal"
-            label="Frequency"
-            name="smokingStatus.smokingFrequency"
-            value={editData.smokingStatus?.smokingFrequency || ""}
-            onChange={(e) => setEditData({
-              ...editData,
-              smokingStatus: {
-                ...editData.smokingStatus,
-                smokingFrequency: e.target.value
-              }
-            })}
-            fullWidth
-          />
-          <TextField
-            margin="normal"
-            label="Health Status"
-            name="smokingStatus.healthStatus"
-            value={editData.smokingStatus?.healthStatus || ""}
-            onChange={(e) => setEditData({
-              ...editData,
-              smokingStatus: {
-                ...editData.smokingStatus,
-                healthStatus: e.target.value
-              }
-            })}
-            fullWidth
-          />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditUser(null)}>Cancel</Button>
-          <Button onClick={handleEditSave} variant="contained">
-            Save
+          <Button onClick={() => setEditUser(null)}>Hủy</Button>
+          <Button onClick={handleEditSave} variant="contained" color="primary">
+            Lưu
           </Button>
         </DialogActions>
       </Dialog>
