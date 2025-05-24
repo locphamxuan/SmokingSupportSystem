@@ -1,3 +1,4 @@
+// Giao diện trang quản lý người dùng cho admin
 //quản lý user cho admin
 
 import React, { useEffect, useState } from "react";
