@@ -15,13 +15,30 @@ import {
   DialogContent,
   TextField,
   DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Typography,
+  Box,
+  Chip,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
+import { 
+  Edit as EditIcon, 
+  Delete as DeleteIcon,
+  Save as SaveIcon,
+  Cancel as CancelIcon 
+} from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 
 const AdminUserPage = () => {
   const [users, setUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
   const [editUser, setEditUser] = useState(null);
   const [editData, setEditData] = useState({});
+  const [roleFilter, setRoleFilter] = useState('all');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,6 +54,17 @@ const AdminUserPage = () => {
     }
     // eslint-disable-next-line
   }, []);
+
+  useEffect(() => {
+    // Lọc users chỉ hiển thị user và premium, không hiển thị admin
+    let filtered = users.filter(user => user.role !== 'admin');
+    
+    if (roleFilter !== 'all') {
+      filtered = filtered.filter(user => user.role === roleFilter);
+    }
+    
+    setFilteredUsers(filtered);
+  }, [users, roleFilter]);
 
   const fetchUsers = async () => {
     try {
@@ -59,15 +87,36 @@ const AdminUserPage = () => {
   };
 
   const handleEditSave = async () => {
-    await updateUser(editUser._id, editData);
-    setEditUser(null);
-    fetchUsers();
+    try {
+      await updateUser(editUser._id, editData);
+      setEditUser(null);
+      fetchUsers();
+      alert("Cập nhật thành công!");
+    } catch (error) {
+      alert("Có lỗi xảy ra khi cập nhật!");
+    }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure want to delete this user?")) {
-      await deleteUser(id);
-      fetchUsers();
+    if (window.confirm("Bạn có chắc chắn muốn xóa tài khoản này?")) {
+      try {
+        await deleteUser(id);
+        fetchUsers();
+        alert("Xóa tài khoản thành công!");
+      } catch (error) {
+        alert("Có lỗi xảy ra khi xóa tài khoản!");
+      }
+    }
+  };
+
+  const getRoleColor = (role) => {
+    switch (role) {
+      case 'premium':
+        return 'warning';
+      case 'user':
+        return 'primary';
+      default:
+        return 'default';
     }
   };
 
@@ -84,35 +133,41 @@ const AdminUserPage = () => {
   };
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h2>Quản lý tài khoản người dùng</h2>
+    <div>
+      <h2>Quản lý tài khoản</h2>
       <Table>
         <TableHead>
           <TableRow>
-            <TableCell>Tên đăng nhập</TableCell>
-            <TableCell>Email</TableCell>
-            <TableCell>Vai trò</TableCell>
-            <TableCell>Số điện thoại</TableCell>
-            <TableCell>Địa chỉ</TableCell>
-            <TableCell>Ngày tạo</TableCell>
-            <TableCell>Số điếu thuốc/ngày</TableCell>
-            <TableCell>Giá hộp/gói</TableCell>
-            <TableCell>Tần suất hút thuốc</TableCell>
-            <TableCell>Tình trạng sức khỏe</TableCell>
-            <TableCell>Hành động</TableCell>
+            <TableCell><strong>Tên đăng nhập</strong></TableCell>
+            <TableCell><strong>Email</strong></TableCell>
+            <TableCell><strong>Vai trò</strong></TableCell>
+            <TableCell><strong>Số điện thoại</strong></TableCell>
+            <TableCell><strong>Địa chỉ</strong></TableCell>
+            <TableCell><strong>Ngày tạo</strong></TableCell>
+            <TableCell><strong>Số điếu thuốc/ngày</strong></TableCell>
+            <TableCell><strong>Giá hộp/gói</strong></TableCell>
+            <TableCell><strong>Tần suất hút thuốc</strong></TableCell>
+            <TableCell><strong>Tình trạng sức khỏe</strong></TableCell>
+            <TableCell><strong>Hành động</strong></TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {users.map((user) => (
+          {filteredUsers.map((user) => (
             <TableRow key={user._id}>
               <TableCell>{user.username}</TableCell>
               <TableCell>{user.email}</TableCell>
-              <TableCell>{user.role}</TableCell>
+              <TableCell>
+                <Chip 
+                  label={user.role === 'premium' ? 'Premium' : 'Người dùng'} 
+                  color={getRoleColor(user.role)}
+                  size="small"
+                />
+              </TableCell>
               <TableCell>{user.phoneNumber}</TableCell>
               <TableCell>{user.address}</TableCell>
               <TableCell>
                 {user.createdAt
-                  ? new Date(user.createdAt).toLocaleString()
+                  ? new Date(user.createdAt).toLocaleDateString('vi-VN')
                   : ""}
               </TableCell>
               <TableCell>{user.smokingStatus?.cigarettesPerDay ?? ''}</TableCell>
@@ -120,28 +175,8 @@ const AdminUserPage = () => {
               <TableCell>{user.smokingStatus?.smokingFrequency ?? ''}</TableCell>
               <TableCell>{user.smokingStatus?.healthStatus ?? ''}</TableCell>
               <TableCell>
-                <Button 
-                  variant="contained" 
-                  color="primary"
-                  onClick={() => handleEdit(user)}
-                  style={{ marginRight: '8px' }}
-                >
-                  Cập nhật
-                </Button>
-                <Button 
-                  variant="contained" 
-                  color="secondary"
-                  onClick={() => handleUpgradeToAdmin(user._id)}
-                  disabled={user.role === 'admin'}
-                  style={{ marginRight: '8px' }}
-                >
-                  Nâng cấp Admin
-                </Button>
-                <Button 
-                  variant="contained" 
-                  color="error" 
-                  onClick={() => handleDelete(user._id)}
-                >
+                <Button onClick={() => handleEdit(user)}>Cập nhập</Button>
+                <Button color="error" onClick={() => handleDelete(user._id)}>
                   Xóa
                 </Button>
               </TableCell>
@@ -151,7 +186,7 @@ const AdminUserPage = () => {
       </Table>
 
       <Dialog open={!!editUser} onClose={() => setEditUser(null)}>
-        <DialogTitle>Cập nhật thông tin người dùng</DialogTitle>
+        <DialogTitle>Update users</DialogTitle>
         <DialogContent>
           <TextField
             margin="normal"
@@ -171,12 +206,11 @@ const AdminUserPage = () => {
           />
           <TextField
             margin="normal"
-            label="Vai trò"
+            label="Role"
             name="role"
             value={editData.role || ""}
             onChange={handleEditChange}
             fullWidth
-            disabled
           />
           <TextField
             margin="normal"
@@ -194,11 +228,67 @@ const AdminUserPage = () => {
             onChange={handleEditChange}
             fullWidth
           />
+          <TextField
+            margin="normal"
+            label="Cigarettes/Day"
+            name="smokingStatus.cigarettesPerDay"
+            value={editData.smokingStatus?.cigarettesPerDay || ""}
+            onChange={(e) => setEditData({
+              ...editData,
+              smokingStatus: {
+                ...editData.smokingStatus,
+                cigarettesPerDay: e.target.value
+              }
+            })}
+            fullWidth
+          />
+          <TextField
+            margin="normal"
+            label="Cost/Pack"
+            name="smokingStatus.costPerPack"
+            value={editData.smokingStatus?.costPerPack || ""}
+            onChange={(e) => setEditData({
+              ...editData,
+              smokingStatus: {
+                ...editData.smokingStatus,
+                costPerPack: e.target.value
+              }
+            })}
+            fullWidth
+          />
+          <TextField
+            margin="normal"
+            label="Frequency"
+            name="smokingStatus.smokingFrequency"
+            value={editData.smokingStatus?.smokingFrequency || ""}
+            onChange={(e) => setEditData({
+              ...editData,
+              smokingStatus: {
+                ...editData.smokingStatus,
+                smokingFrequency: e.target.value
+              }
+            })}
+            fullWidth
+          />
+          <TextField
+            margin="normal"
+            label="Health Status"
+            name="smokingStatus.healthStatus"
+            value={editData.smokingStatus?.healthStatus || ""}
+            onChange={(e) => setEditData({
+              ...editData,
+              smokingStatus: {
+                ...editData.smokingStatus,
+                healthStatus: e.target.value
+              }
+            })}
+            fullWidth
+          />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditUser(null)}>Hủy</Button>
-          <Button onClick={handleEditSave} variant="contained" color="primary">
-            Lưu
+          <Button onClick={() => setEditUser(null)}>Cancel</Button>
+          <Button onClick={handleEditSave} variant="contained">
+            Save
           </Button>
         </DialogActions>
       </Dialog>

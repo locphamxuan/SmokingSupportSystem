@@ -131,20 +131,20 @@ const SubscriptionPlans = () => {
     }}>
       <Container>
         <Typography variant="h4" align="center" gutterBottom sx={{ mb: 5 }}>
-          Chọn Gói Dịch Vụ Phù Hợp
+          Choose Your Plan
         </Typography>
         <Typography variant="h6" align="center" color="text.secondary" paragraph>
-          Lựa chọn gói dịch vụ phù hợp với nhu cầu của bạn
+          Select the plan that best fits your needs
         </Typography>
         <Grid container spacing={4} justifyContent="center">
           <Grid item xs={12} md={6} lg={5}>
             <StyledCard>
               <CardContent sx={{ textAlign: 'center' }}>
                 <Typography variant="h5" gutterBottom sx={{ mb: 4 }}>
-                  Gói Cơ Bản
+                  Basic Plan
                 </Typography>
                 <Typography variant="h3" color="primary" gutterBottom>
-                  0đ
+                  $0
                 </Typography>
                 
                 <Divider sx={{ my: 2 }} />
@@ -165,10 +165,10 @@ const SubscriptionPlans = () => {
             <StyledCard isPremium>
               <CardContent sx={{ textAlign: 'center' }}>
                 <Typography variant="h5" gutterBottom sx={{ mb: 4 }}>
-                  Gói Premium
+                  Premium Plan
                 </Typography>
                 <Typography variant="h3" color="primary" gutterBottom>
-                  199.000đ/ month
+                  $199/month
                 </Typography>
                 
                 <Divider sx={{ my: 2 }} />
@@ -187,7 +187,7 @@ const SubscriptionPlans = () => {
                   size="large"
                   onClick={handleUpgrade}
                 >
-                  Nâng Cấp Ngay
+                  Upgrade Now
                 </UpgradeButton>
               </CardContent>
             </StyledCard>
