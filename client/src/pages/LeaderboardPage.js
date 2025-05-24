@@ -25,36 +25,36 @@ const LeaderboardPage = () => {
       minHeight: '100vh'
     }}>
       <Box sx={{ flexGrow: 1 }}>
-        <Container maxWidth="lg">
-          <Box sx={{ my: 4 }}>
-            <Typography variant="h3" component="h1" gutterBottom align="center">
-              Bảng xếp hạng thành viên
-            </Typography>
+    <Container maxWidth="lg">
+      <Box sx={{ my: 4 }}>
+        <Typography variant="h3" component="h1" gutterBottom align="center">
+          Bảng xếp hạng thành viên
+        </Typography>
 
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Ranking</TableCell>
-                    <TableCell>Username</TableCell>
-                    <TableCell align="right">Number of days of quitting smoking</TableCell>
-                    <TableCell align="right">Score</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {users.map((user, index) => (
-                    <TableRow key={user._id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>{user.username}</TableCell>
-                      <TableCell align="right">{user.daysSmokeFree}</TableCell>
-                      <TableCell align="right">{user.points}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Box>
-        </Container>
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Ranking</TableCell>
+                <TableCell>Username</TableCell>
+                <TableCell align="right">Number of days of quitting smoking</TableCell>
+                <TableCell align="right">Score</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {users.map((user, index) => (
+                <TableRow key={user._id}>
+                  <TableCell>{index + 1}</TableCell>
+                  <TableCell>{user.username}</TableCell>
+                  <TableCell align="right">{user.daysSmokeFree}</TableCell>
+                  <TableCell align="right">{user.points}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
+    </Container>
       </Box>
 
       {/* Full-width Footer with contact information */}

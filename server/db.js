@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-// Sử dụng connection string từ biến môi trường hoặc mặc định
-const mongoURI = process.env.MONGO_URI || 'mongodb://loc:loc123@127.0.0.1:27017/SmokingSupportPlatform';
+// Sử dụng connection string từ biến môi trường hoặc mặc định (không authentication)
+const mongoURI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/SmokingSupportPlatform';
 
 const connectDB = async () => {
   try {
