@@ -117,7 +117,15 @@ const SubscriptionPlans = () => {
   };
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
+    const userStr = localStorage.getItem("user");
+    let user = null;
+    try {
+      if (userStr && userStr !== 'undefined') {
+        user = JSON.parse(userStr);
+      }
+    } catch (e) {
+      user = null;
+    }
     if (user && user.role === "admin") {
       navigate("/admin/users");
     }

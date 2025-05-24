@@ -1,0 +1,96 @@
+Luồng Chức Năng Chính Theo Người Dùng
+🔹 1. Khách (Guest) – Chưa đăng nhập
+Truy cập Trang chủ → Xem giới thiệu nền tảng
+
+Xem Blog chia sẻ kinh nghiệm
+
+Xem Bảng xếp hạng thành tích
+
+Chọn Đăng ký hoặc Đăng nhập
+
+
+
+🔹 2. Thành viên (User)
+Hồ sơ cá nhân & thông tin hút thuốc
+
+Cập nhật hồ sơ, tình trạng sức khỏe
+
+Ghi nhận số lượng điếu thuốc, loại thuốc, chi phí, tần suất
+
+Lập kế hoạch cai thuốc
+
+Nhập lý do cai thuốc
+
+Tạo kế hoạch theo gợi ý hoặc tùy chỉnh
+
+Theo dõi tiến trình
+
+Ghi nhận hàng ngày
+
+Xem thống kê số ngày không hút thuốc, tiền tiết kiệm, cải thiện sức khỏe
+
+Thông báo & động viên
+
+Nhận thông báo theo mốc thời gian và lý do cá nhân
+
+Hệ thống huy hiệu & cộng đồng
+
+Nhận huy hiệu (1 ngày, 1 tuần không hút thuốc, tiết kiệm 100k…)
+
+Đăng bài chia sẻ, bình luận, động viên
+
+Đánh giá & phản hồi
+
+Gửi feedback, đánh giá hệ thống
+
+
+
+
+🔹 3. Thành viên trả phí (Premium User)
+Bao gồm tất cả tính năng của User và thêm:
+
+Tư vấn chuyên sâu
+
+Đặt câu hỏi, nhắn tin hoặc video call với Huấn luyện viên
+
+Xem báo cáo nâng cao
+
+Truy cập báo cáo chi tiết về tiến trình, sức khỏe
+
+
+
+🔹 4. Huấn luyện viên (Coach)
+Danh sách người cần hỗ trợ
+
+Xem hồ sơ, tiến trình của người dùng
+
+Tư vấn trực tuyến
+
+Chat/video call với người dùng
+
+Gửi lời khuyên phù hợp
+
+Quản lý tài liệu tư vấn
+
+Viết blog, bài chia sẻ hỗ trợ cai thuốc
+
+
+
+🔹 5. Quản trị viên (Admin)
+Quản lý tài khoản người dùng & huấn luyện viên
+
+Duyệt hồ sơ, cập nhật hoặc xóa tài khoản vi phạm
+
+Quản lý nội dung
+
+Duyệt hoặc gỡ bài viết/bình luận vi phạm
+
+Quản lý gói thành viên
+
+Tạo/chỉnh sửa/xóa gói
+
+Cấu hình giá và thời gian
+
+Báo cáo hệ thống
+
+Số lượng user, doanh thu, tổng số ngày không hút thuốc, huy hiệu...

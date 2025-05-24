@@ -59,7 +59,7 @@ const AdminUserPage = () => {
   };
 
   const handleEditSave = async () => {
-    await updateUser(editUser._id, editData);
+    await updateUser(editUser.id, editData);
     setEditUser(null);
     fetchUsers();
   };
@@ -104,9 +104,9 @@ const AdminUserPage = () => {
         </TableHead>
         <TableBody>
           {users.map((user) => (
-            <TableRow key={user._id}>
-              <TableCell>{user.username}</TableCell>
-              <TableCell>{user.email}</TableCell>
+            <TableRow key={user.id || user.Id}>
+              <TableCell>{user.username || user.Username}</TableCell>
+              <TableCell>{user.email || user.Email}</TableCell>
               <TableCell>{user.role}</TableCell>
               <TableCell>{user.phoneNumber}</TableCell>
               <TableCell>{user.address}</TableCell>
@@ -115,10 +115,10 @@ const AdminUserPage = () => {
                   ? new Date(user.createdAt).toLocaleString()
                   : ""}
               </TableCell>
-              <TableCell>{user.smokingStatus?.cigarettesPerDay ?? ''}</TableCell>
-              <TableCell>{user.smokingStatus?.costPerPack ?? ''}</TableCell>
-              <TableCell>{user.smokingStatus?.smokingFrequency ?? ''}</TableCell>
-              <TableCell>{user.smokingStatus?.healthStatus ?? ''}</TableCell>
+              <TableCell>{user.cigarettesPerDay ?? ''}</TableCell>
+              <TableCell>{user.costPerPack ?? ''}</TableCell>
+              <TableCell>{user.smokingFrequency ?? ''}</TableCell>
+              <TableCell>{user.healthStatus ?? ''}</TableCell>
               <TableCell>
                 <Button 
                   variant="contained" 
@@ -130,17 +130,8 @@ const AdminUserPage = () => {
                 </Button>
                 <Button 
                   variant="contained" 
-                  color="secondary"
-                  onClick={() => handleUpgradeToAdmin(user._id)}
-                  disabled={user.role === 'admin'}
-                  style={{ marginRight: '8px' }}
-                >
-                  Nâng cấp Admin
-                </Button>
-                <Button 
-                  variant="contained" 
                   color="error" 
-                  onClick={() => handleDelete(user._id)}
+                  onClick={() => handleDelete(user.id)}
                 >
                   Xóa
                 </Button>
@@ -191,6 +182,40 @@ const AdminUserPage = () => {
             label="Địa chỉ"
             name="address"
             value={editData.address || ""}
+            onChange={handleEditChange}
+            fullWidth
+          />
+          <TextField
+            margin="normal"
+            label="Số điếu/ngày"
+            name="cigarettesPerDay"
+            type="number"
+            value={editData.cigarettesPerDay || ""}
+            onChange={handleEditChange}
+            fullWidth
+          />
+          <TextField
+            margin="normal"
+            label="Giá hộp/gói"
+            name="costPerPack"
+            type="number"
+            value={editData.costPerPack || ""}
+            onChange={handleEditChange}
+            fullWidth
+          />
+          <TextField
+            margin="normal"
+            label="Tần suất hút thuốc"
+            name="smokingFrequency"
+            value={editData.smokingFrequency || ""}
+            onChange={handleEditChange}
+            fullWidth
+          />
+          <TextField
+            margin="normal"
+            label="Tình trạng sức khỏe"
+            name="healthStatus"
+            value={editData.healthStatus || ""}
             onChange={handleEditChange}
             fullWidth
           />

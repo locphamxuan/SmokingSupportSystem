@@ -9,11 +9,7 @@ router.post('/login', authController.login);
 
 // Profile routes
 router.get('/profile', auth.verifyToken, authController.getProfile);
-router.put('/profile', auth.verifyToken, authController.updateProfile);
-router.put('/smoking-status', auth.verifyToken, authController.updateSmokingStatus);
-router.post('/quit-plan', auth.verifyToken, authController.createQuitPlan);
-router.put('/quit-plan/progress', auth.verifyToken, authController.updateQuitPlanProgress);
 router.put('/upgrade-premium', auth.verifyToken, authController.upgradePremium);
-router.put('/upgrade-admin', auth.verifyToken, authController.upgradeToAdmin);
+router.put('/smoking-status', auth.verifyToken, authController.updateSmokingStatus);
 
 module.exports = router;

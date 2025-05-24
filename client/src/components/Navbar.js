@@ -17,7 +17,15 @@ const Navbar = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
   const isLoggedIn = !!token;
-  const user = JSON.parse(localStorage.getItem('user'));
+  const userStr = localStorage.getItem('user');
+  let user = null;
+  try {
+    if (userStr && userStr !== 'undefined') {
+      user = JSON.parse(userStr);
+    }
+  } catch (e) {
+    user = null;
+  }
   const isAdmin = user && user.role === 'admin';
 
   const handleMenu = (event) => {
