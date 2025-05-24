@@ -21,7 +21,15 @@ import {
   Typography,
   Box,
   Chip,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
+import { 
+  Edit as EditIcon, 
+  Delete as DeleteIcon,
+  Save as SaveIcon,
+  Cancel as CancelIcon 
+} from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 
 const AdminUserPage = () => {
@@ -173,24 +181,7 @@ const AdminUserPage = () => {
               <TableCell>{user.smokingStatus?.costPerPack ?? ''}</TableCell>
               <TableCell>{user.smokingStatus?.smokingFrequency ?? ''}</TableCell>
               <TableCell>{user.smokingStatus?.healthStatus ?? ''}</TableCell>
-              <TableCell>
-                <Button 
-                  onClick={() => handleEdit(user)}
-                  variant="outlined"
-                  size="small"
-                  sx={{ mr: 1 }}
-                >
-                  Cập nhật
-                </Button>
-                <Button 
-                  color="error" 
-                  onClick={() => handleDelete(user._id)}
-                  variant="outlined"
-                  size="small"
-                >
-                  Xóa
-                </Button>
-              </TableCell>
+                            <TableCell>                <Box sx={{ display: 'flex', gap: 1 }}>                  <Tooltip title="Cập nhật thông tin">                    <IconButton                       onClick={() => handleEdit(user)}                      color="primary"                      size="small"                      sx={{                         bgcolor: 'primary.main',                        color: 'white',                        '&:hover': {                          bgcolor: 'primary.dark',                          transform: 'scale(1.1)'                        },                        transition: 'all 0.2s'                      }}                    >                      <EditIcon fontSize="small" />                    </IconButton>                  </Tooltip>                                    <Tooltip title="Xóa tài khoản">                    <IconButton                       onClick={() => handleDelete(user._id)}                      color="error"                      size="small"                      sx={{                         bgcolor: 'error.main',                        color: 'white',                        '&:hover': {                          bgcolor: 'error.dark',                          transform: 'scale(1.1)'                        },                        transition: 'all 0.2s'                      }}                    >                      <DeleteIcon fontSize="small" />                    </IconButton>                  </Tooltip>                </Box>              </TableCell>
             </TableRow>
           ))}
         </TableBody>
