@@ -181,7 +181,47 @@ const AdminUserPage = () => {
               <TableCell>{user.smokingStatus?.costPerPack ?? ''}</TableCell>
               <TableCell>{user.smokingStatus?.smokingFrequency ?? ''}</TableCell>
               <TableCell>{user.smokingStatus?.healthStatus ?? ''}</TableCell>
-                            <TableCell>                <Box sx={{ display: 'flex', gap: 1 }}>                  <Tooltip title="Cập nhật thông tin">                    <IconButton                       onClick={() => handleEdit(user)}                      color="primary"                      size="small"                      sx={{                         bgcolor: 'primary.main',                        color: 'white',                        '&:hover': {                          bgcolor: 'primary.dark',                          transform: 'scale(1.1)'                        },                        transition: 'all 0.2s'                      }}                    >                      <EditIcon fontSize="small" />                    </IconButton>                  </Tooltip>                                    <Tooltip title="Xóa tài khoản">                    <IconButton                       onClick={() => handleDelete(user._id)}                      color="error"                      size="small"                      sx={{                         bgcolor: 'error.main',                        color: 'white',                        '&:hover': {                          bgcolor: 'error.dark',                          transform: 'scale(1.1)'                        },                        transition: 'all 0.2s'                      }}                    >                      <DeleteIcon fontSize="small" />                    </IconButton>                  </Tooltip>                </Box>              </TableCell>
+              <TableCell>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Tooltip title="Cập nhật thông tin">
+                    <IconButton 
+                      onClick={() => handleEdit(user)}
+                      color="primary"
+                      size="small"
+                      sx={{ 
+                        bgcolor: 'primary.main',
+                        color: 'white',
+                        '&:hover': {
+                          bgcolor: 'primary.dark',
+                          transform: 'scale(1.1)'
+                        },
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  
+                  <Tooltip title="Xóa tài khoản">
+                    <IconButton 
+                      onClick={() => handleDelete(user._id)}
+                      color="error"
+                      size="small"
+                      sx={{ 
+                        bgcolor: 'error.main',
+                        color: 'white',
+                        '&:hover': {
+                          bgcolor: 'error.dark',
+                          transform: 'scale(1.1)'
+                        },
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -305,8 +345,24 @@ const AdminUserPage = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditUser(null)}>Hủy</Button>
-          <Button onClick={handleEditSave} variant="contained">
+          <Button 
+            onClick={() => setEditUser(null)}
+            startIcon={<CancelIcon />}
+            sx={{ mr: 1 }}
+          >
+            Hủy
+          </Button>
+          <Button 
+            onClick={handleEditSave} 
+            variant="contained"
+            startIcon={<SaveIcon />}
+            sx={{
+              bgcolor: 'primary.main',
+              '&:hover': {
+                bgcolor: 'primary.dark'
+              }
+            }}
+          >
             Lưu thay đổi
           </Button>
         </DialogActions>
