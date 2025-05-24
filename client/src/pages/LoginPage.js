@@ -122,14 +122,23 @@ const LoginPage = () => {
     setError('');
     try {
       const response = await axios.post('/api/auth/login', loginData);
-      localStorage.setItem('token', response.data.token);
-      if (response.data.user.role === 'admin') {
+      const { token, user } = response.data;
+      
+      // Save token and user to localStorage
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      // Set default authorization header for future requests
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      if (user.role === 'admin') {
         navigate('/admin/users');
       } else {
         navigate('/');
       }
     } catch (error) {
-      setError(error.response?.data?.message || 'Registration failed. Please try again!');
+      console.error('Login error:', error);
+      setError(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại!');
     } finally {
       setLoading(false);
     }
@@ -150,6 +159,7 @@ const LoginPage = () => {
         address: registerData.address
       });
       localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
       navigate('/');
     } catch (error) {
       setError(error.response?.data?.message || 'Registration failed. Please try again!');
