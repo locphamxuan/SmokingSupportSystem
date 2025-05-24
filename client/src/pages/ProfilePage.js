@@ -116,7 +116,13 @@ const ProfilePage = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      await axios.put('/api/auth/smoking-status', userData.smokingStatus, {
+      await axios.put('/api/auth/smoking-status', {
+        cigarettesPerDay: userData.smokingStatus.cigarettesPerDay,
+        costPerPack: userData.smokingStatus.costPerPack,
+        smokingFrequency: userData.smokingStatus.smokingFrequency,
+        healthStatus: userData.smokingStatus.healthStatus,
+        quitReason: userData.smokingStatus.quitReason,
+      }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSuccess('Smoking status updated successfully!');

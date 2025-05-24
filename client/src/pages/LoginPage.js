@@ -173,12 +173,12 @@ const LoginPage = () => {
       <Box sx={{ my: 4 }}>
         <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
           <Box sx={{ mb: 3, textAlign: 'center' }}>
-            <h2>{activeTab === 0 ? 'Login' : 'Register'}</h2>
+            <h2>{activeTab === 0 ? 'Đăng ký' : 'Đăng nhập'}</h2>
           </Box>
           
           <Tabs value={activeTab} onChange={handleTabChange} centered sx={{ mb: 3 }}>
-            <Tab label="Login" />
-            <Tab label="Register" />
+            <Tab label="Đăng ký" />
+            <Tab label="Đăng nhập" />
           </Tabs>
 
           {error && (
@@ -207,7 +207,7 @@ const LoginPage = () => {
                 margin="normal"
                 required
                 fullWidth
-                label="Password"
+                label="Mật khẩu"
                 name="password"
                 type="password"
                 value={loginData.password}
@@ -218,7 +218,7 @@ const LoginPage = () => {
               />
               <Box sx={{ mt: 1, mb: 2, textAlign: 'right' }}>
                 <Link href="/forgot-password" variant="body2">
-                  Forgot password?
+                  Quên mật khẩu?
                 </Link>
               </Box>
               <Button
@@ -228,7 +228,7 @@ const LoginPage = () => {
                 disabled={loading}
                 sx={{ mt: 3, mb: 2, py: 1.5 }}
               >
-                {loading ? <CircularProgress size={24} /> : 'Login'}
+                {loading ? <CircularProgress size={24} /> : 'Đăng nhập'}
               </Button>
             </Box>
           ) : (
@@ -240,7 +240,7 @@ const LoginPage = () => {
                 margin="normal"
                 required
                 fullWidth
-                label="Username"
+                label="Tên đăng nhập"
                 name="username"
                 value={registerData.username}
                 onChange={handleRegisterInputChange}
@@ -252,7 +252,7 @@ const LoginPage = () => {
                 margin="normal"
                 required
                 fullWidth
-                label="phone"
+                label="Số điện thoại"
                 name="phoneNumber"
                 value={registerData.phoneNumber}
                 onChange={handleRegisterInputChange}
@@ -264,7 +264,7 @@ const LoginPage = () => {
                 margin="normal"
                 required
                 fullWidth
-                label="Address"
+                label="Địa chỉ"
                 name="address"
                 value={registerData.address}
                 onChange={handleRegisterInputChange}
@@ -289,7 +289,7 @@ const LoginPage = () => {
                 margin="normal"
                 required
                 fullWidth
-                label="Password"
+                label="Mật khẩu"
                 name="password"
                 type="password"
                 value={registerData.password}
@@ -302,7 +302,7 @@ const LoginPage = () => {
                 margin="normal"
                 required
                 fullWidth
-                label="Confirm password"
+                label="Xác nhận mật khẩu"
                 name="confirmPassword"
                 type="password"
                 value={registerData.confirmPassword}
@@ -318,7 +318,7 @@ const LoginPage = () => {
                 disabled={loading}
                 sx={{ mt: 3, mb: 2, py: 1.5 }}
               >
-                {loading ? <CircularProgress size={24} /> : 'Register'}
+                {loading ? <CircularProgress size={24} /> : 'Đăng ký'}
               </Button>
             </Box>
           )}

@@ -2,12 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
 require('dotenv').config();
+const { connectDB } = require('./db');
 
 const app = express();
 const adminRoutes = require('./routes/adminRoutes');
-const connectDB = require('./db');
 
-// Kết nối MongoDB dùng chung
 connectDB();
 
 app.use(cors());
