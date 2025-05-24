@@ -193,34 +193,12 @@ const ProfilePage = () => {
                 Back to Home
               </Button>
             </Box>
-            
-            <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: '#1976d2' }}>
-              Personal Profile
-            </Typography>
 
             <Tabs value={activeTab} onChange={handleTabChange} sx={{ mb: 3 }}>
-              <Tab label="Personal Information" />
-              <Tab label="Smoking Status" />
-              <Tab 
-                label="Quit Plan" 
-                disabled={!userData.isPremium}
-                sx={{ 
-                  opacity: userData.isPremium ? 1 : 0.5,
-                  '&.Mui-disabled': {
-                    color: 'text.secondary'
-                  }
-                }}
-              />
-              <Tab 
-                label="Achievements" 
-                disabled={!userData.isPremium}
-                sx={{ 
-                  opacity: userData.isPremium ? 1 : 0.5,
-                  '&.Mui-disabled': {
-                    color: 'text.secondary'
-                  }
-                }}
-              />
+              <Tab label="Thông tin cá nhân" />
+              <Tab label="Tình trạng hút thuốc" />
+              <Tab label="Kế hoạch cai thuốc" />
+              <Tab label="Thành tích" />
             </Tabs>
 
             <Snackbar
@@ -243,7 +221,7 @@ const ProfilePage = () => {
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="Username"
+                      label="Tên người dùng"
                       value={userData.username}
                       onChange={(e) => setUserData({ ...userData, username: e.target.value })}
                       margin="normal"
@@ -261,7 +239,7 @@ const ProfilePage = () => {
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="Phone Number"
+                      label="Số điện thoại"
                       value={userData.phoneNumber}
                       onChange={(e) => setUserData({ ...userData, phoneNumber: e.target.value })}
                       margin="normal"
@@ -269,25 +247,246 @@ const ProfilePage = () => {
                     />
                     <TextField
                       fullWidth
-                      label="Address"
+                      label="Địa chỉ"
                       value={userData.address}
                       onChange={(e) => setUserData({ ...userData, address: e.target.value })}
                       margin="normal"
                       disabled={loading}
+=========
+    <Container maxWidth="lg">
+      <Box sx={{ my: 4 }}>
+        <Typography variant="h4" gutterBottom>
+          Personal Profile
+        </Typography>
+
+        <Tabs value={activeTab} onChange={handleTabChange} sx={{ mb: 3 }}>
+          <Tab label="Personal Information" />
+          <Tab label="Smoking Status" />
+          <Tab 
+            label="Quit Plan" 
+            disabled={!userData.isPremium}
+            sx={{ 
+              opacity: userData.isPremium ? 1 : 0.5,
+              '&.Mui-disabled': {
+                color: 'text.secondary'
+              }
+            }}
+          />
+          <Tab 
+            label="Achievements" 
+            disabled={!userData.isPremium}
+            sx={{ 
+              opacity: userData.isPremium ? 1 : 0.5,
+              '&.Mui-disabled': {
+                color: 'text.secondary'
+              }
+            }}
+          />
+        </Tabs>
+
+        <Snackbar
+          open={!!error || !!success}
+          autoHideDuration={6000}
+          onClose={handleCloseSnackbar}
+        >
+          <Alert
+            onClose={handleCloseSnackbar}
+            severity={error ? 'error' : 'success'}
+            sx={{ width: '100%' }}
+          >
+            {error || success}
+          </Alert>
+        </Snackbar>
+
+        {activeTab === 0 && (
+          <Paper sx={{ p: 3 }}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Username"
+                  value={userData.username}
+                  onChange={(e) => setUserData({ ...userData, username: e.target.value })}
+                  margin="normal"
+                  disabled={loading}
+                />
+                <TextField
+                  fullWidth
+                  label="Email"
+                  value={userData.email}
+                  onChange={(e) => setUserData({ ...userData, email: e.target.value })}
+                  margin="normal"
+                  disabled={loading}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Phone Number"
+                  value={userData.phoneNumber}
+                  onChange={(e) => setUserData({ ...userData, phoneNumber: e.target.value })}
+                  margin="normal"
+                  disabled={loading}
+                />
+                <TextField
+                  fullWidth
+                  label="Address"
+                  value={userData.address}
+                  onChange={(e) => setUserData({ ...userData, address: e.target.value })}
+                  margin="normal"
+                  disabled={loading}
+                />
+              </Grid>
+            </Grid>
+            <Button
+              variant="contained"
+              onClick={handleUpdateProfile}
+              sx={{ mt: 3 }}
+              disabled={loading}
+            >
+              {loading ? 'Updating...' : 'Update Profile'}
+            </Button>
+          </Paper>
+        )}
+
+        {activeTab === 1 && (
+          <Paper sx={{ p: 3 }}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Cigarettes per day"
+                  value={userData.smokingStatus.cigarettesPerDay}
+                  onChange={(e) => setUserData({
+                    ...userData,
+                    smokingStatus: {
+                      ...userData.smokingStatus,
+                      cigarettesPerDay: e.target.value
+                    }
+                  })}
+                  margin="normal"
+                  disabled={loading}
+                />
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Cost per pack ($)"
+                  value={userData.smokingStatus.costPerPack}
+                  onChange={(e) => setUserData({
+                    ...userData,
+                    smokingStatus: {
+                      ...userData.smokingStatus,
+                      costPerPack: e.target.value
+                    }
+                  })}
+                  margin="normal"
+                  disabled={loading}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Smoking frequency"
+                  value={userData.smokingStatus.smokingFrequency}
+                  onChange={(e) => setUserData({
+                    ...userData,
+                    smokingStatus: {
+                      ...userData.smokingStatus,
+                      smokingFrequency: e.target.value
+                    }
+                  })}
+                  margin="normal"
+                  disabled={loading}
+                />
+                <TextField
+                  fullWidth
+                  label="Health status"
+                  value={userData.smokingStatus.healthStatus}
+                  onChange={(e) => setUserData({
+                    ...userData,
+                    smokingStatus: {
+                      ...userData.smokingStatus,
+                      healthStatus: e.target.value
+                    }
+                  })}
+                  margin="normal"
+                  disabled={loading}
+                />
+              </Grid>
+            </Grid>
+            <Button
+              variant="contained"
+              onClick={handleUpdateSmokingStatus}
+              sx={{ mt: 3 }}
+              disabled={loading}
+            >
+              {loading ? 'Updating...' : 'Update Status'}
+            </Button>
+          </Paper>
+        )}
+
+        {activeTab === 2 && userData.isPremium && (
+          <Paper sx={{ p: 3 }}>
+            {userData.quitPlan.startDate ? (
+              <>
+                <Typography variant="h6" gutterBottom>
+                  Current Quit Plan
+                </Typography>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <Typography>
+                      Start Date: {new Date(userData.quitPlan.startDate).toLocaleDateString()}
+                    </Typography>
+                    <Typography>
+                      Target Date: {new Date(userData.quitPlan.targetDate).toLocaleDateString()}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle1">Progress</Typography>
+                    <LinearProgress
+                      variant="determinate"
+                      value={userData.quitPlan.currentProgress}
+                      sx={{ height: 10, borderRadius: 5 }}
+>>>>>>>>> Temporary merge branch 2
                     />
                   </Grid>
                 </Grid>
+<<<<<<<<< Temporary merge branch 1
                 <Button
                   variant="contained"
                   onClick={handleUpdateProfile}
                   sx={{ mt: 3 }}
                   disabled={loading}
                 >
-                  {loading ? 'Updating...' : 'Update Profile'}
+                  {loading ? 'Đang cập nhật...' : 'Cập nhật thông tin'}
                 </Button>
               </Paper>
+=========
+                <List>
+                  {userData.quitPlan.milestones.map((milestone, index) => (
+                    <ListItem key={index}>
+                      <ListItemText
+                        primary={milestone.title}
+                        secondary={milestone.date}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              </>
+            ) : (
+              <Button
+                variant="contained"
+                onClick={handleCreateQuitPlan}
+                sx={{ mt: 2 }}
+                disabled={loading}
+              >
+                Create New Quit Plan
+              </Button>
+>>>>>>>>> Temporary merge branch 2
             )}
 
+<<<<<<<<< Temporary merge branch 1
             {activeTab === 1 && (
               <Paper sx={{ p: 3 }}>
                 <Grid container spacing={3}>
@@ -295,7 +494,7 @@ const ProfilePage = () => {
                     <TextField
                       fullWidth
                       type="number"
-                      label="Cigarettes per day"
+                      label="Số điếu thuốc/ngày"
                       value={userData.smokingStatus.cigarettesPerDay}
                       onChange={(e) => setUserData({
                         ...userData,
@@ -310,7 +509,7 @@ const ProfilePage = () => {
                     <TextField
                       fullWidth
                       type="number"
-                      label="Cost per pack ($)"
+                      label="Chi phí/gói (VNĐ)"
                       value={userData.smokingStatus.costPerPack}
                       onChange={(e) => setUserData({
                         ...userData,
@@ -326,7 +525,7 @@ const ProfilePage = () => {
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="Smoking frequency"
+                      label="Tần suất hút thuốc"
                       value={userData.smokingStatus.smokingFrequency}
                       onChange={(e) => setUserData({
                         ...userData,
@@ -340,7 +539,7 @@ const ProfilePage = () => {
                     />
                     <TextField
                       fullWidth
-                      label="Health status"
+                      label="Tình trạng sức khỏe"
                       value={userData.smokingStatus.healthStatus}
                       onChange={(e) => setUserData({
                         ...userData,
@@ -353,6 +552,30 @@ const ProfilePage = () => {
                       disabled={loading}
                     />
                   </Grid>
+=========
+        {activeTab === 3 && userData.isPremium && (
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Badges and Achievements
+            </Typography>
+            <Grid container spacing={2}>
+              {userData.achievements.map((achievement, index) => (
+                <Grid item xs={12} sm={6} md={4} key={index}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6">{achievement.title}</Typography>
+                      <Typography color="textSecondary">
+                        {achievement.description}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mt: 1 }}>
+                        Achieved: {new Date(achievement.date).toLocaleDateString()}
+                      </Typography>
+                    </CardContent>
+                    <CardActions>
+                      <Button size="small">Share</Button>
+                    </CardActions>
+                  </Card>
+>>>>>>>>> Temporary merge branch 2
                 </Grid>
                 <Button
                   variant="contained"
@@ -360,29 +583,30 @@ const ProfilePage = () => {
                   sx={{ mt: 3 }}
                   disabled={loading}
                 >
-                  {loading ? 'Updating...' : 'Update Status'}
+                  {loading ? 'Đang cập nhật...' : 'Cập nhật tình trạng'}
                 </Button>
               </Paper>
             )}
 
-            {activeTab === 2 && userData.isPremium && (
+<<<<<<<<< Temporary merge branch 1
+            {activeTab === 2 && (
               <Paper sx={{ p: 3 }}>
                 {userData.quitPlan.startDate ? (
                   <>
                     <Typography variant="h6" gutterBottom>
-                      Current Quit Plan
+                      Kế hoạch cai thuốc hiện tại
                     </Typography>
                     <Grid container spacing={3}>
                       <Grid item xs={12} md={6}>
                         <Typography>
-                          Start Date: {new Date(userData.quitPlan.startDate).toLocaleDateString()}
+                          Ngày bắt đầu: {new Date(userData.quitPlan.startDate).toLocaleDateString()}
                         </Typography>
                         <Typography>
-                          Target Date: {new Date(userData.quitPlan.targetDate).toLocaleDateString()}
+                          Mục tiêu: {new Date(userData.quitPlan.targetDate).toLocaleDateString()}
                         </Typography>
                       </Grid>
                       <Grid item xs={12} md={6}>
-                        <Typography variant="subtitle1">Progress</Typography>
+                        <Typography variant="subtitle1">Tiến độ</Typography>
                         <LinearProgress
                           variant="determinate"
                           value={userData.quitPlan.currentProgress}
@@ -445,61 +669,22 @@ const ProfilePage = () => {
               </Paper>
             )}
 
-            {!userData.isPremium && (
-              <Paper sx={{ p: 3, mt: 3, bgcolor: 'warning.light' }}>
-                <Typography variant="h6" gutterBottom>
-                  Upgrade to Premium
-                </Typography>
-                <Typography variant="body1" paragraph>
-                  Upgrade to Premium account to:
-                </Typography>
-                <List>
-                  <ListItem>
-                    <ListItemText
-                      primary="Create Quit Plan"
-                      secondary="Create and track your personal quit smoking plan"
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText
-                      primary="View Achievements"
-                      secondary="Track progress and earn badges"
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText
-                      primary="Coach Consultation"
-                      secondary="Ask questions and get online advice"
-                    />
-                  </ListItem>
-                </List>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => navigate('/subscription')}
-                  sx={{ mt: 2 }}
-                >
-                  Upgrade Now
-                </Button>
-              </Paper>
-            )}
-
             {userData.isPremium && (
               <Paper sx={{ p: 3, mt: 3, bgcolor: 'primary.light' }}>
                 <Typography variant="h6" gutterBottom>
-                  Premium Features
+                  Tính năng Premium
                 </Typography>
                 <List>
                   <ListItem>
                     <ListItemText
-                      primary="Coach Consultation"
-                      secondary="Ask questions and get online advice"
+                      primary="Tư vấn từ huấn luyện viên"
+                      secondary="Đặt câu hỏi và nhận tư vấn trực tuyến"
                     />
                   </ListItem>
                   <ListItem>
                     <ListItemText
-                      primary="Detailed Reports"
-                      secondary="View advanced reports about your quit journey"
+                      primary="Báo cáo chi tiết"
+                      secondary="Xem các báo cáo nâng cao về quá trình cai thuốc"
                     />
                   </ListItem>
                 </List>
@@ -547,15 +732,77 @@ const ProfilePage = () => {
             © 2025 Smoking Support Platform. Mọi quyền được bảo lưu.
           </Typography>
         </Container>
+=========
+        {!userData.isPremium && (
+          <Paper sx={{ p: 3, mt: 3, bgcolor: 'warning.light' }}>
+            <Typography variant="h6" gutterBottom>
+              Upgrade to Premium
+            </Typography>
+            <Typography variant="body1" paragraph>
+              Upgrade to Premium account to:
+            </Typography>
+            <List>
+              <ListItem>
+                <ListItemText
+                  primary="Create Quit Plan"
+                  secondary="Create and track your personal quit smoking plan"
+                />
+              </ListItem>
+              <ListItem>
+                <ListItemText
+                  primary="View Achievements"
+                  secondary="Track progress and earn badges"
+                />
+              </ListItem>
+              <ListItem>
+                <ListItemText
+                  primary="Coach Consultation"
+                  secondary="Ask questions and get online advice"
+                />
+              </ListItem>
+            </List>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => navigate('/subscription')}
+              sx={{ mt: 2 }}
+            >
+              Upgrade Now
+            </Button>
+          </Paper>
+        )}
+
+        {userData.isPremium && (
+          <Paper sx={{ p: 3, mt: 3, bgcolor: 'primary.light' }}>
+            <Typography variant="h6" gutterBottom>
+              Premium Features
+            </Typography>
+            <List>
+              <ListItem>
+                <ListItemText
+                  primary="Coach Consultation"
+                  secondary="Ask questions and get online advice"
+                />
+              </ListItem>
+              <ListItem>
+                <ListItemText
+                  primary="Detailed Reports"
+                  secondary="View advanced reports about your quit journey"
+                />
+              </ListItem>
+            </List>
+          </Paper>
+        )}
+>>>>>>>>> Temporary merge branch 2
       </Box>
 
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-        <DialogTitle>Create New Quit Plan</DialogTitle>
+        <DialogTitle>Tạo kế hoạch cai thuốc mới</DialogTitle>
         <DialogContent>
           <TextField
             fullWidth
             type="date"
-            label="Start Date"
+            label="Ngày bắt đầu"
             value={userData.quitPlan.startDate}
             onChange={(e) => setUserData({
               ...userData,
@@ -571,7 +818,7 @@ const ProfilePage = () => {
           <TextField
             fullWidth
             type="date"
-            label="Target Date"
+            label="Ngày mục tiêu"
             value={userData.quitPlan.targetDate}
             onChange={(e) => setUserData({
               ...userData,
@@ -587,10 +834,10 @@ const ProfilePage = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)} disabled={loading}>
-            Cancel
+            Hủy
           </Button>
           <Button onClick={handleSaveQuitPlan} variant="contained" disabled={loading}>
-            {loading ? 'Creating...' : 'Create Plan'}
+            {loading ? 'Đang tạo...' : 'Tạo kế hoạch'}
           </Button>
         </DialogActions>
       </Dialog>

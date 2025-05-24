@@ -1,6 +1,6 @@
 //trang đăng ký gói nâng cấp
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Grid,
@@ -21,6 +21,7 @@ import {
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useNavigate } from 'react-router-dom';
 import Payment from '../components/Payment';
+import axios from 'axios';
 
 // Styled components
 const StyledCard = styled(Card)(({ theme, isPremium }) => ({
@@ -68,18 +69,18 @@ const SubscriptionPlans = () => {
 
   const features = {
     free: [
-      'Track quit smoking time',
-      'Basic quit smoking journal',
-      'Simple statistics',
-      'Support community'
+      'Theo dõi thời gian cai thuốc',
+      'Nhật ký cai thuốc cơ bản',
+      'Thống kê đơn giản',
+      'Cộng đồng hỗ trợ'
     ],
     premium: [
-      'All Free features',
-      'Detailed journal with images',
-      'Advanced statistics',
-      'Expert consultation',
-      'Personalized quit plan',
-      'Ad-free experience'
+      'Tất cả tính năng Free',
+      'Nhật ký chi tiết với hình ảnh',
+      'Thống kê nâng cao',
+      'Tư vấn chuyên gia',
+      'Kế hoạch cai thuốc cá nhân hóa',
+      'Ứng dụng không quảng cáo'
     ]
   };
 
@@ -92,130 +93,107 @@ const SubscriptionPlans = () => {
     setSuccess('');
   };
 
-  const handlePaymentSuccess = () => {
-    setSuccess('Account upgrade successful!');
-    setTimeout(() => {
-      navigate('/profile');
-    }, 2000);
+  const handlePaymentSuccess = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        const res = await axios.put('/api/auth/upgrade-premium', {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data && res.data.user) {
+          localStorage.setItem('user', JSON.stringify(res.data.user));
+        }
+      }
+      setSuccess('Nâng cấp tài khoản thành công!');
+      setTimeout(() => {
+        navigate('/profile');
+      }, 2000);
+    } catch (e) {
+      setSuccess('Nâng cấp tài khoản thành công!');
+      setTimeout(() => {
+        navigate('/profile');
+      }, 2000);
+    }
   };
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (user && user.role === "admin") {
+      navigate("/admin/users");
+    }
+  }, [navigate]);
 
   return (
     <Box sx={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      minHeight: '100vh'
+      minHeight: '100vh',
+      backgroundColor: '#f8f9fa',
+      py: 5
     }}>
-      <Box sx={{ 
-        flexGrow: 1,
-        backgroundColor: '#f8f9fa',
-        py: 5
-      }}>
-        <Container>
-          <Typography variant="h4" align="center" gutterBottom sx={{ mb: 5 }}>
-            Choose Your Plan
-          </Typography>
-          <Typography variant="h6" align="center" color="text.secondary" paragraph>
-            Select the plan that best fits your needs
-          </Typography>
-          <Grid container spacing={4} justifyContent="center">
-            <Grid item xs={12} md={6} lg={5}>
-              <StyledCard>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <Typography variant="h5" gutterBottom sx={{ mb: 4 }}>
-                    Basic Plan
-                  </Typography>
-                  <Typography variant="h3" color="primary" gutterBottom>
-                    $0
-                  </Typography>
-                  
-                  <Divider sx={{ my: 2 }} />
-                  <FeatureList>
-                    {features.free.map((feature, index) => (
-                      <FeatureItem key={index}>
-                        <ListItemIcon sx={{ minWidth: 40 }}>
-                          <CheckCircleIcon sx={{ color: '#28a745' }} />
-                        </ListItemIcon>
-                        <ListItemText primary={feature} />
-                      </FeatureItem>
-                    ))}
-                  </FeatureList>
-                </CardContent>
-              </StyledCard>
-            </Grid>
-            <Grid item xs={12} md={6} lg={5}>
-              <StyledCard isPremium>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <Typography variant="h5" gutterBottom sx={{ mb: 4 }}>
-                    Premium Plan
-                  </Typography>
-                  <Typography variant="h3" color="primary" gutterBottom>
-                    $199/month
-                  </Typography>
-                  
-                  <Divider sx={{ my: 2 }} />
-                  <FeatureList>
-                    {features.premium.map((feature, index) => (
-                      <FeatureItem key={index}>
-                        <ListItemIcon sx={{ minWidth: 40 }}>
-                          <CheckCircleIcon sx={{ color: 'white' }} />
-                        </ListItemIcon>
-                        <ListItemText primary={feature} />
-                      </FeatureItem>
-                    ))}
-                  </FeatureList>
-                  <UpgradeButton
-                    variant="contained"
-                    size="large"
-                    onClick={handleUpgrade}
-                  >
-                    Upgrade Now
-                  </UpgradeButton>
-                </CardContent>
-              </StyledCard>
-            </Grid>
+      <Container>
+        <Typography variant="h4" align="center" gutterBottom sx={{ mb: 5 }}>
+          Choose Your Plan
+        </Typography>
+        <Typography variant="h6" align="center" color="text.secondary" paragraph>
+          Select the plan that best fits your needs
+        </Typography>
+        <Grid container spacing={4} justifyContent="center">
+          <Grid item xs={12} md={6} lg={5}>
+            <StyledCard>
+              <CardContent sx={{ textAlign: 'center' }}>
+                <Typography variant="h5" gutterBottom sx={{ mb: 4 }}>
+                  Basic Plan
+                </Typography>
+                <Typography variant="h3" color="primary" gutterBottom>
+                  $0
+                </Typography>
+                
+                <Divider sx={{ my: 2 }} />
+                <FeatureList>
+                  {features.free.map((feature, index) => (
+                    <FeatureItem key={index}>
+                      <ListItemIcon sx={{ minWidth: 40 }}>
+                        <CheckCircleIcon sx={{ color: '#28a745' }} />
+                      </ListItemIcon>
+                      <ListItemText primary={feature} />
+                    </FeatureItem>
+                  ))}
+                </FeatureList>
+              </CardContent>
+            </StyledCard>
           </Grid>
-        </Container>
-      </Box>
-
-      {/* Full-width Footer with contact information */}
-      <Box 
-        component="footer" 
-        sx={{ 
-          py: 4, 
-          backgroundColor: '#1e3a8a', 
-          textAlign: 'center',
-          width: '100%',
-          left: 0,
-          right: 0,
-          borderTop: '1px solid #2563eb',
-          color: 'white',
-          boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.1)'
-        }}
-      >
-        <Container maxWidth="lg">
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: '#60a5fa' }}>
-            Nền tảng hỗ trợ cai nghiện thuốc lá
-          </Typography>
-          
-          <Divider sx={{ my: 2, mx: 'auto', width: '50%', borderColor: 'rgba(255,255,255,0.2)' }} />
-          
-          <Box sx={{ my: 2 }}>
-            <Typography variant="body1" gutterBottom sx={{ color: '#e5e7eb' }}>
-              <strong style={{ color: '#93c5fd' }}>Hotline:</strong> 1800-8888-77
-            </Typography>
-            <Typography variant="body1" gutterBottom sx={{ color: '#e5e7eb' }}>
-              <strong style={{ color: '#93c5fd' }}>Email:</strong> support@smokingsupport.com
-            </Typography>
-            <Typography variant="body1" gutterBottom sx={{ color: '#e5e7eb' }}>
-              <strong style={{ color: '#93c5fd' }}>Website:</strong> www.smokingsupport.com
-            </Typography>
-          </Box>
-          
-          <Typography variant="body2" color="#bfdbfe" sx={{ mt: 2 }}>
-            © 2025 Smoking Support Platform. Mọi quyền được bảo lưu.
-          </Typography>
-        </Container>
-      </Box>
+          <Grid item xs={12} md={6} lg={5}>
+            <StyledCard isPremium>
+              <CardContent sx={{ textAlign: 'center' }}>
+                <Typography variant="h5" gutterBottom sx={{ mb: 4 }}>
+                  Premium Plan
+                </Typography>
+                <Typography variant="h3" color="primary" gutterBottom>
+                  $199/month
+                </Typography>
+                
+                <Divider sx={{ my: 2 }} />
+                <FeatureList>
+                  {features.premium.map((feature, index) => (
+                    <FeatureItem key={index}>
+                      <ListItemIcon sx={{ minWidth: 40 }}>
+                        <CheckCircleIcon sx={{ color: 'white' }} />
+                      </ListItemIcon>
+                      <ListItemText primary={feature} />
+                    </FeatureItem>
+                  ))}
+                </FeatureList>
+                <UpgradeButton
+                  variant="contained"
+                  size="large"
+                  onClick={handleUpgrade}
+                >
+                  Upgrade Now
+                </UpgradeButton>
+              </CardContent>
+            </StyledCard>
+          </Grid>
+        </Grid>
+      </Container>
 
       <Payment
         open={paymentOpen}

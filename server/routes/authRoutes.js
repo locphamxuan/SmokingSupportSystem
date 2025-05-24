@@ -13,5 +13,6 @@ router.put('/profile', auth.verifyToken, authController.updateProfile);
 router.put('/smoking-status', auth.verifyToken, authController.updateSmokingStatus);
 router.post('/quit-plan', auth.verifyToken, authController.createQuitPlan);
 router.put('/quit-plan', auth.verifyToken, authController.updateQuitPlan);
+router.put('/upgrade-premium', auth.verifyToken, authController.upgradePremium);
 
 module.exports = router;

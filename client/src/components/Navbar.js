@@ -17,6 +17,8 @@ const Navbar = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
   const isLoggedIn = !!token;
+  const user = JSON.parse(localStorage.getItem('user'));
+  const isAdmin = user && user.role === 'admin';
 
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -28,6 +30,7 @@ const Navbar = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     handleClose();
     navigate('/login');
   };
@@ -36,21 +39,21 @@ const Navbar = () => {
     <AppBar position="static">
       <Toolbar>
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          Smoking Support
+          Website hỗ trợ cai thuốc
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <Button color="inherit" component={RouterLink} to="/">
-            Home 
+            Trang chủ 
           </Button>
           <Button color="inherit" component={RouterLink} to="/blog">
-            Blog
+            Diễn đàn
           </Button>
           <Button color="inherit" component={RouterLink} to="/leaderboard">
-            Rankings
+            Bảng xếp hạng
           </Button>
           {isLoggedIn && (
             <Button color="inherit" component={RouterLink} to="/subscription">
-              Buy Package
+              Gói dịch vụ
             </Button>
           )}
           
@@ -82,20 +85,32 @@ const Navbar = () => {
                 open={Boolean(anchorEl)}
                 onClose={handleClose}
               >
-                <MenuItem 
-                  onClick={() => {
-                    handleClose();
-                    navigate('/profile');
-                  }}
-                >
-                  Profile
-                </MenuItem>
-                <MenuItem onClick={handleLogout}>Logout</MenuItem>
+                {!isAdmin && (
+                  <MenuItem 
+                    onClick={() => {
+                      handleClose();
+                      navigate('/profile');
+                    }}
+                  >
+                    Profile
+                  </MenuItem>
+                )}
+                {isAdmin && (
+                  <MenuItem
+                    onClick={() => {
+                      handleClose();
+                      navigate('/admin/users');
+                    }}
+                  >
+                    Quản lý tài khoản
+                  </MenuItem>
+                )}
+                <MenuItem onClick={handleLogout}>Đăng xuất</MenuItem>
               </Menu>
             </>
           ) : (
             <Button color="inherit" component={RouterLink} to="/login">
-              Login
+              Đăng nhập
             </Button>
           )}
         </Box>
