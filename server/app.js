@@ -1,27 +1,31 @@
 const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 require('dotenv').config();
 const { connectDB } = require('./db');
 
 const app = express();
-const adminRoutes = require('./routes/adminRoutes');
 
-connectDB();
-
+// Middleware
 app.use(cors());
 app.use(express.json());
-app.use('/api/admin', adminRoutes);
+
+// Connect to database
+connectDB();
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', require('./routes/adminRoutes'));
 
 app.get('/api/test', (req, res) => {
   res.json({ message: 'API is working!' });
 });
 
-app.use('/api/auth', authRoutes);
-
+// Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!' });
+  res.status(500).json({ message: 'Có lỗi xảy ra!', error: err.message });
 });
 
 const PORT = process.env.PORT || 5000;

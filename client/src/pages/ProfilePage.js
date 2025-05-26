@@ -55,7 +55,7 @@ const ProfilePage = () => {
       currentProgress: 0
     },
     achievements: [],
-    isPremium: false
+    role: 'guest'
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -71,12 +71,19 @@ const ProfilePage = () => {
         return;
       }
 
-      const response = await axios.get('/api/auth/profile', {
+      const response = await axios.get('http://localhost:5000/api/auth/profile', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUserData(response.data);
     } catch (error) {
-      setError('Unable to load user information. Please try again later.');
+      console.error('Error fetching profile:', error);
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login');
+      } else {
+        setError('Unable to load profile information. Please try again later.');
+      }
     } finally {
       setLoading(false);
     }
@@ -87,8 +94,8 @@ const ProfilePage = () => {
   }, [fetchUserData]);
 
   const handleTabChange = (event, newValue) => {
-    if (!userData.isPremium && (newValue === 2 || newValue === 3)) {
-      setError('Please upgrade to Premium account to use this feature');
+    if (userData.role === 'guest' && (newValue === 2 || newValue === 3)) {
+      setError('Please upgrade to Member account to use this feature');
       return;
     }
     setActiveTab(newValue);
@@ -100,35 +107,106 @@ const ProfilePage = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      await axios.put('/api/auth/profile', userData, {
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+      // Validate input
+      if (!userData.username || !userData.email) {
+        setError('Vui lòng nhập đầy đủ tên đăng nhập và email.');
+        setLoading(false);
+        return;
+      }
+      await axios.put('http://localhost:5000/api/auth/profile', {
+        username: userData.username,
+        email: userData.email,
+        phoneNumber: userData.phoneNumber,
+        address: userData.address
+      }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSuccess('Profile updated successfully!');
+      setSuccess('Cập nhật thông tin cá nhân thành công!');
       setError('');
     } catch (error) {
-      setError('Failed to update profile. Please try again later.');
+      console.error('Error updating profile:', error);
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login');
+      } else if (error.response?.status === 400) {
+        setError(error.response.data.message || 'Vui lòng nhập đầy đủ thông tin.');
+      } else {
+        setError('Cập nhật thông tin cá nhân thất bại. Vui lòng thử lại.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleUpdateSmokingStatus = async () => {
+    // Validate input
+    const { cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, dailyLog } = userData.smokingStatus;
+    if (
+      cigarettesPerDay === undefined ||
+      costPerPack === undefined ||
+      smokingFrequency === undefined ||
+      healthStatus === undefined ||
+      cigaretteType === undefined ||
+      dailyLog === undefined ||
+      cigarettesPerDay === '' ||
+      costPerPack === '' ||
+      smokingFrequency === '' ||
+      healthStatus === '' ||
+      cigaretteType === ''
+    ) {
+      setError('Vui lòng nhập đầy đủ thông tin tình trạng hút thuốc.');
+      return;
+    }
+    if (isNaN(Number(cigarettesPerDay)) || isNaN(Number(costPerPack))) {
+      setError('Số điếu thuốc mỗi ngày và giá mỗi bao phải là số.');
+      return;
+    }
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      await axios.put('/api/auth/smoking-status', {
-        cigarettesPerDay: userData.smokingStatus.cigarettesPerDay,
-        costPerPack: userData.smokingStatus.costPerPack,
-        smokingFrequency: userData.smokingStatus.smokingFrequency,
-        healthStatus: userData.smokingStatus.healthStatus,
-        quitReason: userData.smokingStatus.quitReason,
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+      console.log({
+        cigarettesPerDay,
+        costPerPack,
+        smokingFrequency,
+        healthStatus,
+        cigaretteType,
+        dailyCigarettes: dailyLog.cigarettes,
+        dailyFeeling: dailyLog.feeling
+      });
+      await axios.put('http://localhost:5000/api/auth/smoking-status', {
+        cigarettesPerDay: Number(cigarettesPerDay),
+        costPerPack: Number(costPerPack),
+        smokingFrequency: String(smokingFrequency),
+        healthStatus: String(healthStatus),
+        cigaretteType: String(cigaretteType || ''),
+        dailyCigarettes: Number(dailyLog.cigarettes || 0),
+        dailyFeeling: String(dailyLog.feeling || '')
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSuccess('Smoking status updated successfully!');
+      setSuccess('Cập nhật tình trạng hút thuốc thành công!');
       setError('');
+      fetchUserData();
     } catch (error) {
-      setError('Failed to update smoking status. Please try again later.');
+      console.error('Error updating smoking status:', error);
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login');
+      } else if (error.response?.status === 400) {
+        setError(error.response.data.message || 'Vui lòng nhập đầy đủ thông tin.');
+      } else {
+        setError('Cập nhật tình trạng hút thuốc thất bại. Vui lòng thử lại.');
+      }
     } finally {
       setLoading(false);
     }
@@ -142,7 +220,12 @@ const ProfilePage = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      await axios.post('/api/auth/quit-plan', userData.quitPlan, {
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      await axios.post('http://localhost:5000/api/auth/quit-plan', userData.quitPlan, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setOpenDialog(false);
@@ -150,7 +233,14 @@ const ProfilePage = () => {
       setError('');
       fetchUserData(); // Refresh data after creating new plan
     } catch (error) {
-      setError('Failed to create quit plan. Please try again later.');
+      console.error('Error creating quit plan:', error);
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login');
+      } else {
+        setError('Failed to create quit plan. Please try again later.');
+      }
     } finally {
       setLoading(false);
     }
@@ -198,23 +288,11 @@ const ProfilePage = () => {
               <Tab label="Tình trạng hút thuốc" />
               <Tab 
                 label="Kế hoạch cai thuốc" 
-                disabled={!userData.isPremium}
-                sx={{ 
-                  opacity: userData.isPremium ? 1 : 0.5,
-                  '&.Mui-disabled': {
-                    color: 'text.secondary'
-                  }
-                }}
+                disabled={userData.role !== 'member'}
               />
               <Tab 
                 label="Thành tích" 
-                disabled={!userData.isPremium}
-                sx={{ 
-                  opacity: userData.isPremium ? 1 : 0.5,
-                  '&.Mui-disabled': {
-                    color: 'text.secondary'
-                  }
-                }}
+                disabled={userData.role !== 'member'}
               />
             </Tabs>
 
@@ -438,7 +516,7 @@ const ProfilePage = () => {
               </Paper>
             )}
 
-            {activeTab === 2 && userData.isPremium && (
+            {activeTab === 2 && userData.role === 'member' && (
               <Paper sx={{ p: 3 }}>
                 {userData.quitPlan.startDate ? (
                   <>
@@ -490,7 +568,7 @@ const ProfilePage = () => {
               </Paper>
             )}
 
-            {activeTab === 3 && userData.isPremium && (
+            {activeTab === 3 && userData.role === 'member' && (
               <Paper sx={{ p: 3 }}>
                 <Typography variant="h6" gutterBottom>
                   Huy hiệu và thành tích
@@ -518,13 +596,13 @@ const ProfilePage = () => {
               </Paper>
             )}
 
-            {!userData.isPremium && (
+            {userData.role === 'guest' && !userData.isMember && (
               <Paper sx={{ p: 3, mt: 3, bgcolor: 'warning.light' }}>
                 <Typography variant="h6" gutterBottom>
-                  Nâng cấp lên Premium
+                  Nâng cấp lên Member
                 </Typography>
                 <Typography variant="body1" paragraph>
-                  Nâng cấp lên tài khoản Premium để:
+                  Nâng cấp lên tài khoản Member để:
                 </Typography>
                 <List>
                   <ListItem>

@@ -46,25 +46,21 @@ const Navbar = () => {
   return (
     <AppBar position="static">
       <Toolbar>
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          Website hỗ trợ cai thuốc
+        <Typography variant="h6" component={RouterLink} to="/" sx={{ flexGrow: 1, textDecoration: 'none', color: 'inherit' }}>
+          Smoking Support System
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Button color="inherit" component={RouterLink} to="/">
-            Trang chủ 
-          </Button>
           <Button color="inherit" component={RouterLink} to="/blog">
-            Diễn đàn
+            Blog
           </Button>
           <Button color="inherit" component={RouterLink} to="/leaderboard">
             Bảng xếp hạng
           </Button>
           {isLoggedIn && (
             <Button color="inherit" component={RouterLink} to="/subscription">
-              Gói dịch vụ
+              Mua gói
             </Button>
           )}
-          
           {isLoggedIn ? (
             <>
               <IconButton
