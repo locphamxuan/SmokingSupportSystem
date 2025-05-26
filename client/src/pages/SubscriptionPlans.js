@@ -96,23 +96,33 @@ const SubscriptionPlans = () => {
   const handlePaymentSuccess = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (token) {
-        const res = await axios.put('/api/auth/upgrade-premium', {}, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.data && res.data.user) {
-          localStorage.setItem('user', JSON.stringify(res.data.user));
-        }
+      if (!token) {
+        navigate('/login');
+        return;
       }
-      setSuccess('Nâng cấp tài khoản thành công!');
-      setTimeout(() => {
-        navigate('/profile');
-      }, 2000);
-    } catch (e) {
-      setSuccess('Nâng cấp tài khoản thành công!');
-      setTimeout(() => {
-        navigate('/profile');
-      }, 2000);
+
+      const response = await axios.put('http://localhost:5000/api/auth/upgrade-member', {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.data && response.data.user) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        setSuccess('Nâng cấp tài khoản thành công!');
+        setTimeout(() => {
+          navigate('/profile');
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error upgrading account:', error);
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login');
+      } else if (error.response?.status === 400) {
+        setError(error.response.data.message || 'Không thể nâng cấp tài khoản. Vui lòng thử lại sau.');
+      } else {
+        setError('Không thể nâng cấp tài khoản. Vui lòng thử lại sau.');
+      }
     }
   };
 
@@ -126,8 +136,21 @@ const SubscriptionPlans = () => {
     } catch (e) {
       user = null;
     }
-    if (user && user.role === "admin") {
+
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    if (user.role === "admin") {
       navigate("/admin/users");
+      return;
+    }
+
+    // Nếu đã là member thì chuyển về trang profile
+    if (user.isMember) {
+      navigate('/profile');
+      return;
     }
   }, [navigate]);
 

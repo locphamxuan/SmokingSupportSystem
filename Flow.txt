@@ -1,96 +1,136 @@
-Luồng Chức Năng Chính Theo Người Dùng
-🔹 1. Khách (Guest) – Chưa đăng nhập
-Truy cập Trang chủ → Xem giới thiệu nền tảng
+1. Guest (Khách truy cập chưa đăng nhập)
+🔹 Luồng chính:
+Truy cập Trang chủ
 
-Xem Blog chia sẻ kinh nghiệm
+Xem giới thiệu nền tảng
 
-Xem Bảng xếp hạng thành tích
+Xem bảng xếp hạng thành tích
 
-Chọn Đăng ký hoặc Đăng nhập
+Đọc blog chia sẻ kinh nghiệm cai thuốc
 
+Tương tác cơ bản
 
+Xem gói thành viên
 
-🔹 2. Thành viên (User)
-Hồ sơ cá nhân & thông tin hút thuốc
+Xem các huy hiệu thành tích mẫu
 
-Cập nhật hồ sơ, tình trạng sức khỏe
+Chuyển đổi thành Member
 
-Ghi nhận số lượng điếu thuốc, loại thuốc, chi phí, tần suất
+Nhấn “Đăng ký”
+
+Điền thông tin → Chọn gói thành viên
+
+Thanh toán (nếu là gói trả phí) → Trở thành Member
+
+🟢 2. Member (Người dùng đã đăng ký)
+🔹 Onboarding:
+Đăng nhập
+
+Thiết lập hồ sơ (cân nặng, giới tính, tình trạng hút thuốc...)
+
+🔹 Chức năng chính:
+Khai báo tình trạng hút thuốc
+
+Số lượng điếu/ngày, chi phí, thời gian hút
 
 Lập kế hoạch cai thuốc
 
-Nhập lý do cai thuốc
+Chọn lý do → chọn ngày bắt đầu → dự kiến ngày kết thúc
 
-Tạo kế hoạch theo gợi ý hoặc tùy chỉnh
+Nhận gợi ý từ hệ thống → tùy chỉnh lại
 
 Theo dõi tiến trình
 
-Ghi nhận hàng ngày
+Cập nhật hàng ngày (điếu hút, sức khỏe, cảm xúc)
 
-Xem thống kê số ngày không hút thuốc, tiền tiết kiệm, cải thiện sức khỏe
+Dashboard: ngày không hút, tiền tiết kiệm, cải thiện sức khỏe
 
-Thông báo & động viên
+Nhận thông báo hệ thống
 
-Nhận thông báo theo mốc thời gian và lý do cá nhân
+Tin nhắn động viên, nhắc nhở lý do cai
 
-Hệ thống huy hiệu & cộng đồng
+Email/thông báo push (tuần/tháng)
 
-Nhận huy hiệu (1 ngày, 1 tuần không hút thuốc, tiết kiệm 100k…)
+Nhận & chia sẻ huy hiệu
 
-Đăng bài chia sẻ, bình luận, động viên
+Huy hiệu tự động cập nhật khi đạt mốc
 
-Đánh giá & phản hồi
+Chia sẻ lên cộng đồng (giống như một mạng xã hội mini)
 
-Gửi feedback, đánh giá hệ thống
+Nhận động viên từ người khác
 
+Tương tác cộng đồng
 
+Đăng bài viết chia sẻ hành trình
 
+Bình luận / thích bài viết của người khác
 
-🔹 3. Thành viên trả phí (Premium User)
-Bao gồm tất cả tính năng của User và thêm:
+Tư vấn cùng Coach
 
-Tư vấn chuyên sâu
+Đặt lịch tư vấn
 
-Đặt câu hỏi, nhắn tin hoặc video call với Huấn luyện viên
+Gửi câu hỏi, trò chuyện trực tuyến
 
-Xem báo cáo nâng cao
+Đánh giá hệ thống
 
-Truy cập báo cáo chi tiết về tiến trình, sức khỏe
+Gửi feedback, rating
 
+Đánh giá Coach sau phiên tư vấn
 
+🔵 3. Coach (Huấn luyện viên / chuyên gia)
+🔹 Chức năng:
+Đăng nhập Coach Portal
 
-🔹 4. Huấn luyện viên (Coach)
-Danh sách người cần hỗ trợ
+Xem lịch tư vấn
 
-Xem hồ sơ, tiến trình của người dùng
+Danh sách thành viên đã đặt hẹn
 
-Tư vấn trực tuyến
+Trạng thái: chưa tư vấn / đã tư vấn / cần theo dõi
 
-Chat/video call với người dùng
+Tư vấn thành viên
 
-Gửi lời khuyên phù hợp
+Trò chuyện trực tuyến / trả lời tin nhắn
 
-Quản lý tài liệu tư vấn
+Đọc kế hoạch, tiến trình của Member
 
-Viết blog, bài chia sẻ hỗ trợ cai thuốc
+Gửi đề xuất điều chỉnh kế hoạch
 
+Theo dõi & ghi chú
 
+Ghi lại nội dung đã tư vấn
 
-🔹 5. Quản trị viên (Admin)
-Quản lý tài khoản người dùng & huấn luyện viên
+Đánh giá mức độ cam kết của Member
 
-Duyệt hồ sơ, cập nhật hoặc xóa tài khoản vi phạm
+🔴 4. Admin (Quản trị hệ thống)
+🔹 Chức năng hệ thống:
+Quản lý người dùng
 
-Quản lý nội dung
-
-Duyệt hoặc gỡ bài viết/bình luận vi phạm
+Duyệt, chỉnh sửa, xoá tài khoản Member / Coach
 
 Quản lý gói thành viên
 
-Tạo/chỉnh sửa/xóa gói
+Tạo, sửa, vô hiệu hoá gói miễn phí / trả phí
 
-Cấu hình giá và thời gian
+Quản lý blog & nội dung
 
-Báo cáo hệ thống
+Viết bài chia sẻ / duyệt bài từ Coach/Member
 
-Số lượng user, doanh thu, tổng số ngày không hút thuốc, huy hiệu...
+Duyệt báo cáo vi phạm
+
+Quản lý huy hiệu
+
+Tạo mới huy hiệu, mốc thành tích
+
+Điều chỉnh điều kiện đạt huy hiệu
+
+Quản lý hệ thống tư vấn
+
+Phân quyền Coach
+
+Theo dõi tiến trình tư vấn
+
+Dashboard & báo cáo
+
+Thống kê số người tham gia, tỷ lệ cai thành công, doanh thu
+
+Phân tích feedback, rating

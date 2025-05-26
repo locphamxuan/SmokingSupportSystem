@@ -1,10 +1,10 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/auth';
+const API_URL = 'http://localhost:5000/api';
 
 export const register = async (userData) => {
   try {
-    const response = await axios.post(`${API_URL}/register`, userData);
+    const response = await axios.post(`${API_URL}/auth/register`, userData);
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
@@ -17,7 +17,7 @@ export const register = async (userData) => {
 
 export const login = async (credentials) => {
   try {
-    const response = await axios.post(`${API_URL}/login`, credentials);
+    const response = await axios.post(`${API_URL}/auth/login`, credentials);
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
@@ -34,8 +34,9 @@ export const logout = () => {
 };
 
 export const getCurrentUser = () => {
-  const user = localStorage.getItem('user');
-  return user ? JSON.parse(user) : null;
+  const userStr = localStorage.getItem('user');
+  if (userStr) return JSON.parse(userStr);
+  return null;
 };
 
 export const getToken = () => {
@@ -44,112 +45,182 @@ export const getToken = () => {
 
 // Profile related functions
 export const getProfile = async () => {
-  try {
-    const response = await axios.get(`${API_URL}/profile`, {
-      headers: { Authorization: `Bearer ${getToken()}` }
-    });
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || { message: 'Không thể lấy thông tin người dùng' };
-  }
+  const token = getToken();
+  const response = await axios.get(`${API_URL}/auth/profile`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
 };
 
 export const updateProfile = async (userData) => {
-  try {
-    const response = await axios.put(`${API_URL}/profile`, userData, {
-      headers: { Authorization: `Bearer ${getToken()}` }
-    });
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || { message: 'Không thể cập nhật thông tin' };
-  }
+  const token = getToken();
+  const response = await axios.put(`${API_URL}/auth/profile`, userData, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
 };
 
-export const updateSmokingStatus = async (smokingData) => {
-  try {
-    const response = await axios.put(`${API_URL}/smoking-status`, smokingData, {
-      headers: { Authorization: `Bearer ${getToken()}` }
-    });
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || { message: 'Không thể cập nhật tình trạng hút thuốc' };
-  }
+// Smoking profile functions
+export const getSmokingProfile = async () => {
+  const token = getToken();
+  const response = await axios.get(`${API_URL}/auth/smoking-profile`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
 };
 
+export const updateSmokingProfile = async (profileData) => {
+  const token = getToken();
+  const response = await axios.put(`${API_URL}/auth/smoking-profile`, profileData, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+// Quit plan functions
 export const createQuitPlan = async (planData) => {
-  try {
-    const response = await axios.post(`${API_URL}/quit-plan`, planData, {
-      headers: { Authorization: `Bearer ${getToken()}` }
-    });
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || { message: 'Không thể tạo kế hoạch cai thuốc' };
-  }
+  const token = getToken();
+  const response = await axios.post(`${API_URL}/auth/quit-plan`, planData, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
 };
 
-export const updateQuitPlan = async (planData) => {
-  try {
-    const response = await axios.put(`${API_URL}/quit-plan`, planData, {
-      headers: { Authorization: `Bearer ${getToken()}` }
-    });
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || { message: 'Không thể cập nhật kế hoạch cai thuốc' };
-  }
+export const updateQuitPlan = async (planId, planData) => {
+  const token = getToken();
+  const response = await axios.put(`${API_URL}/auth/quit-plan/${planId}`, planData, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
 };
 
-export const updateQuitPlanProgress = async (progressData) => {
-  try {
-    const response = await axios.put(`${API_URL}/quit-plan/progress`, progressData, {
-      headers: { Authorization: `Bearer ${getToken()}` }
-    });
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || { message: 'Không thể cập nhật tiến độ' };
-  }
+export const getQuitPlans = async () => {
+  const token = getToken();
+  const response = await axios.get(`${API_URL}/auth/quit-plans`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+// Progress tracking functions
+export const updateProgress = async (progressData) => {
+  const token = getToken();
+  const response = await axios.post(`${API_URL}/auth/progress`, progressData, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+export const getProgress = async () => {
+  const token = getToken();
+  const response = await axios.get(`${API_URL}/auth/progress`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+// Statistics functions
+export const getStatistics = async () => {
+  const token = getToken();
+  const response = await axios.get(`${API_URL}/auth/statistics`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+// Badge functions
+export const getBadges = async () => {
+  const token = getToken();
+  const response = await axios.get(`${API_URL}/auth/badges`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+// Blog functions
+export const createBlog = async (blogData) => {
+  const token = getToken();
+  const response = await axios.post(`${API_URL}/blogs`, blogData, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+export const getBlogs = async () => {
+  const response = await axios.get(`${API_URL}/blogs`);
+  return response.data;
+};
+
+// Comment functions
+export const addComment = async (blogId, commentData) => {
+  const token = getToken();
+  const response = await axios.post(`${API_URL}/blogs/${blogId}/comments`, commentData, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+// Notification functions
+export const getNotifications = async () => {
+  const token = getToken();
+  const response = await axios.get(`${API_URL}/auth/notifications`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+export const markNotificationAsRead = async (notificationId) => {
+  const token = getToken();
+  const response = await axios.put(`${API_URL}/auth/notifications/${notificationId}/read`, {}, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+// Feedback functions
+export const submitFeedback = async (feedbackData) => {
+  const token = getToken();
+  const response = await axios.post(`${API_URL}/auth/feedback`, feedbackData, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+// Ranking functions
+export const getRankings = async () => {
+  const response = await axios.get(`${API_URL}/rankings`);
+  return response.data;
 };
 
 // Admin functions
 export const getAllUsers = async () => {
-  try {
-    const response = await axios.get('http://localhost:5000/api/admin/users', {
-      headers: { Authorization: `Bearer ${getToken()}` }
-    });
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || { message: 'Đã xảy ra lỗi' };
-  }
+  const token = getToken();
+  const response = await axios.get(`${API_URL}/admin/users`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
 };
 
 export const updateUser = async (id, userData) => {
-  try {
-    const response = await axios.put(`http://localhost:5000/api/admin/user/${id}`, userData, {
-      headers: { Authorization: `Bearer ${getToken()}` }
-    });
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || { message: 'Đã xảy ra lỗi' };
-  }
+  const token = getToken();
+  const response = await axios.put(`${API_URL}/admin/users/${id}`, userData, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
 };
 
 export const deleteUser = async (id) => {
-  try {
-    const response = await axios.delete(`http://localhost:5000/api/admin/user/${id}`, {
-      headers: { Authorization: `Bearer ${getToken()}` }
-    });
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || { message: 'Đã xảy ra lỗi' };
-  }
+  const token = getToken();
+  const response = await axios.delete(`${API_URL}/admin/users/${id}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
 };
 
-export const upgradeToAdmin = async (userId) => {
-  try {
-    const response = await axios.put(`${API_URL}/upgrade-admin`, { userId }, {
-      headers: { Authorization: `Bearer ${getToken()}` }
-    });
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || { message: 'Không thể nâng cấp tài khoản lên admin' };
-  }
+export const upgradeToMember = async () => {
+  const token = getToken();
+  const response = await axios.put(`${API_URL}/auth/upgrade-member`, {}, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
 };

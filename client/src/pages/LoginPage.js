@@ -54,12 +54,12 @@ const LoginPage = () => {
   const validateLoginForm = () => {
     const errors = {};
     if (!loginData.email) {
-      errors.email = 'Email is required!';
+      errors.email = 'Vui lòng nhập email!';
     } else if (!validateEmail(loginData.email)) {
-      errors.email = 'Invalid email';
+      errors.email = 'Email không hợp lệ';
     }
     if (!loginData.password) {
-      errors.password = 'Password is required';
+      errors.password = 'Vui lòng nhập mật khẩu';
     }
     setLoginErrors(errors);
     return Object.keys(errors).length === 0;
@@ -68,30 +68,30 @@ const LoginPage = () => {
   const validateRegisterForm = () => {
     const errors = {};
     if (!registerData.username) {
-      errors.username = 'Username is required';
+      errors.username = 'Vui lòng nhập tên đăng nhập';
     }
     if (!registerData.email) {
-      errors.email = 'Email is required';
+      errors.email = 'Vui lòng nhập email';
     } else if (!validateEmail(registerData.email)) {
-      errors.email = 'Invalid email';
+      errors.email = 'Email không hợp lệ';
     }
     if (!registerData.phoneNumber) {
-      errors.phoneNumber = 'Phone Number is required!';
+      errors.phoneNumber = 'Vui lòng nhập số điện thoại!';
     } else if (!validatePhoneNumber(registerData.phoneNumber)) {
-      errors.phoneNumber = 'Phone Number must have 10 number';
+      errors.phoneNumber = 'Số điện thoại phải có 10 chữ số';
     }
     if (!registerData.address) {
-      errors.address = 'Address is required';
+      errors.address = 'Vui lòng nhập địa chỉ';
     }
     if (!registerData.password) {
-      errors.password = 'Password is required';
+      errors.password = 'Vui lòng nhập mật khẩu';
     } else if (registerData.password.length < 6) {
-      errors.password = 'Password must be at least 6 characters';
+      errors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
     }
     if (!registerData.confirmPassword) {
-      errors.confirmPassword = 'Password confirmation is required';
+      errors.confirmPassword = 'Vui lòng xác nhận mật khẩu';
     } else if (registerData.password !== registerData.confirmPassword) {
-      errors.confirmPassword = 'Passwords do not match';
+      errors.confirmPassword = 'Mật khẩu không khớp';
     }
     setRegisterErrors(errors);
     return Object.keys(errors).length === 0;
@@ -121,14 +121,12 @@ const LoginPage = () => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.post('/api/auth/login', loginData);
+      const response = await axios.post('http://localhost:5000/api/auth/login', loginData);
       const { token, user } = response.data;
       
-      // Save token and user to localStorage
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
       
-      // Set default authorization header for future requests
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       if (user.role === 'admin') {
@@ -137,7 +135,7 @@ const LoginPage = () => {
         navigate('/');
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Lỗi đăng nhập:', error);
       setError(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại!');
     } finally {
       setLoading(false);
@@ -151,18 +149,25 @@ const LoginPage = () => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.post('/api/auth/register', {
+      const response = await axios.post('http://localhost:5000/api/auth/register', {
         username: registerData.username,
         email: registerData.email,
         password: registerData.password,
         phoneNumber: registerData.phoneNumber,
         address: registerData.address
       });
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      
+      const { token, user } = response.data;
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      setError('');
       navigate('/');
     } catch (error) {
-      setError(error.response?.data?.message || 'Registration failed. Please try again!');
+      console.error('Lỗi đăng ký:', error);
+      setError(error.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại!');
     } finally {
       setLoading(false);
     }
@@ -173,12 +178,12 @@ const LoginPage = () => {
       <Box sx={{ my: 4 }}>
         <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
           <Box sx={{ mb: 3, textAlign: 'center' }}>
-            <h2>{activeTab === 0 ? 'Đăng ký' : 'Đăng nhập'}</h2>
+            <h2>{activeTab === 0 ? 'Đăng nhập' : 'Đăng ký'}</h2>
           </Box>
           
           <Tabs value={activeTab} onChange={handleTabChange} centered sx={{ mb: 3 }}>
-            <Tab label="Đăng ký" />
             <Tab label="Đăng nhập" />
+            <Tab label="Đăng ký" />
           </Tabs>
 
           {error && (
@@ -188,7 +193,6 @@ const LoginPage = () => {
           )}
 
           {activeTab === 0 ? (
-            // Login Form
             <Box component="form" onSubmit={handleLoginSubmit} sx={{ mt: 3 }}>
               <TextField
                 margin="normal"
@@ -232,9 +236,6 @@ const LoginPage = () => {
               </Button>
             </Box>
           ) : (
-
-
-            // Register Form
             <Box component="form" onSubmit={handleRegisterSubmit} sx={{ mt: 3 }}>
               <TextField
                 margin="normal"
