@@ -10,6 +10,11 @@ import {
   MenuItem,
   IconButton
 } from "@mui/material";
+import { 
+  Home as HomeIcon,
+  SmokeFree as SmokeIcon,
+  WorkspacePremium as PremiumIcon
+} from "@mui/icons-material";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 
 const Navbar = () => {
@@ -17,8 +22,17 @@ const Navbar = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
   const isLoggedIn = !!token;
-  const user = JSON.parse(localStorage.getItem('user'));
+  const userStr = localStorage.getItem('user');
+  let user = null;
+  try {
+    if (userStr && userStr !== 'undefined') {
+      user = JSON.parse(userStr);
+    }
+  } catch (e) {
+    user = null;
+  }
   const isAdmin = user && user.role === 'admin';
+  const isPremiumMember = user && (user.role === 'member' || user.isMember);
 
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -36,27 +50,64 @@ const Navbar = () => {
   };
 
   return (
-    <AppBar position="static">
-      <Toolbar>
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          Website hỗ trợ cai thuốc
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Button color="inherit" component={RouterLink} to="/">
-            Trang chủ 
+    <AppBar position="static" sx={{ backgroundColor: '#2d3748' }}>
+      <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* Logo bên trái */}
+        <Box 
+          component={RouterLink} 
+          to="/" 
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            textDecoration: 'none', 
+            color: 'inherit',
+            '&:hover': {
+              opacity: 0.8
+            }
+          }}
+        >
+          <SmokeIcon sx={{ fontSize: 32, mr: 1, color: '#68d391' }} />
+          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            🚭 Cai Thuốc Lá
+          </Typography>
+        </Box>
+        
+        {/* Navigation buttons ở giữa */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Button 
+            color="inherit" 
+            component={RouterLink} 
+            to="/"
+            startIcon={<HomeIcon />}
+          >
+            Trang chủ
           </Button>
           <Button color="inherit" component={RouterLink} to="/blog">
-            Diễn đàn
+            Blog
           </Button>
           <Button color="inherit" component={RouterLink} to="/leaderboard">
             Bảng xếp hạng
           </Button>
-          {isLoggedIn && (
-            <Button color="inherit" component={RouterLink} to="/subscription">
-              Gói dịch vụ
+          {isLoggedIn && !isAdmin && (
+            <Button 
+              color="inherit" 
+              component={RouterLink} 
+              to="/subscription"
+              startIcon={<PremiumIcon />}
+              sx={{
+                backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                }
+              }}
+            >
+              Gói Premium
             </Button>
           )}
-          
+        </Box>
+
+        {/* User menu bên phải */}
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
           {isLoggedIn ? (
             <>
               <IconButton
@@ -85,16 +136,14 @@ const Navbar = () => {
                 open={Boolean(anchorEl)}
                 onClose={handleClose}
               >
-                {!isAdmin && (
-                  <MenuItem 
-                    onClick={() => {
-                      handleClose();
-                      navigate('/profile');
-                    }}
-                  >
-                    Profile
-                  </MenuItem>
-                )}
+                <MenuItem 
+                  onClick={() => {
+                    handleClose();
+                    navigate('/profile');
+                  }}
+                >
+                  Hồ sơ cá nhân
+                </MenuItem>
                 {isAdmin && (
                   <MenuItem
                     onClick={() => {

@@ -1,298 +1,434 @@
-//quản lý user cho admin
+//quản lý member cho admin
 
-import React, { useEffect, useState } from "react";
-import { getUsers, updateUser, deleteUser } from "../services/adminService";
-import { upgradeToAdmin } from "../services/authService";
+import React, { useState, useEffect, useCallback } from "react";
 import {
-  Button,
+  Container,
+  Typography,
+  Paper,
   Table,
   TableBody,
   TableCell,
+  TableContainer,
   TableHead,
   TableRow,
+  Button,
   Dialog,
   DialogTitle,
   DialogContent,
-  TextField,
   DialogActions,
-  FormControl,
-  InputLabel,
+  TextField,
+  IconButton,
+  Box,
+  Snackbar,
+  Alert,
   Select,
   MenuItem,
-  Typography,
-  Box,
-  Chip,
-  IconButton,
-  Tooltip,
+  FormControl,
+  InputLabel,
+  Grid,
+  Chip
 } from "@mui/material";
 import { 
   Edit as EditIcon, 
-  Delete as DeleteIcon,
-  Save as SaveIcon,
-  Cancel as CancelIcon 
+  Delete as DeleteIcon
 } from "@mui/icons-material";
-import { useNavigate } from "react-router-dom";
+import { getUsers, updateUser, deleteUser } from "../services/adminService";
 
 const AdminUserPage = () => {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
-  const [editUser, setEditUser] = useState(null);
-  const [editData, setEditData] = useState({});
-  const [roleFilter, setRoleFilter] = useState('all');
-  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    role: "",
+    phoneNumber: "",
+    address: "",
+  });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  const getUserRole = (user) => {
+    // Sử dụng role từ database, nếu không có thì fallback
+    if (user.role) {
+      return user.role.toLowerCase();
+    }
+    
+    // Fallback cho dữ liệu cũ
+    if (user.isAdmin === 1) return "admin";
+    if (user.isMember === 1) return "member";
+    return "guest";
+  };
+
+  const filterUsers = useCallback(() => {
+    let filtered = users;
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(user => 
+        user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filter by role
+    if (roleFilter !== "all") {
+      filtered = filtered.filter(user => {
+        const userRole = getUserRole(user);
+        return userRole === roleFilter;
+      });
+    }
+
+    setFilteredUsers(filtered);
+  }, [users, searchTerm, roleFilter]);
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (!user || user.role !== "admin") {
-      navigate("/"); // chuyển về trang chủ nếu không phải admin
-    } else {
-      // Nếu là admin, không cho vào trang profile hoặc trang mua gói
-      if (["/profile", "/subscription", "/subscription-plans"].includes(window.location.pathname)) {
-        navigate("/admin/users");
-      }
-      fetchUsers();
-    }
-    // eslint-disable-next-line
+    fetchUsers();
   }, []);
 
   useEffect(() => {
-    // Lọc users chỉ hiển thị user và premium, không hiển thị admin
-    let filtered = users.filter(user => user.role !== 'admin');
-    
-    if (roleFilter !== 'all') {
-      filtered = filtered.filter(user => user.role === roleFilter);
-    }
-    
-    setFilteredUsers(filtered);
-  }, [users, roleFilter]);
+    filterUsers();
+  }, [filterUsers]);
 
   const fetchUsers = async () => {
     try {
       const data = await getUsers();
-      // Lọc ra các tài khoản không phải admin
-      const nonAdminUsers = data.filter(user => user.role !== 'admin');
-      setUsers(nonAdminUsers);
+      setUsers(data);
     } catch (error) {
-      alert("Không thể tải danh sách người dùng!");
+      console.error("Lỗi khi tải danh sách người dùng:", error);
+      setSnackbar({
+        open: true,
+        message: "Lỗi khi tải danh sách người dùng",
+        severity: "error",
+      });
     }
+  };
+
+  const getRoleDisplay = (role) => {
+    switch (role) {
+      case "admin": 
+        return { label: "Quản trị viên", color: "error" };
+      case "coach": 
+        return { label: "Coaching", color: "info" };
+      case "member": 
+        return { label: "Khách hàng Premium", color: "warning" };
+      case "guest": 
+        return { label: "Khách hàng", color: "default" };
+      default: 
+        return { label: "Khách hàng", color: "default" };
+    }
+  };
+
+  const getStatistics = () => {
+    const adminCount = users.filter(user => getUserRole(user) === "admin").length;
+    const coachCount = users.filter(user => getUserRole(user) === "coach").length;
+    const memberCount = users.filter(user => getUserRole(user) === "member").length;
+    const guestCount = users.filter(user => getUserRole(user) === "guest").length;
+    
+    return { adminCount, coachCount, memberCount, guestCount };
   };
 
   const handleEdit = (user) => {
-    setEditUser(user);
-    setEditData(user);
+    setSelectedUser(user);
+    setFormData({
+      username: user.username,
+      email: user.email,
+      role: getUserRole(user),
+      phoneNumber: user.phoneNumber || "",
+      address: user.address || "",
+    });
+    setOpen(true);
   };
 
-  const handleEditChange = (e) => {
-    setEditData({ ...editData, [e.target.name]: e.target.value });
+  const handleClose = () => {
+    setOpen(false);
+    setSelectedUser(null);
+    setFormData({
+      username: "",
+      email: "",
+      role: "",
+      phoneNumber: "",
+      address: "",
+    });
   };
 
-  const handleEditSave = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     try {
-      await updateUser(editUser._id, editData);
-      setEditUser(null);
+      // Cập nhật role và các trường liên quan
+      let isAdmin = 0;
+      let isMember = 0;
+      
+      if (formData.role === 'admin') isAdmin = 1;
+      if (formData.role === 'member') isMember = 1;
+
+      await updateUser(selectedUser.id, {
+        username: formData.username,
+        email: formData.email,
+        role: formData.role,
+        isAdmin,
+        isMember,
+        phoneNumber: formData.phoneNumber,
+        address: formData.address,
+      });
+      setSnackbar({
+        open: true,
+        message: "Cập nhật người dùng thành công",
+        severity: "success",
+      });
+      handleClose();
       fetchUsers();
-      alert("Cập nhật thành công!");
     } catch (error) {
-      alert("Có lỗi xảy ra khi cập nhật!");
+      console.error("Lỗi khi cập nhật người dùng:", error);
+      setSnackbar({
+        open: true,
+        message: "Lỗi khi cập nhật người dùng",
+        severity: "error",
+      });
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa tài khoản này?")) {
+  const handleDelete = async (userId) => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa người dùng này?")) {
       try {
-        await deleteUser(id);
+        await deleteUser(userId);
+        setSnackbar({
+          open: true,
+          message: "Xóa người dùng thành công",
+          severity: "success",
+        });
         fetchUsers();
-        alert("Xóa tài khoản thành công!");
       } catch (error) {
-        alert("Có lỗi xảy ra khi xóa tài khoản!");
+        console.error("Lỗi khi xóa người dùng:", error);
+        setSnackbar({
+          open: true,
+          message: "Lỗi khi xóa người dùng",
+          severity: "error",
+        });
       }
     }
   };
 
-  const getRoleColor = (role) => {
-    switch (role) {
-      case 'premium':
-        return 'warning';
-      case 'user':
-        return 'primary';
-      default:
-        return 'default';
-    }
+  const handleSnackbarClose = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
-  const handleUpgradeToAdmin = async (userId) => {
-    if (window.confirm("Bạn có chắc muốn nâng cấp người dùng này lên admin?")) {
-      try {
-        await upgradeToAdmin(userId);
-        fetchUsers();
-        alert("Nâng cấp thành công!");
-      } catch (error) {
-        alert("Không thể nâng cấp người dùng: " + error.message);
-      }
-    }
-  };
+  const stats = getStatistics();
 
   return (
-    <div>
-      <h2>Quản lý tài khoản</h2>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell><strong>Tên đăng nhập</strong></TableCell>
-            <TableCell><strong>Email</strong></TableCell>
-            <TableCell><strong>Vai trò</strong></TableCell>
-            <TableCell><strong>Số điện thoại</strong></TableCell>
-            <TableCell><strong>Địa chỉ</strong></TableCell>
-            <TableCell><strong>Ngày tạo</strong></TableCell>
-            <TableCell><strong>Số điếu thuốc/ngày</strong></TableCell>
-            <TableCell><strong>Giá hộp/gói</strong></TableCell>
-            <TableCell><strong>Tần suất hút thuốc</strong></TableCell>
-            <TableCell><strong>Tình trạng sức khỏe</strong></TableCell>
-            <TableCell><strong>Hành động</strong></TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {filteredUsers.map((user) => (
-            <TableRow key={user._id}>
-              <TableCell>{user.username}</TableCell>
-              <TableCell>{user.email}</TableCell>
-              <TableCell>
-                <Chip 
-                  label={user.role === 'premium' ? 'Premium' : 'Người dùng'} 
-                  color={getRoleColor(user.role)}
-                  size="small"
-                />
-              </TableCell>
-              <TableCell>{user.phoneNumber}</TableCell>
-              <TableCell>{user.address}</TableCell>
-              <TableCell>
-                {user.createdAt
-                  ? new Date(user.createdAt).toLocaleDateString('vi-VN')
-                  : ""}
-              </TableCell>
-              <TableCell>{user.smokingStatus?.cigarettesPerDay ?? ''}</TableCell>
-              <TableCell>{user.smokingStatus?.costPerPack ?? ''}</TableCell>
-              <TableCell>{user.smokingStatus?.smokingFrequency ?? ''}</TableCell>
-              <TableCell>{user.smokingStatus?.healthStatus ?? ''}</TableCell>
-              <TableCell>
-                <Button onClick={() => handleEdit(user)}>Cập nhập</Button>
-                <Button color="error" onClick={() => handleDelete(user._id)}>
-                  Xóa
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      {/* Header */}
+      <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', mb: 3 }}>
+        Quản lý tài khoản
+      </Typography>
 
-      <Dialog open={!!editUser} onClose={() => setEditUser(null)}>
-        <DialogTitle>Update users</DialogTitle>
+      {/* Statistics */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={6} sm={3}>
+          <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: '#ffebee' }}>
+            <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#d32f2f' }}>
+              {stats.adminCount}
+            </Typography>
+            <Typography variant="body2">Quản trị viên</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={6} sm={3}>
+          <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: '#e3f2fd' }}>
+            <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
+              {stats.coachCount}
+            </Typography>
+            <Typography variant="body2">Coaching</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={6} sm={3}>
+          <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: '#fff3e0' }}>
+            <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#f57c00' }}>
+              {stats.memberCount}
+            </Typography>
+            <Typography variant="body2">KH Premium</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={6} sm={3}>
+          <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: '#f5f5f5' }}>
+            <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#616161' }}>
+              {stats.guestCount}
+            </Typography>
+            <Typography variant="body2">Khách hàng</Typography>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Filters */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Tìm kiếm theo tên hoặc email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Lọc theo vai trò</InputLabel>
+              <Select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                label="Lọc theo vai trò"
+              >
+                <MenuItem value="all">Tất cả</MenuItem>
+                <MenuItem value="admin">Quản trị viên</MenuItem>
+                <MenuItem value="coach">Coaching</MenuItem>
+                <MenuItem value="member">Khách hàng Premium</MenuItem>
+                <MenuItem value="guest">Khách hàng</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <Typography variant="body2" color="text.secondary">
+              Tổng: {filteredUsers.length}
+            </Typography>
+          </Grid>
+        </Grid>
+      </Paper>
+
+      {/* Users Table */}
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+              <TableCell><strong>Tên đăng nhập</strong></TableCell>
+              <TableCell><strong>Email</strong></TableCell>
+              <TableCell><strong>Vai trò</strong></TableCell>
+              <TableCell><strong>Số điện thoại</strong></TableCell>
+              <TableCell><strong>Địa chỉ</strong></TableCell>
+              <TableCell><strong>Thao tác</strong></TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredUsers.map((user, idx) => {
+              const role = getUserRole(user);
+              const roleInfo = getRoleDisplay(role);
+              return (
+                <TableRow key={user.id || idx} hover>
+                  <TableCell>{user.username}</TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={roleInfo.label}
+                      color={roleInfo.color}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>{user.phoneNumber || "-"}</TableCell>
+                  <TableCell>{user.address || "-"}</TableCell>
+                  <TableCell>
+                    <IconButton 
+                      onClick={() => handleEdit(user)} 
+                      color="primary"
+                      size="small"
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton 
+                      onClick={() => handleDelete(user.id)} 
+                      color="error"
+                      size="small"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {/* Edit Dialog */}
+      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+        <DialogTitle>Chỉnh sửa người dùng</DialogTitle>
         <DialogContent>
-          <TextField
-            margin="normal"
-            label="Tên đăng nhập"
-            name="username"
-            value={editData.username || ""}
-            onChange={handleEditChange}
-            fullWidth
-          />
-          <TextField
-            margin="normal"
-            label="Email"
-            name="email"
-            value={editData.email || ""}
-            onChange={handleEditChange}
-            fullWidth
-          />
-          <TextField
-            margin="normal"
-            label="Role"
-            name="role"
-            value={editData.role || ""}
-            onChange={handleEditChange}
-            fullWidth
-          />
-          <TextField
-            margin="normal"
-            label="Số điện thoại"
-            name="phoneNumber"
-            value={editData.phoneNumber || ""}
-            onChange={handleEditChange}
-            fullWidth
-          />
-          <TextField
-            margin="normal"
-            label="Địa chỉ"
-            name="address"
-            value={editData.address || ""}
-            onChange={handleEditChange}
-            fullWidth
-          />
-          <TextField
-            margin="normal"
-            label="Cigarettes/Day"
-            name="smokingStatus.cigarettesPerDay"
-            value={editData.smokingStatus?.cigarettesPerDay || ""}
-            onChange={(e) => setEditData({
-              ...editData,
-              smokingStatus: {
-                ...editData.smokingStatus,
-                cigarettesPerDay: e.target.value
+          <Box sx={{ mt: 2 }}>
+            <TextField
+              fullWidth
+              label="Tên đăng nhập"
+              value={formData.username}
+              onChange={(e) =>
+                setFormData({ ...formData, username: e.target.value })
               }
-            })}
-            fullWidth
-          />
-          <TextField
-            margin="normal"
-            label="Cost/Pack"
-            name="smokingStatus.costPerPack"
-            value={editData.smokingStatus?.costPerPack || ""}
-            onChange={(e) => setEditData({
-              ...editData,
-              smokingStatus: {
-                ...editData.smokingStatus,
-                costPerPack: e.target.value
+              margin="normal"
+            />
+            <TextField
+              fullWidth
+              label="Email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              margin="normal"
+            />
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Vai trò</InputLabel>
+              <Select
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                label="Vai trò"
+              >
+                <MenuItem value="admin">Quản trị viên</MenuItem>
+                <MenuItem value="coach">Coaching</MenuItem>
+                <MenuItem value="member">Khách hàng Premium</MenuItem>
+                <MenuItem value="guest">Khách hàng</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              fullWidth
+              label="Số điện thoại"
+              value={formData.phoneNumber}
+              onChange={(e) =>
+                setFormData({ ...formData, phoneNumber: e.target.value })
               }
-            })}
-            fullWidth
-          />
-          <TextField
-            margin="normal"
-            label="Frequency"
-            name="smokingStatus.smokingFrequency"
-            value={editData.smokingStatus?.smokingFrequency || ""}
-            onChange={(e) => setEditData({
-              ...editData,
-              smokingStatus: {
-                ...editData.smokingStatus,
-                smokingFrequency: e.target.value
+              margin="normal"
+            />
+            <TextField
+              fullWidth
+              label="Địa chỉ"
+              value={formData.address}
+              onChange={(e) =>
+                setFormData({ ...formData, address: e.target.value })
               }
-            })}
-            fullWidth
-          />
-          <TextField
-            margin="normal"
-            label="Health Status"
-            name="smokingStatus.healthStatus"
-            value={editData.smokingStatus?.healthStatus || ""}
-            onChange={(e) => setEditData({
-              ...editData,
-              smokingStatus: {
-                ...editData.smokingStatus,
-                healthStatus: e.target.value
-              }
-            })}
-            fullWidth
-          />
+              margin="normal"
+            />
+          </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditUser(null)}>Cancel</Button>
-          <Button onClick={handleEditSave} variant="contained">
-            Save
+          <Button onClick={handleClose}>Hủy</Button>
+          <Button onClick={handleSubmit} variant="contained">
+            Lưu
           </Button>
         </DialogActions>
       </Dialog>
-    </div>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+      >
+        <Alert
+          onClose={handleSnackbarClose}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Container>
   );
 };
 
