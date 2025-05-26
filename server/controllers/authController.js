@@ -1,99 +1,156 @@
-const User = require('../models/User');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { sql } = require('../db');
 
-// Register new user
+// Đăng ký
 exports.register = async (req, res) => {
   try {
     const { username, email, password, phoneNumber, address } = req.body;
-
-    // Validate input
+    
+    // Kiểm tra dữ liệu đầu vào
     if (!username || !email || !password || !phoneNumber || !address) {
-      return res.status(400).json({ message: 'Vui lòng điền đầy đủ thông tin' });
+      return res.status(400).json({ 
+        message: 'Vui lòng điền đầy đủ thông tin',
+        missing: {
+          username: !username,
+          email: !email,
+          password: !password,
+          phoneNumber: !phoneNumber,
+          address: !address
+        }
+      });
     }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Email hoặc tên người dùng đã tồn tại' });
+    // Kiểm tra email hợp lệ
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: 'Email không hợp lệ' });
     }
 
-    // Create new user
-    const user = new User({
-      username,
-      email,
-      password,
-      phoneNumber,
-      address,
-      smokingStatus: {
-        cigarettesPerDay: 0,
-        costPerPack: 0,
-        smokingFrequency: '',
-        healthStatus: ''
-      },
-      quitPlan: {
-        startDate: null,
-        targetDate: null,
-        milestones: [],
-        currentProgress: 0
-      },
-      achievements: []
-    });
+    // Kiểm tra độ dài mật khẩu
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'Mật khẩu phải có ít nhất 6 ký tự' });
+    }
 
-    await user.save();
+    // Kiểm tra số điện thoại
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phoneRegex.test(phoneNumber)) {
+      return res.status(400).json({ message: 'Số điện thoại phải có 10 chữ số' });
+    }
 
-    // Generate JWT token
+    // Kiểm tra email và username đã tồn tại
+    const check = await sql.query`
+      SELECT * FROM Users 
+      WHERE Email = ${email} OR Username = ${username}
+    `;
+    
+    if (check.recordset.length > 0) {
+      const existingUser = check.recordset[0];
+      if (existingUser.Email === email) {
+        return res.status(400).json({ message: 'Email đã được sử dụng' });
+      }
+      if (existingUser.Username === username) {
+        return res.status(400).json({ message: 'Tên đăng nhập đã tồn tại' });
+      }
+    }
+
+    // Mã hóa mật khẩu
+    const hash = await bcrypt.hash(password, 10);
+
+    // Thêm người dùng mới
+    const insertResult = await sql.query`
+      INSERT INTO Users (
+        Username, 
+        Password, 
+        Email, 
+        PhoneNumber, 
+        Address, 
+        IsMember,
+        Role,
+        CreatedAt
+      )
+      VALUES (
+        ${username}, 
+        ${hash}, 
+        ${email}, 
+        ${phoneNumber}, 
+        ${address}, 
+        0,
+        'guest',
+        GETDATE()
+      );
+      
+      SELECT SCOPE_IDENTITY() AS Id;
+    `;
+
+    const userId = insertResult.recordset[0].Id;
+
+    // Lấy thông tin người dùng vừa tạo
+    const userResult = await sql.query`
+      SELECT * FROM Users WHERE Id = ${userId}
+    `;
+    const user = userResult.recordset[0];
+
+    // Tạo token
     const token = jwt.sign(
-      { userId: user._id, role: user.role },
+      { 
+        userId: user.Id,
+        role: user.Role
+      },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
     );
 
+    // Trả về thông tin người dùng
     res.status(201).json({
       message: 'Đăng ký thành công',
       token,
       user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        phoneNumber: user.phoneNumber,
-        address: user.address,
-        role: user.role
+        id: user.Id,
+        username: user.Username,
+        email: user.Email,
+        phoneNumber: user.PhoneNumber || "",
+        address: user.Address || "",
+        role: user.Role,
+        isMember: user.IsMember
       }
     });
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('Lỗi đăng ký:', error);
     res.status(500).json({ 
       message: 'Lỗi khi đăng ký',
-      error: error.message 
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Đã xảy ra lỗi, vui lòng thử lại sau'
     });
   }
 };
 
-// Login user
+// Đăng nhập
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    // Validate input
     if (!email || !password) {
       return res.status(400).json({ message: 'Vui lòng nhập email và mật khẩu' });
     }
 
-    // Find user by email
-    const user = await User.findOne({ email });
+    const result = await sql.query`
+      SELECT * FROM Users WHERE Email = ${email}
+    `;
+    const user = result.recordset[0];
+
     if (!user) {
       return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng' });
     }
 
-    // Check password
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await bcrypt.compare(password, user.Password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng' });
     }
 
-    // Generate JWT token
     const token = jwt.sign(
-      { userId: user._id, role: user.role },
+      { 
+        userId: user.Id,
+        role: user.Role
+      },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
     );
@@ -102,472 +159,231 @@ exports.login = async (req, res) => {
       message: 'Đăng nhập thành công',
       token,
       user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        phoneNumber: user.phoneNumber,
-        address: user.address,
-        role: user.role
+        id: user.Id,
+        username: user.Username,
+        email: user.Email,
+        phoneNumber: user.PhoneNumber || "",
+        address: user.Address || "",
+        role: user.Role,
+        isMember: user.IsMember
       }
     });
   } catch (error) {
-    console.error('Login error:', error);
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({ 
-        message: 'Dữ liệu không hợp lệ',
-        error: error.message 
-      });
-    }
+    console.error('Lỗi đăng nhập:', error);
     res.status(500).json({ 
       message: 'Lỗi khi đăng nhập',
-      error: error.message 
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Đã xảy ra lỗi, vui lòng thử lại sau'
     });
   }
 };
 
-// Get user profile
+// Lấy thông tin người dùng
 exports.getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-password');
+    const userId = req.user.userId;
+    const result = await sql.query`
+      SELECT * FROM Users WHERE Id = ${userId}
+    `;
+    const user = result.recordset[0];
+
     if (!user) {
       return res.status(404).json({ message: 'Không tìm thấy người dùng' });
     }
 
     res.json({
-      username: user.username,
-      email: user.email,
-      phoneNumber: user.phoneNumber,
-      address: user.address,
-      role: user.role,
-      createdAt: user.createdAt,
+      id: user.Id,
+      username: user.Username,
+      email: user.Email,
+      phoneNumber: user.PhoneNumber || "",
+      address: user.Address || "",
+      role: user.Role,
+      isMember: user.IsMember,
+      createdAt: user.CreatedAt,
       smokingStatus: user.smokingStatus || {
         cigarettesPerDay: 0,
         costPerPack: 0,
         smokingFrequency: '',
-        healthStatus: ''
+        healthStatus: '',
+        cigaretteType: '',
+        quitReason: '',
+        dailyLog: {
+          cigarettes: 0,
+          feeling: ''
+        }
       },
       quitPlan: user.quitPlan || {
-        startDate: null,
-        targetDate: null,
+        startDate: '',
+        targetDate: '',
+        planType: '',
         milestones: [],
-        currentProgress: 0
+        currentProgress: 0,
+        initialCigarettes: 0,
+        dailyReduction: 1
       },
-      achievements: user.achievements || [],
-      isPremium: user.role === 'premium'
+      achievements: user.achievements || []
     });
   } catch (error) {
-    console.error('Get profile error:', error);
+    console.error('Lỗi lấy thông tin người dùng:', error);
     res.status(500).json({ 
       message: 'Lỗi khi lấy thông tin người dùng',
-      error: error.message 
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Đã xảy ra lỗi, vui lòng thử lại sau'
     });
   }
 };
 
-// Update user profile
-exports.updateProfile = async (req, res) => {
+// Nâng cấp thành viên
+exports.upgradeMember = async (req, res) => {
   try {
-    const { username, email, phoneNumber, address } = req.body;
-    const user = await User.findById(req.user._id);
+    const userId = req.user.userId;
+    
+    await sql.query`
+      UPDATE Users 
+      SET IsMember = 1 
+      WHERE Id = ${userId}
+    `;
 
-    if (!user) {
-      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
-    }
-
-    // Check if email or username is already taken
-    if (email !== user.email) {
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
-        return res.status(400).json({ message: 'Email đã được sử dụng' });
-      }
-    }
-
-    if (username !== user.username) {
-      const existingUser = await User.findOne({ username });
-      if (existingUser) {
-        return res.status(400).json({ message: 'Tên người dùng đã tồn tại' });
-      }
-    }
-
-    // Update user information
-    user.username = username || user.username;
-    user.email = email || user.email;
-    user.phoneNumber = phoneNumber || user.phoneNumber;
-    user.address = address || user.address;
-
-    await user.save();
+    const result = await sql.query`
+      SELECT * FROM Users WHERE Id = ${userId}
+    `;
+    const user = result.recordset[0];
 
     res.json({
-      message: 'Cập nhật thông tin thành công',
+      message: 'Nâng cấp thành công',
       user: {
-        username: user.username,
-        email: user.email,
-        phoneNumber: user.phoneNumber,
-        address: user.address
+        id: user.Id,
+        username: user.Username,
+        email: user.Email,
+        phoneNumber: user.PhoneNumber || "",
+        address: user.Address || "",
+        role: user.Role,
+        isMember: user.IsMember
       }
     });
   } catch (error) {
-    console.error('Update profile error:', error);
+    console.error('Lỗi nâng cấp:', error);
     res.status(500).json({ 
-      message: 'Lỗi khi cập nhật thông tin',
-      error: error.message 
+      message: 'Lỗi khi nâng cấp',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Đã xảy ra lỗi, vui lòng thử lại sau'
     });
   }
 };
 
-// Update smoking status
+// Cập nhật tình trạng hút thuốc
 exports.updateSmokingStatus = async (req, res) => {
   try {
-    const { 
-      cigarettesPerDay, 
-      costPerPack, 
-      smokingFrequency, 
+    const userId = req.user.userId;
+    let {
+      cigarettesPerDay,
+      costPerPack,
+      smokingFrequency,
       healthStatus,
       cigaretteType,
-      quitReason,
-      dailyLog
+      dailyCigarettes,
+      dailyFeeling
     } = req.body;
-    
-    const user = await User.findById(req.user._id);
 
-    if (!user) {
-      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+    // Validate input bắt buộc
+    if (
+      cigarettesPerDay === undefined ||
+      costPerPack === undefined ||
+      smokingFrequency === undefined ||
+      healthStatus === undefined
+    ) {
+      return res.status(400).json({ message: 'Vui lòng nhập đầy đủ thông tin tình trạng hút thuốc.' });
     }
 
-    // Update basic smoking status
-    user.smokingStatus = {
-      ...user.smokingStatus,
-      cigarettesPerDay: cigarettesPerDay || user.smokingStatus.cigarettesPerDay,
-      costPerPack: costPerPack || user.smokingStatus.costPerPack,
-      smokingFrequency: smokingFrequency || user.smokingStatus.smokingFrequency,
-      healthStatus: healthStatus || user.smokingStatus.healthStatus,
-      cigaretteType: cigaretteType || user.smokingStatus.cigaretteType,
-      quitReason: quitReason || user.smokingStatus.quitReason
-    };
+    // Gán giá trị mặc định nếu undefined
+    cigaretteType = cigaretteType ?? '';
+    dailyCigarettes = dailyCigarettes ?? 0;
+    dailyFeeling = dailyFeeling ?? '';
 
-    // Add daily log if provided
-    if (dailyLog) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+    await sql.query`
+      UPDATE Users
+      SET
+        cigarettesPerDay = ${cigarettesPerDay},
+        costPerPack = ${costPerPack},
+        smokingFrequency = ${smokingFrequency},
+        healthStatus = ${healthStatus},
+        cigaretteType = ${cigaretteType},
+        dailyCigarettes = ${dailyCigarettes},
+        dailyFeeling = ${dailyFeeling}
+      WHERE Id = ${userId}
+    `;
 
-      const existingLogIndex = user.smokingStatus.dailyLog.findIndex(
-        log => new Date(log.date).setHours(0, 0, 0, 0) === today.getTime()
-      );
-
-      if (existingLogIndex >= 0) {
-        user.smokingStatus.dailyLog[existingLogIndex] = {
-          ...user.smokingStatus.dailyLog[existingLogIndex],
-          ...dailyLog,
-          date: today
-        };
-      } else {
-        user.smokingStatus.dailyLog.push({
-          ...dailyLog,
-          date: today
-        });
-      }
-    }
-
-    await user.save();
-
+    const result = await sql.query`
+      SELECT * FROM Users WHERE Id = ${userId}
+    `;
+    const user = result.recordset[0];
     res.json({
       message: 'Cập nhật tình trạng hút thuốc thành công',
-      smokingStatus: user.smokingStatus
+      user: {
+        id: user.Id,
+        username: user.Username,
+        email: user.Email,
+        phoneNumber: user.PhoneNumber || "",
+        address: user.Address || "",
+        role: user.Role,
+        isMember: user.IsMember
+      }
     });
   } catch (error) {
-    console.error('Update smoking status error:', error);
+    console.error('Lỗi cập nhật tình trạng hút thuốc:', error);
     res.status(500).json({ 
       message: 'Lỗi khi cập nhật tình trạng hút thuốc',
-      error: error.message 
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Đã xảy ra lỗi, vui lòng thử lại sau'
     });
   }
 };
 
-// Create quit plan
-exports.createQuitPlan = async (req, res) => {
+// Cập nhật thông tin người dùng
+exports.updateProfile = async (req, res) => {
   try {
-    const { 
-      planType,
-      startDate, 
-      targetDate,
-      initialCigarettes,
-      dailyReduction
-    } = req.body;
-    
-    const user = await User.findById(req.user._id);
-
-    if (!user) {
-      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+    const userId = req.user.userId;
+    const { username, email, phoneNumber, address } = req.body;
+    if (!username || !email) {
+      return res.status(400).json({ message: 'Vui lòng nhập đầy đủ tên đăng nhập và email.' });
     }
-
-    // Create milestones based on plan type
-    let milestones = [];
-    const start = new Date(startDate);
-    const target = new Date(targetDate);
-    const daysDiff = Math.ceil((target - start) / (1000 * 60 * 60 * 24));
-
-    if (planType === 'gradual') {
-      // Create daily milestones for gradual reduction
-      let currentCigarettes = initialCigarettes;
-      for (let i = 0; i < daysDiff; i++) {
-        const milestoneDate = new Date(start);
-        milestoneDate.setDate(start.getDate() + i);
-        
-        milestones.push({
-          title: `Giảm xuống ${currentCigarettes} điếu/ngày`,
-          date: milestoneDate,
-          type: 'time',
-          value: currentCigarettes,
-          description: `Mục tiêu: ${currentCigarettes} điếu/ngày`
-        });
-
-        currentCigarettes = Math.max(0, currentCigarettes - dailyReduction);
-      }
-    } else {
-      // Create standard milestones for cold-turkey and custom plans
-      const standardMilestones = [
-        { days: 1, title: '1 ngày không hút thuốc' },
-        { days: 7, title: '1 tuần không hút thuốc' },
-        { days: 30, title: '1 tháng không hút thuốc' },
-        { days: 90, title: '3 tháng không hút thuốc' },
-        { days: 180, title: '6 tháng không hút thuốc' },
-        { days: 365, title: '1 năm không hút thuốc' }
-      ];
-
-      milestones = standardMilestones
-        .filter(m => m.days <= daysDiff)
-        .map(m => {
-          const milestoneDate = new Date(start);
-          milestoneDate.setDate(start.getDate() + m.days);
-          return {
-            title: m.title,
-            date: milestoneDate,
-            type: 'time',
-            value: m.days,
-            description: `Đạt được ${m.days} ngày không hút thuốc`
-          };
-        });
-    }
-
-    // Add money saved milestones
-    const moneyMilestones = [
-      { amount: 100000, title: 'Tiết kiệm 100.000đ' },
-      { amount: 500000, title: 'Tiết kiệm 500.000đ' },
-      { amount: 1000000, title: 'Tiết kiệm 1.000.000đ' },
-      { amount: 5000000, title: 'Tiết kiệm 5.000.000đ' }
-    ];
-
-    moneyMilestones.forEach(m => {
-      const daysToReach = Math.ceil(m.amount / (user.smokingStatus.cigarettesPerDay * user.smokingStatus.costPerPack / 20));
-      if (daysToReach <= daysDiff) {
-        const milestoneDate = new Date(start);
-        milestoneDate.setDate(start.getDate() + daysToReach);
-        milestones.push({
-          title: m.title,
-          date: milestoneDate,
-          type: 'money',
-          value: m.amount,
-          description: `Tiết kiệm được ${m.amount.toLocaleString()}đ`
-        });
-      }
-    });
-
-    // Add health improvement milestones
-    const healthMilestones = [
-      { days: 1, title: 'Huyết áp và nhịp tim bắt đầu trở về bình thường' },
-      { days: 2, title: 'Khứu giác và vị giác bắt đầu cải thiện' },
-      { days: 14, title: 'Chức năng phổi bắt đầu cải thiện' },
-      { days: 30, title: 'Giảm nguy cơ mắc bệnh tim mạch' },
-      { days: 90, title: 'Giảm nguy cơ mắc bệnh phổi' }
-    ];
-
-    healthMilestones
-      .filter(m => m.days <= daysDiff)
-      .forEach(m => {
-        const milestoneDate = new Date(start);
-        milestoneDate.setDate(start.getDate() + m.days);
-        milestones.push({
-          title: m.title,
-          date: milestoneDate,
-          type: 'health',
-          value: m.days,
-          description: `Cải thiện sức khỏe sau ${m.days} ngày`
-        });
-      });
-
-    user.quitPlan = {
-      planType: planType || 'gradual',
-      startDate: startDate || null,
-      targetDate: targetDate || null,
-      initialCigarettes: initialCigarettes || user.smokingStatus.cigarettesPerDay,
-      dailyReduction: dailyReduction || 1,
-      milestones: milestones,
-      currentProgress: 0,
-      dailyProgress: []
-    };
-
-    // Add initial notification
-    user.notifications.push({
-      title: 'Bắt đầu hành trình cai thuốc',
-      message: 'Chúc mừng bạn đã bắt đầu hành trình cai thuốc! Hãy kiên trì và theo dõi tiến độ của bạn.',
-      type: 'motivation'
-    });
-
-    await user.save();
-
+    await sql.query`
+      UPDATE Users
+      SET
+        Username = ${username},
+        Email = ${email},
+        PhoneNumber = ${phoneNumber},
+        Address = ${address}
+      WHERE Id = ${userId}
+    `;
+    const result = await sql.query`
+      SELECT * FROM Users WHERE Id = ${userId}
+    `;
+    const user = result.recordset[0];
     res.json({
-      message: 'Tạo kế hoạch cai thuốc thành công',
-      quitPlan: user.quitPlan
-    });
-  } catch (error) {
-    console.error('Create quit plan error:', error);
-    res.status(500).json({ 
-      message: 'Lỗi khi tạo kế hoạch cai thuốc',
-      error: error.message 
-    });
-  }
-};
-
-// Update quit plan progress
-exports.updateQuitPlanProgress = async (req, res) => {
-  try {
-    const { cigarettes, notes, mood } = req.body;
-    const user = await User.findById(req.user._id);
-
-    if (!user) {
-      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
-    }
-
-    if (!user.quitPlan.startDate) {
-      return res.status(400).json({ message: 'Chưa có kế hoạch cai thuốc' });
-    }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Calculate money saved
-    const moneySaved = (user.smokingStatus.cigarettesPerDay - cigarettes) * 
-                      (user.smokingStatus.costPerPack / 20);
-
-    // Add daily progress
-    const dailyProgress = {
-      date: today,
-      cigarettes,
-      moneySaved,
-      notes,
-      mood: mood || 'okay'
-    };
-
-    user.quitPlan.dailyProgress.push(dailyProgress);
-
-    // Update milestones
-    const daysSinceStart = Math.ceil((today - new Date(user.quitPlan.startDate)) / (1000 * 60 * 60 * 24));
-    const totalDays = Math.ceil((new Date(user.quitPlan.targetDate) - new Date(user.quitPlan.startDate)) / (1000 * 60 * 60 * 24));
-    
-    user.quitPlan.currentProgress = Math.min(100, Math.round((daysSinceStart / totalDays) * 100));
-
-    // Check and update milestones
-    user.quitPlan.milestones.forEach(milestone => {
-      if (!milestone.completed && new Date(milestone.date) <= today) {
-        milestone.completed = true;
-        
-        // Add achievement
-        user.achievements.push({
-          title: milestone.title,
-          description: milestone.description,
-          type: milestone.type,
-          value: milestone.value,
-          icon: getMilestoneIcon(milestone.type)
-        });
-
-        // Add notification
-        user.notifications.push({
-          title: 'Đạt được mốc quan trọng!',
-          message: `Chúc mừng bạn đã ${milestone.title.toLowerCase()}`,
-          type: 'milestone'
-        });
+      message: 'Cập nhật thành công',
+      user: {
+        id: user.Id,
+        username: user.Username,
+        email: user.Email,
+        phoneNumber: user.PhoneNumber || "",
+        address: user.Address || "",
+        role: user.Role,
+        isMember: user.IsMember
       }
     });
-
-    await user.save();
-
-    res.json({
-      message: 'Cập nhật tiến độ thành công',
-      quitPlan: user.quitPlan
-    });
   } catch (error) {
-    console.error('Update quit plan progress error:', error);
-    res.status(500).json({ 
-      message: 'Lỗi khi cập nhật tiến độ',
-      error: error.message 
-    });
+    res.status(500).json({ message: 'Cập nhật thất bại', error: error.message });
   }
 };
 
-// Helper function to get milestone icon
-function getMilestoneIcon(type) {
-  switch (type) {
-    case 'time':
-      return '⏰';
-    case 'money':
-      return '💰';
-    case 'health':
-      return '❤️';
-    default:
-      return '🏆';
-  }
-}
-
-// Nâng cấp tài khoản lên premium
-exports.upgradePremium = async (req, res) => {
+// Thêm vào authController.js
+exports.addSmokingDailyLog = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
-    if (!user) {
-      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
-    }
-    user.role = 'premium';
-    await user.save();
-    res.json({ message: 'Nâng cấp thành công', user });
+    const userId = req.user.userId;
+    const { cigarettes, feeling } = req.body;
+    await sql.query`
+      INSERT INTO SmokingDailyLog (UserId, Cigarettes, Feeling)
+      VALUES (${userId}, ${cigarettes}, ${feeling})
+    `;
+    res.json({ message: 'Lưu nhật ký thành công' });
   } catch (error) {
-    res.status(500).json({ message: 'Lỗi khi nâng cấp', error: error.message });
+    res.status(500).json({ message: 'Lỗi khi lưu nhật ký', error: error.message });
   }
-};
-
-// Nâng cấp tài khoản lên admin
-exports.upgradeToAdmin = async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id);
-    if (!user) {
-      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
-    }
-    
-    // Kiểm tra xem người dùng có phải là admin không
-    if (user.role !== 'admin') {
-      return res.status(403).json({ message: 'Không có quyền thực hiện thao tác này' });
-    }
-
-    const { userId } = req.body;
-    const targetUser = await User.findById(userId);
-    
-    if (!targetUser) {
-      return res.status(404).json({ message: 'Không tìm thấy người dùng cần nâng cấp' });
-    }
-
-    targetUser.role = 'admin';
-    await targetUser.save();
-
-    res.json({ 
-      message: 'Nâng cấp tài khoản lên admin thành công',
-      user: targetUser
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      message: 'Lỗi khi nâng cấp tài khoản',
-      error: error.message 
-    });
-  }
-}; 
-// Thêm vào cuối file authController.js
-exports.updateQuitPlan = (req, res) => {
-  res.status(501).json({ message: 'Not implemented' });
 };
