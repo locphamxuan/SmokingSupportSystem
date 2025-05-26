@@ -21,7 +21,9 @@ const Payment = ({ open, onClose, onSuccess }) => {
     cardHolder: '',
     expiryDate: '',
     cvv: '',
-    paymentMethod: 'credit'
+    paymentMethod: 'credit',
+    phoneNumber: '',
+    bankCode: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -34,14 +36,56 @@ const Payment = ({ open, onClose, onSuccess }) => {
     }));
   };
 
+  const validate = () => {
+    if (paymentInfo.paymentMethod === 'credit') {
+      if (!/^[0-9]{16}$/.test(paymentInfo.cardNumber.replace(/\s/g, ''))) {
+        setError('Số thẻ phải có 16 chữ số');
+        return false;
+      }
+      if (!paymentInfo.cardHolder.trim()) {
+        setError('Vui lòng nhập tên chủ thẻ');
+        return false;
+      }
+      if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(paymentInfo.expiryDate)) {
+        setError('Ngày hết hạn không hợp lệ (MM/YY)');
+        return false;
+      }
+      if (!/^[0-9]{3,4}$/.test(paymentInfo.cvv)) {
+        setError('CVV không hợp lệ');
+        return false;
+      }
+    } else if (paymentInfo.paymentMethod === 'momo') {
+      if (!paymentInfo.phoneNumber || !/^[0-9]{10}$/.test(paymentInfo.phoneNumber)) {
+        setError('Vui lòng nhập số điện thoại MoMo hợp lệ');
+        return false;
+      }
+    } else if (paymentInfo.paymentMethod === 'vnpay') {
+      if (!paymentInfo.bankCode) {
+        setError('Vui lòng chọn ngân hàng');
+        return false;
+      }
+    }
+    setError('');
+    return true;
+  };
+
   const handlePaymentSubmit = async () => {
+    if (!validate()) return;
+    
     setLoading(true);
     setError('');
-    setTimeout(() => {
-      setLoading(false);
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
       onSuccess();
       onClose();
-    }, 1000);
+    } catch (error) {
+      console.error('Payment error:', error);
+      setError('Có lỗi xảy ra trong quá trình thanh toán. Vui lòng thử lại sau.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -78,6 +122,10 @@ const Payment = ({ open, onClose, onSuccess }) => {
                 onChange={handlePaymentInfoChange}
                 sx={{ mb: 2 }}
                 placeholder="XXXX XXXX XXXX XXXX"
+                autoFocus
+                inputProps={{ maxLength: 19 }}
+                error={!!error && error.includes('Số thẻ')}
+                helperText={error && error.includes('Số thẻ') ? error : ''}
               />
               <TextField
                 fullWidth
@@ -86,6 +134,8 @@ const Payment = ({ open, onClose, onSuccess }) => {
                 value={paymentInfo.cardHolder}
                 onChange={handlePaymentInfoChange}
                 sx={{ mb: 2 }}
+                error={!!error && error.includes('tên chủ thẻ')}
+                helperText={error && error.includes('tên chủ thẻ') ? error : ''}
               />
               <Grid container spacing={2}>
                 <Grid item xs={6}>
@@ -96,6 +146,8 @@ const Payment = ({ open, onClose, onSuccess }) => {
                     value={paymentInfo.expiryDate}
                     onChange={handlePaymentInfoChange}
                     placeholder="MM/YY"
+                    error={!!error && error.includes('Ngày hết hạn')}
+                    helperText={error && error.includes('Ngày hết hạn') ? error : ''}
                   />
                 </Grid>
                 <Grid item xs={6}>
@@ -106,21 +158,48 @@ const Payment = ({ open, onClose, onSuccess }) => {
                     value={paymentInfo.cvv}
                     onChange={handlePaymentInfoChange}
                     type="password"
+                    inputProps={{ maxLength: 4 }}
+                    error={!!error && error.includes('CVV')}
+                    helperText={error && error.includes('CVV') ? error : ''}
                   />
                 </Grid>
               </Grid>
             </>
           ) : paymentInfo.paymentMethod === 'momo' ? (
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-              Bạn sẽ được chuyển đến trang thanh toán MoMo để hoàn tất giao dịch.
-            </Typography>
+            <TextField
+              fullWidth
+              label="Số điện thoại MoMo"
+              name="phoneNumber"
+              value={paymentInfo.phoneNumber || ''}
+              onChange={handlePaymentInfoChange}
+              sx={{ mt: 2 }}
+              error={!!error && error.includes('MoMo')}
+              helperText={error && error.includes('MoMo') ? error : ''}
+            />
           ) : paymentInfo.paymentMethod === 'vnpay' ? (
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-              Bạn sẽ được chuyển đến trang thanh toán VNPay để hoàn tất giao dịch.
-            </Typography>
+            <FormControl fullWidth sx={{ mt: 2 }}>
+              <InputLabel>Chọn ngân hàng</InputLabel>
+              <Select
+                name="bankCode"
+                value={paymentInfo.bankCode || ''}
+                onChange={handlePaymentInfoChange}
+                label="Chọn ngân hàng"
+                error={!!error && error.includes('ngân hàng')}
+              >
+                <MenuItem value="VCB">Vietcombank</MenuItem>
+                <MenuItem value="TCB">Techcombank</MenuItem>
+                <MenuItem value="MB">MB Bank</MenuItem>
+                <MenuItem value="ACB">ACB</MenuItem>
+              </Select>
+              {error && error.includes('ngân hàng') && (
+                <Typography color="error" variant="caption">{error}</Typography>
+              )}
+            </FormControl>
           ) : null}
 
-          {error && (
+          {error && !error.includes('Số thẻ') && !error.includes('tên chủ thẻ') && 
+           !error.includes('Ngày hết hạn') && !error.includes('CVV') && 
+           !error.includes('MoMo') && !error.includes('ngân hàng') && (
             <Typography color="error" sx={{ mt: 2 }}>
               {error}
             </Typography>
