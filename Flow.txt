@@ -1,0 +1,136 @@
+1. Guest (Khách truy cập chưa đăng nhập)
+🔹 Luồng chính:
+Truy cập Trang chủ
+
+Xem giới thiệu nền tảng
+
+Xem bảng xếp hạng thành tích
+
+Đọc blog chia sẻ kinh nghiệm cai thuốc
+
+Tương tác cơ bản
+
+Xem gói thành viên
+
+Xem các huy hiệu thành tích mẫu
+
+Chuyển đổi thành Member
+
+Nhấn “Đăng ký”
+
+Điền thông tin → Chọn gói thành viên
+
+Thanh toán (nếu là gói trả phí) → Trở thành Member
+
+🟢 2. Member (Người dùng đã đăng ký)
+🔹 Onboarding:
+Đăng nhập
+
+Thiết lập hồ sơ (cân nặng, giới tính, tình trạng hút thuốc...)
+
+🔹 Chức năng chính:
+Khai báo tình trạng hút thuốc
+
+Số lượng điếu/ngày, chi phí, thời gian hút
+
+Lập kế hoạch cai thuốc
+
+Chọn lý do → chọn ngày bắt đầu → dự kiến ngày kết thúc
+
+Nhận gợi ý từ hệ thống → tùy chỉnh lại
+
+Theo dõi tiến trình
+
+Cập nhật hàng ngày (điếu hút, sức khỏe, cảm xúc)
+
+Dashboard: ngày không hút, tiền tiết kiệm, cải thiện sức khỏe
+
+Nhận thông báo hệ thống
+
+Tin nhắn động viên, nhắc nhở lý do cai
+
+Email/thông báo push (tuần/tháng)
+
+Nhận & chia sẻ huy hiệu
+
+Huy hiệu tự động cập nhật khi đạt mốc
+
+Chia sẻ lên cộng đồng (giống như một mạng xã hội mini)
+
+Nhận động viên từ người khác
+
+Tương tác cộng đồng
+
+Đăng bài viết chia sẻ hành trình
+
+Bình luận / thích bài viết của người khác
+
+Tư vấn cùng Coach
+
+Đặt lịch tư vấn
+
+Gửi câu hỏi, trò chuyện trực tuyến
+
+Đánh giá hệ thống
+
+Gửi feedback, rating
+
+Đánh giá Coach sau phiên tư vấn
+
+🔵 3. Coach (Huấn luyện viên / chuyên gia)
+🔹 Chức năng:
+Đăng nhập Coach Portal
+
+Xem lịch tư vấn
+
+Danh sách thành viên đã đặt hẹn
+
+Trạng thái: chưa tư vấn / đã tư vấn / cần theo dõi
+
+Tư vấn thành viên
+
+Trò chuyện trực tuyến / trả lời tin nhắn
+
+Đọc kế hoạch, tiến trình của Member
+
+Gửi đề xuất điều chỉnh kế hoạch
+
+Theo dõi & ghi chú
+
+Ghi lại nội dung đã tư vấn
+
+Đánh giá mức độ cam kết của Member
+
+🔴 4. Admin (Quản trị hệ thống)
+🔹 Chức năng hệ thống:
+Quản lý người dùng
+
+Duyệt, chỉnh sửa, xoá tài khoản Member / Coach
+
+Quản lý gói thành viên
+
+Tạo, sửa, vô hiệu hoá gói miễn phí / trả phí
+
+Quản lý blog & nội dung
+
+Viết bài chia sẻ / duyệt bài từ Coach/Member
+
+Duyệt báo cáo vi phạm
+
+Quản lý huy hiệu
+
+Tạo mới huy hiệu, mốc thành tích
+
+Điều chỉnh điều kiện đạt huy hiệu
+
+Quản lý hệ thống tư vấn
+
+Phân quyền Coach
+
+Theo dõi tiến trình tư vấn
+
+Dashboard & báo cáo
+
+Thống kê số người tham gia, tỷ lệ cai thành công, doanh thu
+
+Phân tích feedback, rating
