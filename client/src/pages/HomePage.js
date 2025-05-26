@@ -4,26 +4,18 @@ import {
   Typography, 
   Box, 
   Paper, 
-<<<<<<< HEAD
-  Divider
-} from '@mui/material';
-=======
   Divider, 
   Grid, 
   Card, 
   CardContent,
-  Chip,
-  LinearProgress
+  Chip
 } from '@mui/material';
 import {
   SmokeFree as SmokeIcon,
   Favorite as HealthIcon,
   AttachMoney as MoneyIcon,
-  Group as CommunityIcon,
-  Timeline as ProgressIcon,
-  LocalHospital as MedicalIcon
+  Group as CommunityIcon
 } from '@mui/icons-material';
->>>>>>> Loc
 
 const HomePage = () => {
   const benefits = [

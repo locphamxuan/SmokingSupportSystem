@@ -32,7 +32,6 @@ const Navbar = () => {
     user = null;
   }
   const isAdmin = user && user.role === 'admin';
-  const isPremiumMember = user && (user.role === 'member' || user.isMember);
 
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
