@@ -9,6 +9,8 @@ import AdminUserPage from './pages/AdminUserPage';
 import LoginPage from './pages/LoginPage';
 import ProfilePage from './pages/ProfilePage';
 import SubscriptionPlans from './pages/SubscriptionPlans';
+import MyProgressPage from './pages/MyProgressPage';
+import AchievementsPage from './pages/AchievementsPage';
 
 const theme = createTheme({
   palette: {
@@ -50,6 +52,8 @@ function App() {
       <Router future={{ v7_relativeSplatPath: true }}>
         <Navbar />
         <Routes>
+        <Route path="/my-progress" element={<MyProgressPage />} />
+        <Route path="/achievements" element={<AchievementsPage />} />
           <Route path="/" element={<HomePage />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />

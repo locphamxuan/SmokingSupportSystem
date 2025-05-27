@@ -11,7 +11,11 @@ import {
   Alert,
   Link,
   IconButton,
-  Tooltip
+  Tooltip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import { Home as HomeIcon } from '@mui/icons-material';
 import axios from 'axios';
@@ -21,6 +25,7 @@ const LoginPage = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [userType, setUserType] = useState('member'); // 'member' or 'coach'
   
   const [loginData, setLoginData] = useState({ emailOrUsername: '', password: '' });
   const [loginErrors, setLoginErrors] = useState({ emailOrUsername: '', password: '' });
@@ -122,16 +127,25 @@ const LoginPage = () => {
     setLoading(true);
     setError('');
     try {
-      console.log('Sending login data:', JSON.stringify(loginData, null, 2)); // Debug log
-      const response = await axios.post('http://localhost:5000/api/auth/login', loginData);
-      const { token, user } = response.data;
+      const endpoint = userType === 'coach' 
+        ? 'http://localhost:5000/api/coach/login'
+        : 'http://localhost:5000/api/auth/login';
+
+      const loginPayload = userType === 'coach' 
+        ? { email: loginData.emailOrUsername, password: loginData.password }
+        : loginData;
+
+      const response = await axios.post(endpoint, loginPayload);
+      const { token, user, coach } = response.data;
       
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('user', JSON.stringify(user || coach));
       
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
-      if (user.role === 'admin') {
+      if (userType === 'coach') {
+        navigate('/coach-portal');
+      } else if (user?.role === 'admin') {
         navigate('/admin/users');
       } else {
         navigate('/');
@@ -214,11 +228,23 @@ const LoginPage = () => {
 
           {activeTab === 0 ? (
             <Box component="form" onSubmit={handleLoginSubmit} sx={{ mt: 3 }}>
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Loại tài khoản</InputLabel>
+                <Select
+                  value={userType}
+                  onChange={(e) => setUserType(e.target.value)}
+                  label="Loại tài khoản"
+                >
+                  <MenuItem value="member">Thành viên</MenuItem>
+                  <MenuItem value="coach">Huấn luyện viên</MenuItem>
+                </Select>
+              </FormControl>
+              
               <TextField
                 margin="normal"
                 required
                 fullWidth
-                label="Email hoặc Tên đăng nhập"
+                label={userType === 'coach' ? "Email" : "Email hoặc Tên đăng nhập"}
                 name="emailOrUsername"
                 value={loginData.emailOrUsername}
                 onChange={handleLoginInputChange}
