@@ -206,10 +206,37 @@ exports.login = async (req, res) => {
 exports.getProfile = async (req, res) => {
   try {
     const userId = req.user.userId;
+    
+    console.log('=== GET PROFILE START ===');
+    console.log('Requested User ID:', userId);
+    console.log('User ID type:', typeof userId);
+    
     const result = await sql.query`
-      SELECT * FROM Users WHERE Id = ${userId}
+      SELECT Id, Username, Email, PhoneNumber, Address, Role, IsMember, CreatedAt,
+             cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, 
+             dailyCigarettes, dailyFeeling
+      FROM Users WHERE Id = ${userId}
     `;
+    
+    console.log('Query result count:', result.recordset.length);
+    
     const user = result.recordset[0];
+
+    console.log('=== GET PROFILE DEBUG ===');
+    console.log('Found user:', user ? 'YES' : 'NO');
+    if (user) {
+      console.log('User ID from DB:', user.Id);
+      console.log('Username:', user.Username);
+      console.log('Raw smoking data:', {
+        cigarettesPerDay: user.cigarettesPerDay,
+        costPerPack: user.costPerPack,
+        smokingFrequency: user.smokingFrequency,
+        healthStatus: user.healthStatus,
+        cigaretteType: user.cigaretteType,
+        dailyCigarettes: user.dailyCigarettes,
+        dailyFeeling: user.dailyFeeling
+      });
+    }
 
     if (!user) {
       return res.status(404).json({ message: 'Không tìm thấy người dùng' });
@@ -224,19 +251,19 @@ exports.getProfile = async (req, res) => {
       role: user.Role,
       isMember: user.IsMember,
       createdAt: user.CreatedAt,
-      smokingStatus: user.smokingStatus || {
-        cigarettesPerDay: 0,
-        costPerPack: 0,
-        smokingFrequency: '',
-        healthStatus: '',
-        cigaretteType: '',
+      smokingStatus: {
+        cigarettesPerDay: user.cigarettesPerDay || 0,
+        costPerPack: user.costPerPack || 0,
+        smokingFrequency: user.smokingFrequency || '',
+        healthStatus: user.healthStatus || '',
+        cigaretteType: user.cigaretteType || '',
         quitReason: '',
         dailyLog: {
-          cigarettes: 0,
-          feeling: ''
+          cigarettes: user.dailyCigarettes || 0,
+          feeling: user.dailyFeeling || ''
         }
       },
-      quitPlan: user.quitPlan || {
+      quitPlan: {
         startDate: '',
         targetDate: '',
         planType: '',
@@ -245,7 +272,7 @@ exports.getProfile = async (req, res) => {
         initialCigarettes: 0,
         dailyReduction: 1
       },
-      achievements: user.achievements || []
+      achievements: []
     });
   } catch (error) {
     console.error('Lỗi lấy thông tin người dùng:', error);
@@ -261,19 +288,52 @@ exports.upgradeMember = async (req, res) => {
   try {
     const userId = req.user.userId;
     
+    console.log('=== UPGRADE MEMBER REQUEST ===');
+    console.log('User ID:', userId);
+    
+    // Kiểm tra user hiện tại
+    const checkUser = await sql.query`
+      SELECT Id, Username, Email, Role, IsMember FROM Users WHERE Id = ${userId}
+    `;
+    
+    if (checkUser.recordset.length === 0) {
+      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+    }
+    
+    const currentUser = checkUser.recordset[0];
+    console.log('Current user before upgrade:', currentUser);
+    
+    // Kiểm tra xem user đã là member chưa
+    if (currentUser.IsMember === 1 || currentUser.IsMember === true || currentUser.Role === 'member') {
+      return res.status(400).json({ message: 'Bạn đã là thành viên Premium rồi!' });
+    }
+    
+    // Cập nhật cả Role và IsMember
     await sql.query`
       UPDATE Users 
-      SET IsMember = 1 
+      SET 
+        IsMember = 1,
+        Role = 'member'
       WHERE Id = ${userId}
     `;
+    
+    console.log('User upgraded successfully');
 
+    // Lấy thông tin user sau khi cập nhật
     const result = await sql.query`
       SELECT * FROM Users WHERE Id = ${userId}
     `;
     const user = result.recordset[0];
+    
+    console.log('User after upgrade:', {
+      id: user.Id,
+      username: user.Username,
+      role: user.Role,
+      isMember: user.IsMember
+    });
 
     res.json({
-      message: 'Nâng cấp thành công',
+      message: 'Nâng cấp lên Premium thành công! Chào mừng bạn đến với cộng đồng Premium.',
       user: {
         id: user.Id,
         username: user.Username,
@@ -285,9 +345,10 @@ exports.upgradeMember = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Lỗi nâng cấp:', error);
+    console.error('=== UPGRADE ERROR ===');
+    console.error('Error details:', error);
     res.status(500).json({ 
-      message: 'Lỗi khi nâng cấp',
+      message: 'Lỗi khi nâng cấp tài khoản',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Đã xảy ra lỗi, vui lòng thử lại sau'
     });
   }
@@ -336,7 +397,10 @@ exports.updateSmokingStatus = async (req, res) => {
     `;
 
     const result = await sql.query`
-      SELECT * FROM Users WHERE Id = ${userId}
+      SELECT Id, Username, Email, PhoneNumber, Address, Role, IsMember, CreatedAt,
+             cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, 
+             dailyCigarettes, dailyFeeling
+      FROM Users WHERE Id = ${userId}
     `;
     const user = result.recordset[0];
     res.json({
@@ -348,7 +412,19 @@ exports.updateSmokingStatus = async (req, res) => {
         phoneNumber: user.PhoneNumber || "",
         address: user.Address || "",
         role: user.Role,
-        isMember: user.IsMember
+        isMember: user.IsMember,
+        smokingStatus: {
+          cigarettesPerDay: user.cigarettesPerDay || 0,
+          costPerPack: user.costPerPack || 0,
+          smokingFrequency: user.smokingFrequency || '',
+          healthStatus: user.healthStatus || '',
+          cigaretteType: user.cigaretteType || '',
+          quitReason: '',
+          dailyLog: {
+            cigarettes: user.dailyCigarettes || 0,
+            feeling: user.dailyFeeling || ''
+          }
+        }
       }
     });
   } catch (error) {

@@ -40,13 +40,15 @@ import {
   Search as SearchIcon,
   Dashboard as DashboardIcon
 } from "@mui/icons-material";
-import { getUsers, updateUser, deleteUser } from "../services/adminService";
+import { getUsers, getUserDetail, updateUser, deleteUser } from "../services/adminService";
 
 const AdminUserPage = () => {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [open, setOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedUserDetail, setSelectedUserDetail] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [formData, setFormData] = useState({
@@ -65,11 +67,18 @@ const AdminUserPage = () => {
   });
 
   const getUserRole = (user) => {
+    // Kiểm tra nếu user có IsMember = 1 thì coi là member
+    if (user.isMember === 1 || user.isMember === true) {
+      return "member";
+    }
+    
+    // Ưu tiên role từ database
     if (user.role) {
       return user.role.toLowerCase();
     }
+    
+    // Fallback logic cho các trường hợp cũ
     if (user.isAdmin === 1) return "admin";
-    if (user.isMember === 1) return "member";
     return "guest";
   };
 
@@ -109,9 +118,15 @@ const AdminUserPage = () => {
 
     // Filter by role
     if (roleFilter === "member") {
-      filtered = filtered.filter(user => user.isMember === true);
+      filtered = filtered.filter(user => {
+        const role = getUserRole(user);
+        return role === "member" || user.isMember === true || user.isMember === 1;
+      });
     } else if (roleFilter === "guest") {
-      filtered = filtered.filter(user => getUserRole(user) === "guest" && user.isMember !== true);
+      filtered = filtered.filter(user => {
+        const role = getUserRole(user);
+        return role === "guest" && !user.isMember;
+      });
     } else if (roleFilter === "coach") {
       filtered = filtered.filter(user => getUserRole(user) === "coach");
     } else if (roleFilter !== "all") {
@@ -121,7 +136,9 @@ const AdminUserPage = () => {
       });
     }
 
-    setFilteredUsers(filtered);
+    // Sắp xếp danh sách đã lọc theo ID tăng dần
+    const sortedFiltered = filtered.sort((a, b) => a.id - b.id);
+    setFilteredUsers(sortedFiltered);
   }, [users, searchTerm, roleFilter]);
 
   useEffect(() => {
@@ -135,7 +152,9 @@ const AdminUserPage = () => {
   const fetchUsers = async () => {
     try {
       const data = await getUsers();
-      setUsers(data);
+      // Sắp xếp danh sách theo ID tăng dần
+      const sortedData = data.sort((a, b) => a.id - b.id);
+      setUsers(sortedData);
     } catch (error) {
       console.error("Lỗi khi tải danh sách người dùng:", error);
       setSnackbar({
@@ -149,8 +168,14 @@ const AdminUserPage = () => {
   const getStatistics = () => {
     const filteredUsers = users.filter(user => user.role !== 'admin');
     const coachCount = filteredUsers.filter(user => getUserRole(user) === "coach").length;
-    const memberCount = filteredUsers.filter(user => getUserRole(user) === "member").length;
-    const guestCount = filteredUsers.filter(user => getUserRole(user) === "guest").length;
+    const memberCount = filteredUsers.filter(user => {
+      const role = getUserRole(user);
+      return role === "member" || user.isMember === true || user.isMember === 1;
+    }).length;
+    const guestCount = filteredUsers.filter(user => {
+      const role = getUserRole(user);
+      return role === "guest" && !user.isMember;
+    }).length;
     const totalUsers = filteredUsers.length;
     return { coachCount, memberCount, guestCount, totalUsers };
   };
@@ -310,6 +335,31 @@ const AdminUserPage = () => {
     }));
   };
 
+  const handleViewUserDetail = async (userId) => {
+    try {
+      console.log('Fetching user detail for ID:', userId);
+      
+      // Gọi API để lấy thông tin chi tiết từ server
+      const userDetail = await getUserDetail(userId);
+      
+      console.log('User detail received:', userDetail);
+      setSelectedUserDetail(userDetail);
+      setDetailOpen(true);
+    } catch (error) {
+      console.error("Error fetching user detail:", error);
+      setSnackbar({
+        open: true,
+        message: "Lỗi khi tải thông tin chi tiết người dùng",
+        severity: "error",
+      });
+    }
+  };
+
+  const handleCloseDetail = () => {
+    setDetailOpen(false);
+    setSelectedUserDetail(null);
+  };
+
   const stats = getStatistics();
 
   return (
@@ -378,7 +428,7 @@ const AdminUserPage = () => {
                     {stats.memberCount}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Thành viên Premium
+                    Thành viên
                   </Typography>
                 </Box>
                 <PremiumIcon sx={{ fontSize: 40, color: '#f57c00' }} />
@@ -434,7 +484,7 @@ const AdminUserPage = () => {
               >
                 <MenuItem value="all">Tất cả</MenuItem>
                 <MenuItem value="coach">Huấn luyện viên</MenuItem>
-                <MenuItem value="member">Thành viên Premium</MenuItem>
+                <MenuItem value="member">Thành viên</MenuItem>
                 <MenuItem value="guest">Khách hàng</MenuItem>
               </Select>
             </FormControl>
@@ -459,7 +509,6 @@ const AdminUserPage = () => {
                 <TableCell sx={{ fontWeight: 600 }}>Số điện thoại</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Địa chỉ</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Vai trò</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Thành viên</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Ngày tạo</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Hành động</TableCell>
               </TableRow>
@@ -468,7 +517,19 @@ const AdminUserPage = () => {
               {filteredUsers.map((user) => (
                 <TableRow key={user.id} sx={{ '&:hover': { bgcolor: '#f9f9f9' } }}>
                   <TableCell>
-                    <Chip label={user.id} size="small" variant="outlined" />
+                    <Chip 
+                      label={user.id} 
+                      size="small" 
+                      variant="outlined" 
+                      onClick={() => handleViewUserDetail(user.id)}
+                      sx={{ 
+                        cursor: 'pointer',
+                        '&:hover': {
+                          backgroundColor: '#1976d2',
+                          color: 'white'
+                        }
+                      }}
+                    />
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -492,20 +553,12 @@ const AdminUserPage = () => {
                   <TableCell>{user.address || "Chưa có"}</TableCell>
                   <TableCell>
                     <Chip 
-                      label={getRoleLabel(user.role)} 
+                      label={getRoleLabel(getUserRole(user))} 
                       sx={{ 
-                        bgcolor: getRoleColor(user.role),
+                        bgcolor: getRoleColor(getUserRole(user)),
                         color: 'white',
                         fontWeight: 600
                       }}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={user.isMember ? "Premium" : "Thường"} 
-                      color={user.isMember ? "warning" : "default"}
-                      variant={user.isMember ? "filled" : "outlined"}
                       size="small"
                     />
                   </TableCell>
@@ -583,7 +636,7 @@ const AdminUserPage = () => {
                 >
                   <MenuItem value="admin">Quản trị viên</MenuItem>
                   <MenuItem value="coach">Huấn luyện viên</MenuItem>
-                  <MenuItem value="member">Thành viên Premium</MenuItem>
+                  <MenuItem value="member">Thành viên</MenuItem>
                   <MenuItem value="guest">Khách hàng</MenuItem>
                 </Select>
               </FormControl>
@@ -630,6 +683,165 @@ const AdminUserPage = () => {
           </Button>
           <Button onClick={handleSave} variant="contained">
             Lưu thay đổi
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* User Detail Dialog */}
+      <Dialog open={detailOpen} onClose={handleCloseDetail} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ bgcolor: '#2196f3', color: 'white' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <PeopleIcon sx={{ mr: 1 }} />
+            Thông tin chi tiết người dùng
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          {selectedUserDetail && (
+            <Grid container spacing={3}>
+              {/* Thông tin cơ bản */}
+              <Grid item xs={12}>
+                <Typography variant="h6" sx={{ mb: 2, color: '#1976d2', fontWeight: 600 }}>
+                  Thông tin cơ bản
+                </Typography>
+                <Paper sx={{ p: 2, bgcolor: '#f8f9fa' }}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">ID:</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600 }}>{selectedUserDetail.id}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">Tên người dùng:</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600 }}>{selectedUserDetail.username}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">Email:</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600 }}>{selectedUserDetail.email}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">Số điện thoại:</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600 }}>{selectedUserDetail.phoneNumber || "Chưa có"}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">Địa chỉ:</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600 }}>{selectedUserDetail.address || "Chưa có"}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">Vai trò:</Typography>
+                      <Chip 
+                        label={getRoleLabel(getUserRole(selectedUserDetail))} 
+                        sx={{ 
+                          bgcolor: getRoleColor(getUserRole(selectedUserDetail)),
+                          color: 'white',
+                          fontWeight: 600
+                        }}
+                        size="small"
+                      />
+                    </Grid>
+                  </Grid>
+                </Paper>
+              </Grid>
+
+              {/* Tình trạng hút thuốc */}
+              <Grid item xs={12}>
+                <Typography variant="h6" sx={{ mb: 2, color: '#1976d2', fontWeight: 600 }}>
+                  Tình trạng hút thuốc
+                </Typography>
+                <Paper sx={{ p: 2, bgcolor: '#fff3e0' }}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">Số điếu thuốc/ngày:</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                        {selectedUserDetail.smokingStatus.cigarettesPerDay || 0} điếu
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">Giá mỗi bao:</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                        {selectedUserDetail.smokingStatus.costPerPack || 0} VNĐ
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">Tần suất hút:</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                        {selectedUserDetail.smokingStatus.smokingFrequency || "Chưa cập nhật"}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">Tình trạng sức khỏe:</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                        {selectedUserDetail.smokingStatus.healthStatus || "Chưa cập nhật"}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">Loại thuốc:</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                        {selectedUserDetail.smokingStatus.cigaretteType || "Chưa cập nhật"}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">Lý do muốn cai:</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                        {selectedUserDetail.smokingStatus.quitReason || "Chưa cập nhật"}
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </Paper>
+              </Grid>
+
+              {/* Nhật ký hôm nay */}
+              <Grid item xs={12}>
+                <Typography variant="h6" sx={{ mb: 2, color: '#1976d2', fontWeight: 600 }}>
+                  Nhật ký hôm nay
+                </Typography>
+                <Paper sx={{ p: 2, bgcolor: '#e8f5e8' }}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">Số điếu đã hút hôm nay:</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                        {selectedUserDetail.smokingStatus.dailyLog?.cigarettes || 0} điếu
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">Cảm giác hôm nay:</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                        {selectedUserDetail.smokingStatus.dailyLog?.feeling || "Chưa ghi nhận"}
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </Paper>
+              </Grid>
+
+              {/* Thông tin tài khoản */}
+              <Grid item xs={12}>
+                <Typography variant="h6" sx={{ mb: 2, color: '#1976d2', fontWeight: 600 }}>
+                  Thông tin tài khoản
+                </Typography>
+                <Paper sx={{ p: 2, bgcolor: '#f3e5f5' }}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">Ngày tạo tài khoản:</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                        {selectedUserDetail.createdAt ? new Date(selectedUserDetail.createdAt).toLocaleDateString('vi-VN') : "N/A"}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">Loại thành viên:</Typography>
+                      <Chip 
+                        label={selectedUserDetail.isMember ? "Premium" : "Thường"} 
+                        color={selectedUserDetail.isMember ? "warning" : "default"}
+                        variant={selectedUserDetail.isMember ? "filled" : "outlined"}
+                        size="small"
+                      />
+                    </Grid>
+                  </Grid>
+                </Paper>
+              </Grid>
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={handleCloseDetail} variant="outlined">
+            Đóng
           </Button>
         </DialogActions>
       </Dialog>
