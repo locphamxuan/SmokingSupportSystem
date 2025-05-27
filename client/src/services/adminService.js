@@ -14,6 +14,14 @@ export const getUsers = async () => {
   return response.data;
 };
 
+export const getUserDetail = async (id) => {
+  const token = getToken();
+  const response = await axios.get(`${API_URL}/admin/user/${id}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
 export const updateUser = async (id, userData) => {
   const token = getToken();
   console.log('Sending update request for user:', id, 'with data:', userData);

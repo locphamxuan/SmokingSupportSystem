@@ -74,7 +74,34 @@ const ProfilePage = () => {
       const response = await axios.get('http://localhost:5000/api/auth/profile', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setUserData(response.data);
+      
+      console.log('=== FETCH USER DATA RESPONSE ===');
+      console.log('Raw response data:');
+      console.dir(response.data);
+      
+      // Đảm bảo smokingStatus có cấu trúc đầy đủ
+      const userData = {
+        ...response.data,
+        smokingStatus: {
+          cigarettesPerDay: response.data.smokingStatus?.cigarettesPerDay || 0,
+          costPerPack: response.data.smokingStatus?.costPerPack || 0,
+          smokingFrequency: response.data.smokingStatus?.smokingFrequency || '',
+          healthStatus: response.data.smokingStatus?.healthStatus || '',
+          cigaretteType: response.data.smokingStatus?.cigaretteType || '',
+          quitReason: response.data.smokingStatus?.quitReason || '',
+          dailyLog: {
+            cigarettes: response.data.smokingStatus?.dailyLog?.cigarettes || 0,
+            feeling: response.data.smokingStatus?.dailyLog?.feeling || ''
+          }
+        }
+      };
+      
+      console.log('=== PROCESSED USER DATA ===');
+      console.log('Processed smoking status:');
+      console.table(userData.smokingStatus);
+      console.dir(userData.smokingStatus);
+      
+      setUserData(userData);
     } catch (error) {
       setError('Unable to load user information. Please try again later.');
     } finally {
@@ -163,16 +190,8 @@ const ProfilePage = () => {
         navigate('/login');
         return;
       }
-      console.log({
-        cigarettesPerDay,
-        costPerPack,
-        smokingFrequency,
-        healthStatus,
-        cigaretteType,
-        dailyCigarettes: dailyLog.cigarettes,
-        dailyFeeling: dailyLog.feeling
-      });
-      await axios.put('http://localhost:5000/api/auth/smoking-status', {
+      console.log('=== SENDING SMOKING STATUS UPDATE ===');
+      const dataToSend = {
         cigarettesPerDay: Number(cigarettesPerDay),
         costPerPack: Number(costPerPack),
         smokingFrequency: String(smokingFrequency),
@@ -180,14 +199,67 @@ const ProfilePage = () => {
         cigaretteType: String(cigaretteType || ''),
         dailyCigarettes: Number(dailyLog.cigarettes || 0),
         dailyFeeling: String(dailyLog.feeling || '')
-      }, {
+      };
+      console.log('Data to send:');
+      console.table(dataToSend);
+      console.dir(dataToSend);
+      const response = await axios.put('http://localhost:5000/api/auth/smoking-status', dataToSend, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
+      console.log('=== UPDATE RESPONSE ===');
+      console.log('Response status:', response.status);
+      console.log('Response data:');
+      console.dir(response.data);
+      
+      // Cập nhật state với dữ liệu vừa gửi để giữ lại trong form
+      const updatedSmokingStatus = {
+        cigarettesPerDay: Number(cigarettesPerDay),
+        costPerPack: Number(costPerPack),
+        smokingFrequency: String(smokingFrequency),
+        healthStatus: String(healthStatus),
+        cigaretteType: String(cigaretteType || ''),
+        quitReason: userData.smokingStatus.quitReason || '',
+        dailyLog: {
+          cigarettes: Number(dailyLog.cigarettes || 0),
+          feeling: String(dailyLog.feeling || '')
+        }
+      };
+      
+      console.log('=== UPDATING LOCAL STATE ===');
+      console.log('New smoking status:');
+      console.table(updatedSmokingStatus);
+      console.dir(updatedSmokingStatus);
+      
+      setUserData(prevData => ({
+        ...prevData,
+        smokingStatus: updatedSmokingStatus
+      }));
+      
       setSuccess('Cập nhật tình trạng hút thuốc thành công!');
       setError('');
-      fetchUserData();
+      
+      console.log('=== FETCHING UPDATED DATA ===');
+      // Fetch lại để đồng bộ với server
+      await fetchUserData();
+      console.log('=== UPDATE COMPLETED ===');
     } catch (error) {
-      setError('Failed to update smoking status. Please try again later.');
+      console.error('=== UPDATE ERROR ===');
+      console.error('Error details:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      
+      let errorMessage = 'Failed to update smoking status. Please try again later.';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+        navigate('/login');
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Lỗi server. Vui lòng thử lại sau.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
