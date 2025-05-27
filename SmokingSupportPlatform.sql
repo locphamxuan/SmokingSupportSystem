@@ -13,7 +13,6 @@ CREATE TABLE Users (
     PhoneNumber NVARCHAR(20),
     Address NVARCHAR(255),
     Role NVARCHAR(50) NOT NULL DEFAULT 'guest',
-    IsAdmin BIT NOT NULL DEFAULT 0,
     IsMember BIT NOT NULL DEFAULT 0,
     CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
     cigarettesPerDay INT DEFAULT 0,

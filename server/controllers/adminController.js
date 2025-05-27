@@ -4,7 +4,7 @@ const { sql } = require('../db');
 exports.getUsers = async (req, res) => {
   try {
     const result = await sql.query`
-      SELECT Id, Username, Email, Role, IsAdmin, IsMember, PhoneNumber, Address, CreatedAt,
+      SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address, CreatedAt,
              cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, dailyCigarettes, dailyFeeling
       FROM Users
     `;
@@ -20,7 +20,6 @@ exports.getUsers = async (req, res) => {
         phoneNumber: user.PhoneNumber || "",
         address: user.Address || "",
         role: user.Role || 'guest',
-        isAdmin: user.IsAdmin,
         isMember: user.IsMember,
         createdAt: user.CreatedAt,
         smokingStatus: {
@@ -55,7 +54,6 @@ exports.updateUser = async (req, res) => {
         Username = ${username},
         Email = ${email},
         Role = ${role || 'guest'},
-        IsAdmin = ${isAdmin || 0},
         IsMember = ${isMember || 0},
         PhoneNumber = ${phoneNumber},
         Address = ${address},
