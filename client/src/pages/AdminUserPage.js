@@ -47,11 +47,21 @@ const AdminUserPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [formData, setFormData] = useState({
+    id: "",
     username: "",
     email: "",
-    role: "",
     phoneNumber: "",
     address: "",
+    role: "",
+    isMember: false,
+    createdAt: "",
+    cigarettesPerDay: "",
+    costPerPack: "",
+    smokingFrequency: "",
+    healthStatus: "",
+    cigaretteType: "",
+    dailyCigarettes: "",
+    dailyFeeling: "",
   });
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -83,7 +93,13 @@ const AdminUserPage = () => {
     }
 
     // Filter by role
-    if (roleFilter !== "all") {
+    if (roleFilter === "member") {
+      filtered = users.filter(user => user.isMember === true);
+    } else if (roleFilter === "guest") {
+      filtered = users.filter(user => getUserRole(user) === "guest" && user.isMember !== true);
+    } else if (roleFilter === "coach") {
+      filtered = users.filter(user => getUserRole(user) === "coach");
+    } else if (roleFilter !== "all") {
       filtered = filtered.filter(user => {
         const userRole = getUserRole(user);
         return userRole === roleFilter;
@@ -117,8 +133,6 @@ const AdminUserPage = () => {
 
   const getRoleDisplay = (role) => {
     switch (role) {
-      case "admin": 
-        return { label: "Quản trị viên", color: "error", icon: <AdminIcon /> };
       case "coach": 
         return { label: "Coaching", color: "info", icon: <CoachIcon /> };
       case "member": 
@@ -131,22 +145,30 @@ const AdminUserPage = () => {
   };
 
   const getStatistics = () => {
-    const adminCount = users.filter(user => getUserRole(user) === "admin").length;
     const coachCount = users.filter(user => getUserRole(user) === "coach").length;
     const memberCount = users.filter(user => getUserRole(user) === "member").length;
     const guestCount = users.filter(user => getUserRole(user) === "guest").length;
-    
-    return { adminCount, coachCount, memberCount, guestCount };
+    return { coachCount, memberCount, guestCount };
   };
 
   const handleEdit = (user) => {
     setSelectedUser(user);
     setFormData({
+      id: user.id,
       username: user.username,
       email: user.email,
-      role: getUserRole(user),
       phoneNumber: user.phoneNumber || "",
       address: user.address || "",
+      role: user.role,
+      isMember: user.isMember,
+      createdAt: user.createdAt,
+      cigarettesPerDay: user.cigarettesPerDay,
+      costPerPack: user.costPerPack,
+      smokingFrequency: user.smokingFrequency,
+      healthStatus: user.healthStatus,
+      cigaretteType: user.cigaretteType,
+      dailyCigarettes: user.dailyCigarettes,
+      dailyFeeling: user.dailyFeeling
     });
     setOpen(true);
   };
@@ -155,11 +177,21 @@ const AdminUserPage = () => {
     setOpen(false);
     setSelectedUser(null);
     setFormData({
+      id: "",
       username: "",
       email: "",
-      role: "",
       phoneNumber: "",
       address: "",
+      role: "",
+      isMember: false,
+      createdAt: "",
+      cigarettesPerDay: "",
+      costPerPack: "",
+      smokingFrequency: "",
+      healthStatus: "",
+      cigaretteType: "",
+      dailyCigarettes: "",
+      dailyFeeling: "",
     });
   };
 
@@ -223,25 +255,12 @@ const AdminUserPage = () => {
       {/* Statistics Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #f44336 0%, #e57373 100%)', color: 'white' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{stats.adminCount}</Typography>
-                  <Typography variant="body2">Quản trị viên</Typography>
-                </Box>
-                <AdminIcon sx={{ fontSize: 40, opacity: 0.8 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ background: 'linear-gradient(135deg, #2196f3 0%, #64b5f6 100%)', color: 'white' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{stats.coachCount}</Typography>
-                  <Typography variant="body2">Coaching</Typography>
+                  <Typography variant="body2">Huấn luyện viên</Typography>
                 </Box>
                 <CoachIcon sx={{ fontSize: 40, opacity: 0.8 }} />
               </Box>
@@ -254,7 +273,7 @@ const AdminUserPage = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{stats.memberCount}</Typography>
-                  <Typography variant="body2">Premium</Typography>
+                  <Typography variant="body2">Thành viên</Typography>
                 </Box>
                 <PremiumIcon sx={{ fontSize: 40, opacity: 0.8 }} />
               </Box>
@@ -297,9 +316,8 @@ const AdminUserPage = () => {
                 onChange={(e) => setRoleFilter(e.target.value)}
               >
                 <MenuItem value="all">Tất cả</MenuItem>
-                <MenuItem value="admin">Quản trị viên</MenuItem>
-                <MenuItem value="coach">Coaching</MenuItem>
-                <MenuItem value="member">Premium</MenuItem>
+                <MenuItem value="coach">Huấn luyện viên</MenuItem>
+                <MenuItem value="member">Thành viên</MenuItem>
                 <MenuItem value="guest">Khách hàng</MenuItem>
               </Select>
             </FormControl>
@@ -312,53 +330,53 @@ const AdminUserPage = () => {
         <TableContainer>
           <Table>
             <TableHead>
-              <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                <TableCell sx={{ fontWeight: 'bold' }}>Tên người dùng</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Email</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Vai trò</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Số điện thoại</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Địa chỉ</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Hành động</TableCell>
+              <TableRow>
+                <TableCell>ID</TableCell>
+                <TableCell>Tên người dùng</TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell>Số điện thoại</TableCell>
+                <TableCell>Địa chỉ</TableCell>
+                <TableCell>Vai trò</TableCell>
+                <TableCell>Thành viên</TableCell>
+                <TableCell>Ngày tạo</TableCell>
+                <TableCell>Số điếu/ngày</TableCell>
+                <TableCell>Chi phí/gói</TableCell>
+                <TableCell>Tần suất</TableCell>
+                <TableCell>Tình trạng sức khỏe</TableCell>
+                <TableCell>Loại thuốc lá</TableCell>
+                <TableCell>Số điếu hôm nay</TableCell>
+                <TableCell>Cảm nhận hôm nay</TableCell>
+                <TableCell>Hành động</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredUsers.map((user) => {
-                const userRole = getUserRole(user);
-                const roleDisplay = getRoleDisplay(userRole);
-                
-                return (
-                  <TableRow key={user.userID} hover>
-                    <TableCell>{user.username}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Chip
-                        icon={roleDisplay.icon}
-                        label={roleDisplay.label}
-                        color={roleDisplay.color}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>{user.phoneNumber || "Chưa có"}</TableCell>
-                    <TableCell>{user.address || "Chưa có"}</TableCell>
-                    <TableCell>
-                      <IconButton
-                        color="primary"
-                        onClick={() => handleEdit(user)}
-                        size="small"
-                      >
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton
-                        color="error"
-                        onClick={() => handleDelete(user.userID)}
-                        size="small"
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {filteredUsers.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>{user.id}</TableCell>
+                  <TableCell>{user.username}</TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>{user.phoneNumber || "Chưa có"}</TableCell>
+                  <TableCell>{user.address || "Chưa có"}</TableCell>
+                  <TableCell>{user.role}</TableCell>
+                  <TableCell>{user.isMember ? "Có" : "Không"}</TableCell>
+                  <TableCell>{user.createdAt ? new Date(user.createdAt).toLocaleString() : ""}</TableCell>
+                  <TableCell>{user.smokingStatus?.cigarettesPerDay ?? "Chưa có"}</TableCell>
+                  <TableCell>{user.smokingStatus?.costPerPack ?? "Chưa có"}</TableCell>
+                  <TableCell>{user.smokingStatus?.smokingFrequency ?? "Chưa có"}</TableCell>
+                  <TableCell>{user.smokingStatus?.healthStatus ?? "Chưa có"}</TableCell>
+                  <TableCell>{user.smokingStatus?.cigaretteType ?? "Chưa có"}</TableCell>
+                  <TableCell>{user.smokingStatus?.dailyCigarettes ?? "Chưa có"}</TableCell>
+                  <TableCell>{user.smokingStatus?.dailyFeeling ?? "Chưa có"}</TableCell>
+                  <TableCell>
+                    <IconButton color="primary" onClick={() => handleEdit(user)} size="small">
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton color="error" onClick={() => handleDelete(user.id)} size="small">
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </TableContainer>
