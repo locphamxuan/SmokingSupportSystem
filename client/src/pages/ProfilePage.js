@@ -22,8 +22,8 @@ import {
   DialogActions,
   Alert,
   Snackbar,
-  IconButton,
-  Divider
+  Divider,
+  MenuItem,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useNavigate } from 'react-router-dom';
@@ -62,6 +62,7 @@ const ProfilePage = () => {
   const [success, setSuccess] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem("user"));
 
   const fetchUserData = useCallback(async () => {
     try {
@@ -76,14 +77,7 @@ const ProfilePage = () => {
       });
       setUserData(response.data);
     } catch (error) {
-      console.error('Error fetching profile:', error);
-      if (error.response?.status === 401) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        navigate('/login');
-      } else {
-        setError('Unable to load profile information. Please try again later.');
-      }
+      setError('Unable to load user information. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -92,6 +86,12 @@ const ProfilePage = () => {
   useEffect(() => {
     fetchUserData();
   }, [fetchUserData]);
+
+  useEffect(() => {
+    if (user && user.role === "admin") {
+      navigate("/admin/users");
+    }
+  }, [user, navigate]);
 
   const handleTabChange = (event, newValue) => {
     if (userData.role === 'guest' && (newValue === 2 || newValue === 3)) {
@@ -125,19 +125,10 @@ const ProfilePage = () => {
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSuccess('Cập nhật thông tin cá nhân thành công!');
+      setSuccess('Profile updated successfully!');
       setError('');
     } catch (error) {
-      console.error('Error updating profile:', error);
-      if (error.response?.status === 401) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        navigate('/login');
-      } else if (error.response?.status === 400) {
-        setError(error.response.data.message || 'Vui lòng nhập đầy đủ thông tin.');
-      } else {
-        setError('Cập nhật thông tin cá nhân thất bại. Vui lòng thử lại.');
-      }
+      setError('Failed to update profile. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -197,16 +188,7 @@ const ProfilePage = () => {
       setError('');
       fetchUserData();
     } catch (error) {
-      console.error('Error updating smoking status:', error);
-      if (error.response?.status === 401) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        navigate('/login');
-      } else if (error.response?.status === 400) {
-        setError(error.response.data.message || 'Vui lòng nhập đầy đủ thông tin.');
-      } else {
-        setError('Cập nhật tình trạng hút thuốc thất bại. Vui lòng thử lại.');
-      }
+      setError('Failed to update smoking status. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -229,18 +211,11 @@ const ProfilePage = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setOpenDialog(false);
-      setSuccess('Quit plan created successfully!');
+      setSuccess('Tạo kế hoạch cai thuốc thành công!');
       setError('');
-      fetchUserData(); // Refresh data after creating new plan
+      fetchUserData();
     } catch (error) {
-      console.error('Error creating quit plan:', error);
-      if (error.response?.status === 401) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        navigate('/login');
-      } else {
-        setError('Failed to create quit plan. Please try again later.');
-      }
+      setError('Failed to create quit plan. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -270,18 +245,35 @@ const ProfilePage = () => {
       <Box sx={{ flexGrow: 1 }}>
         <Container maxWidth="lg">
           <Box sx={{ my: 4 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <IconButton 
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+              <Button 
                 onClick={() => navigate('/')} 
-                sx={{ mr: 2 }}
-                aria-label="back to home"
+                startIcon={<ArrowBackIcon />}
+                sx={{ 
+                  mr: 2,
+                  color: '#1976d2',
+                  borderColor: '#1976d2',
+                  fontWeight: 500,
+                  padding: '8px 16px',
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  '&:hover': {
+                    backgroundColor: '#1976d2',
+                    color: 'white',
+                    transform: 'translateX(-2px)',
+                    transition: 'all 0.2s ease'
+                  }
+                }}
+                variant="outlined"
+                size="medium"
               >
-                <ArrowBackIcon />
-              </IconButton>
-              <Typography variant="h4" gutterBottom>
-                Hồ sơ cá nhân
-              </Typography>
+                Back to Home
+              </Button>
             </Box>
+            
+            <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: '#1976d2' }}>
+              Hồ sơ cá nhân
+            </Typography>
 
             <Tabs value={activeTab} onChange={handleTabChange} sx={{ mb: 3 }}>
               <Tab label="Thông tin cá nhân" />
@@ -368,7 +360,7 @@ const ProfilePage = () => {
                     <TextField
                       fullWidth
                       type="number"
-                      label="Số điếu thuốc mỗi ngày"
+                      label="Số điếu thuốc/ngày"
                       value={userData.smokingStatus.cigarettesPerDay}
                       onChange={(e) => setUserData({
                         ...userData,
@@ -383,7 +375,7 @@ const ProfilePage = () => {
                     <TextField
                       fullWidth
                       type="number"
-                      label="Giá mỗi bao (VNĐ)"
+                      label="Chi phí/gói (VNĐ)"
                       value={userData.smokingStatus.costPerPack}
                       onChange={(e) => setUserData({
                         ...userData,
@@ -602,7 +594,7 @@ const ProfilePage = () => {
                   Nâng cấp lên Member
                 </Typography>
                 <Typography variant="body1" paragraph>
-                  Nâng cấp lên tài khoản Member để:
+                  Nâng cấp lên tài khoản Premium để:
                 </Typography>
                 <List>
                   <ListItem>
@@ -614,7 +606,7 @@ const ProfilePage = () => {
                   <ListItem>
                     <ListItemText
                       primary="Xem thành tích"
-                      secondary="Theo dõi tiến độ và nhận huy hiệu"
+                      secondary="Theo dõi tiến trình và nhận huy hiệu"
                     />
                   </ListItem>
                   <ListItem>
@@ -632,6 +624,28 @@ const ProfilePage = () => {
                 >
                   Nâng cấp ngay
                 </Button>
+              </Paper>
+            )}
+
+            {userData.isPremium && (
+              <Paper sx={{ p: 3, mt: 3, bgcolor: 'primary.light' }}>
+                <Typography variant="h6" gutterBottom>
+                  Tính năng Premium
+                </Typography>
+                <List>
+                  <ListItem>
+                    <ListItemText
+                      primary="Tư vấn từ huấn luyện viên"
+                      secondary="Đặt câu hỏi và nhận tư vấn trực tuyến"
+                    />
+                  </ListItem>
+                  <ListItem>
+                    <ListItemText
+                      primary="Báo cáo chi tiết"
+                      secondary="Xem các báo cáo nâng cao về quá trình cai thuốc"
+                    />
+                  </ListItem>
+                </List>
               </Paper>
             )}
           </Box>

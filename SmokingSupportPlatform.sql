@@ -13,7 +13,6 @@ CREATE TABLE Users (
     PhoneNumber NVARCHAR(20),
     Address NVARCHAR(255),
     Role NVARCHAR(50) NOT NULL DEFAULT 'guest',
-    IsAdmin BIT NOT NULL DEFAULT 0,
     IsMember BIT NOT NULL DEFAULT 0,
     CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
     cigarettesPerDay INT DEFAULT 0,
@@ -25,11 +24,12 @@ CREATE TABLE Users (
 ALTER TABLE Users ADD cigaretteType NVARCHAR(255) DEFAULT '';
 ALTER TABLE Users ADD dailyCigarettes INT DEFAULT 0;
 ALTER TABLE Users ADD dailyFeeling NVARCHAR(255) DEFAULT '';
+GO
 
 CREATE TABLE Badges (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     Name NVARCHAR(100) NOT NULL,
-    Description NVARCHAR(255),\
+    Description NVARCHAR(255),
     Type NVARCHAR(50), -- 'days', 'money', 'health'
     Requirement NVARCHAR(255)
 );
@@ -146,6 +146,7 @@ CREATE TABLE Rankings (
     FOREIGN KEY (UserId) REFERENCES Users(Id)
 );
 GO
+
 --lưu nhật ký nhiều ngày
 CREATE TABLE SmokingDailyLog (
     Id INT IDENTITY(1,1) PRIMARY KEY,
@@ -155,6 +156,7 @@ CREATE TABLE SmokingDailyLog (
     Feeling NVARCHAR(255) DEFAULT '',
     FOREIGN KEY (UserId) REFERENCES Users(Id)
 );
+GO
 
 -- Dữ liệu mẫu cho Users
 INSERT INTO Users (Username, Password, Email, Role)

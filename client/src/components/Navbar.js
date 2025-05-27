@@ -10,6 +10,11 @@ import {
   MenuItem,
   IconButton
 } from "@mui/material";
+import { 
+  Home as HomeIcon,
+  SmokeFree as SmokeIcon,
+  WorkspacePremium as PremiumIcon
+} from "@mui/icons-material";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 
 const Navbar = () => {
@@ -44,23 +49,64 @@ const Navbar = () => {
   };
 
   return (
-    <AppBar position="static">
-      <Toolbar>
-        <Typography variant="h6" component={RouterLink} to="/" sx={{ flexGrow: 1, textDecoration: 'none', color: 'inherit' }}>
-          Smoking Support System
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+    <AppBar position="static" sx={{ backgroundColor: '#2d3748' }}>
+      <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* Logo bên trái */}
+        <Box 
+          component={RouterLink} 
+          to="/" 
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            textDecoration: 'none', 
+            color: 'inherit',
+            '&:hover': {
+              opacity: 0.8
+            }
+          }}
+        >
+          <SmokeIcon sx={{ fontSize: 32, mr: 1, color: '#68d391' }} />
+          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            🚭 Cai Thuốc Lá
+          </Typography>
+        </Box>
+        
+        {/* Navigation buttons ở giữa */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Button 
+            color="inherit" 
+            component={RouterLink} 
+            to="/"
+            startIcon={<HomeIcon />}
+          >
+            Trang chủ
+          </Button>
           <Button color="inherit" component={RouterLink} to="/blog">
             Blog
           </Button>
           <Button color="inherit" component={RouterLink} to="/leaderboard">
             Bảng xếp hạng
           </Button>
-          {isLoggedIn && (
-            <Button color="inherit" component={RouterLink} to="/subscription">
-              Mua gói
+          {isLoggedIn && !isAdmin && (
+            <Button 
+              color="inherit" 
+              component={RouterLink} 
+              to="/subscription"
+              startIcon={<PremiumIcon />}
+              sx={{
+                backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                }
+              }}
+            >
+              Gói Premium
             </Button>
           )}
+        </Box>
+
+        {/* User menu bên phải */}
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
           {isLoggedIn ? (
             <>
               <IconButton
@@ -77,15 +123,9 @@ const Navbar = () => {
               <Menu
                 id="menu-appbar"
                 anchorEl={anchorEl}
-                anchorOrigin={{
-                  vertical: 'bottom',
-                  horizontal: 'right',
-                }}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                 keepMounted
-                transformOrigin={{
-                  vertical: 'top',
-                  horizontal: 'right',
-                }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                 open={Boolean(anchorEl)}
                 onClose={handleClose}
               >
@@ -96,7 +136,7 @@ const Navbar = () => {
                       navigate('/profile');
                     }}
                   >
-                    Profile
+                    Hồ sơ cá nhân
                   </MenuItem>
                 )}
                 {isAdmin && (
