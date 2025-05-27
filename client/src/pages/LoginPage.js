@@ -22,8 +22,8 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const [loginData, setLoginData] = useState({ email: '', password: '' });
-  const [loginErrors, setLoginErrors] = useState({ email: '', password: '' });
+  const [loginData, setLoginData] = useState({ emailOrUsername: '', password: '' });
+  const [loginErrors, setLoginErrors] = useState({ emailOrUsername: '', password: '' });
   
   const [registerData, setRegisterData] = useState({
     username: '',
@@ -56,10 +56,8 @@ const LoginPage = () => {
 
   const validateLoginForm = () => {
     const errors = {};
-    if (!loginData.email) {
-      errors.email = 'Vui lòng nhập email!';
-    } else if (!validateEmail(loginData.email)) {
-      errors.email = 'Email không hợp lệ';
+    if (!loginData.emailOrUsername) {
+      errors.emailOrUsername = 'Vui lòng nhập email hoặc tên đăng nhập!';
     }
     if (!loginData.password) {
       errors.password = 'Vui lòng nhập mật khẩu';
@@ -124,6 +122,7 @@ const LoginPage = () => {
     setLoading(true);
     setError('');
     try {
+      console.log('Sending login data:', JSON.stringify(loginData, null, 2)); // Debug log
       const response = await axios.post('http://localhost:5000/api/auth/login', loginData);
       const { token, user } = response.data;
       
@@ -219,13 +218,12 @@ const LoginPage = () => {
                 margin="normal"
                 required
                 fullWidth
-                label="Email"
-                name="email"
-                type="email"
-                value={loginData.email}
+                label="Email hoặc Tên đăng nhập"
+                name="emailOrUsername"
+                value={loginData.emailOrUsername}
                 onChange={handleLoginInputChange}
-                error={!!loginErrors.email}
-                helperText={loginErrors.email}
+                error={!!loginErrors.emailOrUsername}
+                helperText={loginErrors.emailOrUsername}
                 disabled={loading}
               />
               <TextField

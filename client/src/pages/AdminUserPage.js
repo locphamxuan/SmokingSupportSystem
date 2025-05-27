@@ -25,7 +25,6 @@ import {
   FormControl,
   InputLabel,
   Grid,
-  Chip,
   Card,
   CardContent
 } from "@mui/material";
@@ -34,7 +33,6 @@ import {
   Delete as DeleteIcon,
   People as PeopleIcon,
   WorkspacePremium as PremiumIcon,
-  AdminPanelSettings as AdminIcon,
   SupportAgent as CoachIcon
 } from "@mui/icons-material";
 import { getUsers, updateUser, deleteUser } from "../services/adminService";
@@ -134,18 +132,7 @@ const AdminUserPage = () => {
     }
   };
 
-  const getRoleDisplay = (role) => {
-    switch (role) {
-      case "coach": 
-        return { label: "Coaching", color: "info", icon: <CoachIcon /> };
-      case "member": 
-        return { label: "Khách hàng Premium", color: "warning", icon: <PremiumIcon /> };
-      case "guest": 
-        return { label: "Khách hàng", color: "default", icon: <PeopleIcon /> };
-      default: 
-        return { label: "Khách hàng", color: "default", icon: <PeopleIcon /> };
-    }
-  };
+
 
   const getStatistics = () => {
     const filteredUsers = users.filter(user => user.role !== 'admin');

@@ -127,24 +127,49 @@ exports.register = async (req, res) => {
 // Đăng nhập
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Vui lòng nhập email và mật khẩu' });
+    console.log('Login request body:', req.body); // Debug log
+    const { email, emailOrUsername, password } = req.body;
+    const loginField = emailOrUsername || email; // Hỗ trợ cả hai trường
+    
+    console.log('Login field:', loginField, 'Password provided:', !!password); // Debug log
+    
+    if (!loginField || !password) {
+      console.log('Missing credentials - loginField:', loginField, 'password:', !!password);
+      return res.status(400).json({ message: 'Vui lòng nhập email/tên đăng nhập và mật khẩu' });
     }
 
+    // Tìm user bằng email hoặc username
     const result = await sql.query`
-      SELECT * FROM Users WHERE Email = ${email}
+      SELECT * FROM Users 
+      WHERE Email = ${loginField} OR Username = ${loginField}
     `;
     const user = result.recordset[0];
 
+    console.log('User found:', user ? user.Username : 'No user found');
+
     if (!user) {
-      return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng' });
+      console.log('User not found for loginField:', loginField);
+      return res.status(401).json({ message: 'Email/tên đăng nhập hoặc mật khẩu không đúng' });
     }
 
-    const isMatch = await bcrypt.compare(password, user.Password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng' });
+    // So sánh mật khẩu - hỗ trợ cả plain text và bcrypt
+    let isPasswordValid = false;
+    
+    // Kiểm tra xem mật khẩu có phải là bcrypt hash không (bắt đầu bằng $2a$, $2b$, $2y$)
+    if (user.Password.startsWith('$2a$') || user.Password.startsWith('$2b$') || user.Password.startsWith('$2y$')) {
+      // Mật khẩu đã được hash bằng bcrypt
+      isPasswordValid = await bcrypt.compare(password, user.Password);
+    } else {
+      // Mật khẩu plain text (cho tài khoản cũ như admin)
+      isPasswordValid = password === user.Password;
     }
+    
+    if (!isPasswordValid) {
+      console.log('Password mismatch!');
+      return res.status(401).json({ message: 'Email/tên đăng nhập hoặc mật khẩu không đúng' });
+    }
+
+    console.log('Login successful for user:', user.Username);
 
     const token = jwt.sign(
       { 

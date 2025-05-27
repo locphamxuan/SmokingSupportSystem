@@ -1,38 +1,19 @@
-const sql = require('mssql');
-
-const config = {
-  user: 'sa',
-  password: '12345',
-  server: 'localhost',
-  database: 'SmokingSupportPlatform',
-  options: {
-    encrypt: false,
-    trustServerCertificate: true
-  }
-};
+const { sql, connectDB } = require('./db');
 
 async function checkPasswords() {
   try {
-    await sql.connect(config);
-    console.log('✅ Connected to database');
+    // Kết nối database
+    await connectDB();
     
-    // Check actual passwords
-    const usersResult = await sql.query('SELECT Username, Email, Password, Role FROM Users');
-    console.log('\n📋 Users and their passwords:');
+    // Kiểm tra tất cả users
+    const result = await sql.query`SELECT Username, Email, Role, Password FROM Users`;
+    console.log('Current users and passwords:');
+    console.table(result.recordset);
     
-    usersResult.recordset.forEach((user, index) => {
-      console.log(`${index + 1}. ${user.Email}`);
-      console.log(`   Username: ${user.Username}`);
-      console.log(`   Role: ${user.Role}`);
-      console.log(`   Password: ${user.Password}`);
-      console.log(`   Password length: ${user.Password.length}`);
-      console.log(`   Is bcrypt hash: ${user.Password.startsWith('$2') ? 'Yes' : 'No'}`);
-      console.log('');
-    });
-    
-    await sql.close();
+    process.exit(0);
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    console.error('❌ Error checking passwords:', error);
+    process.exit(1);
   }
 }
 
