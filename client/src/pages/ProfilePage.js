@@ -23,6 +23,7 @@ import {
   Alert,
   Snackbar,
   Divider,
+  MenuItem,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useNavigate } from 'react-router-dom';
@@ -61,6 +62,7 @@ const ProfilePage = () => {
   const [success, setSuccess] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem("user"));
 
   const fetchUserData = useCallback(async () => {
     try {
@@ -84,6 +86,12 @@ const ProfilePage = () => {
   useEffect(() => {
     fetchUserData();
   }, [fetchUserData]);
+
+  useEffect(() => {
+    if (user && user.role === "admin") {
+      navigate("/admin/users");
+    }
+  }, [user, navigate]);
 
   const handleTabChange = (event, newValue) => {
     if (userData.role === 'guest' && (newValue === 2 || newValue === 3)) {

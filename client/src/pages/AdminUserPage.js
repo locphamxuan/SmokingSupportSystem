@@ -84,6 +84,9 @@ const AdminUserPage = () => {
   const filterUsers = useCallback(() => {
     let filtered = users;
 
+    // Bỏ user admin khỏi danh sách
+    filtered = filtered.filter(user => user.role !== 'admin');
+
     // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(user => 
@@ -94,11 +97,11 @@ const AdminUserPage = () => {
 
     // Filter by role
     if (roleFilter === "member") {
-      filtered = users.filter(user => user.isMember === true);
+      filtered = filtered.filter(user => user.isMember === true);
     } else if (roleFilter === "guest") {
-      filtered = users.filter(user => getUserRole(user) === "guest" && user.isMember !== true);
+      filtered = filtered.filter(user => getUserRole(user) === "guest" && user.isMember !== true);
     } else if (roleFilter === "coach") {
-      filtered = users.filter(user => getUserRole(user) === "coach");
+      filtered = filtered.filter(user => getUserRole(user) === "coach");
     } else if (roleFilter !== "all") {
       filtered = filtered.filter(user => {
         const userRole = getUserRole(user);
@@ -145,9 +148,10 @@ const AdminUserPage = () => {
   };
 
   const getStatistics = () => {
-    const coachCount = users.filter(user => getUserRole(user) === "coach").length;
-    const memberCount = users.filter(user => getUserRole(user) === "member").length;
-    const guestCount = users.filter(user => getUserRole(user) === "guest").length;
+    const filteredUsers = users.filter(user => user.role !== 'admin');
+    const coachCount = filteredUsers.filter(user => getUserRole(user) === "coach").length;
+    const memberCount = filteredUsers.filter(user => getUserRole(user) === "member").length;
+    const guestCount = filteredUsers.filter(user => getUserRole(user) === "guest").length;
     return { coachCount, memberCount, guestCount };
   };
 

@@ -123,26 +123,22 @@ const Navbar = () => {
               <Menu
                 id="menu-appbar"
                 anchorEl={anchorEl}
-                anchorOrigin={{
-                  vertical: 'bottom',
-                  horizontal: 'right',
-                }}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                 keepMounted
-                transformOrigin={{
-                  vertical: 'top',
-                  horizontal: 'right',
-                }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                 open={Boolean(anchorEl)}
                 onClose={handleClose}
               >
-                <MenuItem 
-                  onClick={() => {
-                    handleClose();
-                    navigate('/profile');
-                  }}
-                >
-                  Hồ sơ cá nhân
-                </MenuItem>
+                {!isAdmin && (
+                  <MenuItem 
+                    onClick={() => {
+                      handleClose();
+                      navigate('/profile');
+                    }}
+                  >
+                    Hồ sơ cá nhân
+                  </MenuItem>
+                )}
                 {isAdmin && (
                   <MenuItem
                     onClick={() => {
