@@ -16,10 +16,34 @@ export const getUsers = async () => {
 
 export const updateUser = async (id, userData) => {
   const token = getToken();
-  const response = await axios.put(`${API_URL}/admin/user/${id}`, userData, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-  return response.data;
+  console.log('Sending update request for user:', id, 'with data:', userData);
+  
+  try {
+    const response = await axios.put(`${API_URL}/admin/user/${id}`, userData, {
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log('Update response status:', response.status);
+    console.log('Update response data:', response.data);
+    
+    // Kiểm tra response format
+    if (response.data && response.data.success) {
+      return response.data.data; // Trả về user data
+    } else if (response.data && response.data.id) {
+      return response.data; // Format cũ
+    } else {
+      throw new Error('Invalid response format');
+    }
+  } catch (error) {
+    console.error('Update request failed:', error);
+    console.error('Error response:', error.response);
+    console.error('Error status:', error.response?.status);
+    console.error('Error data:', error.response?.data);
+    throw error;
+  }
 };
 
 export const deleteUser = async (id) => {
