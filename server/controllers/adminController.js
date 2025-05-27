@@ -4,31 +4,40 @@ const { sql } = require('../db');
 exports.getUsers = async (req, res) => {
   try {
     const result = await sql.query`
-      SELECT Id, Username, Email, IsMember, PhoneNumber, Address, CreatedAt,
+      SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address, CreatedAt,
              cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, dailyCigarettes, dailyFeeling
       FROM Users
     `;
-    const users = result.recordset.map(user => ({
-      id: user.Id,
-      username: user.Username,
-      email: user.Email,
-      phoneNumber: user.PhoneNumber || "",
-      address: user.Address || "",
-      role: user.IsMember ? 'member' : 'guest',
-      isMember: user.IsMember,
-      createdAt: user.CreatedAt,
-      smokingStatus: {
-        cigarettesPerDay: user.cigarettesPerDay || 0,
-        costPerPack: user.costPerPack || 0,
-        smokingFrequency: user.smokingFrequency || '',
-        healthStatus: user.healthStatus || '',
-        cigaretteType: user.cigaretteType || '',
-        dailyCigarettes: user.dailyCigarettes || 0,
-        dailyFeeling: user.dailyFeeling || ''
-      }
-    }));
+    
+    console.log('Raw database result:', result.recordset); // Debug log
+    
+    const users = result.recordset.map(user => {
+      console.log(`User ${user.Username}: Role=${user.Role}, IsAdmin=${user.IsAdmin}, IsMember=${user.IsMember}`); // Debug log
+      return {
+        id: user.Id,
+        username: user.Username,
+        email: user.Email,
+        phoneNumber: user.PhoneNumber || "",
+        address: user.Address || "",
+        role: user.Role || 'guest',
+        isMember: user.IsMember,
+        createdAt: user.CreatedAt,
+        smokingStatus: {
+          cigarettesPerDay: user.cigarettesPerDay || 0,
+          costPerPack: user.costPerPack || 0,
+          smokingFrequency: user.smokingFrequency || '',
+          healthStatus: user.healthStatus || '',
+          cigaretteType: user.cigaretteType || '',
+          dailyCigarettes: user.dailyCigarettes || 0,
+          dailyFeeling: user.dailyFeeling || ''
+        }
+      };
+    });
+    
+    console.log('Mapped users:', users); // Debug log
     res.json(users);
   } catch (error) {
+    console.error('Database error:', error); // Debug log
     res.status(500).json({ message: 'Get users failed', error: error.message });
   }
 };
@@ -36,7 +45,7 @@ exports.getUsers = async (req, res) => {
 // Cập nhật thông tin user
 exports.updateUser = async (req, res) => {
   try {
-    const { username, email, isMember, phoneNumber, address, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, dailyCigarettes, dailyFeeling } = req.body;
+    const { username, email, role, isAdmin, isMember, phoneNumber, address, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, dailyCigarettes, dailyFeeling } = req.body;
     const userId = req.params.id;
 
     await sql.query`
@@ -44,21 +53,22 @@ exports.updateUser = async (req, res) => {
       SET
         Username = ${username},
         Email = ${email},
-        IsMember = ${isMember},
+        Role = ${role || 'guest'},
+        IsMember = ${isMember || 0},
         PhoneNumber = ${phoneNumber},
         Address = ${address},
-        cigarettesPerDay = ${cigarettesPerDay},
-        costPerPack = ${costPerPack},
-        smokingFrequency = ${smokingFrequency},
-        healthStatus = ${healthStatus},
-        cigaretteType = ${cigaretteType},
-        dailyCigarettes = ${dailyCigarettes},
-        dailyFeeling = ${dailyFeeling}
+        cigarettesPerDay = ${cigarettesPerDay || 0},
+        costPerPack = ${costPerPack || 0},
+        smokingFrequency = ${smokingFrequency || ''},
+        healthStatus = ${healthStatus || ''},
+        cigaretteType = ${cigaretteType || ''},
+        dailyCigarettes = ${dailyCigarettes || 0},
+        dailyFeeling = ${dailyFeeling || ''}
       WHERE Id = ${userId}
     `;
 
     const result = await sql.query`
-      SELECT Id, Username, Email, IsMember, PhoneNumber, Address, CreatedAt,
+      SELECT Id, Username, Email, Role, IsAdmin, IsMember, PhoneNumber, Address, CreatedAt,
              cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, dailyCigarettes, dailyFeeling
       FROM Users WHERE Id = ${userId}
     `;
@@ -68,7 +78,8 @@ exports.updateUser = async (req, res) => {
       email: result.recordset[0].Email,
       phoneNumber: result.recordset[0].PhoneNumber || "",
       address: result.recordset[0].Address || "",
-      role: result.recordset[0].IsMember ? 'member' : 'guest',
+      role: result.recordset[0].Role || 'guest',
+      isAdmin: result.recordset[0].IsAdmin,
       isMember: result.recordset[0].IsMember,
       createdAt: result.recordset[0].CreatedAt,
       smokingStatus: {

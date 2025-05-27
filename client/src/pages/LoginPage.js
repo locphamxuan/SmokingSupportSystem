@@ -9,8 +9,11 @@ import {
   Tab,
   CircularProgress,
   Alert,
-  Link
+  Link,
+  IconButton,
+  Tooltip
 } from '@mui/material';
+import { Home as HomeIcon } from '@mui/icons-material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -177,6 +180,24 @@ const LoginPage = () => {
     <Container maxWidth="sm">
       <Box sx={{ my: 4 }}>
         <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
+          {/* Nút quay về trang chủ */}
+          <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
+            <Tooltip title="Quay về trang chủ">
+              <IconButton 
+                onClick={() => navigate('/')}
+                sx={{ 
+                  color: 'primary.main',
+                  '&:hover': {
+                    backgroundColor: 'primary.light',
+                    color: 'white'
+                  }
+                }}
+              >
+                <HomeIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
+          
           <Box sx={{ mb: 3, textAlign: 'center' }}>
             <h2>{activeTab === 0 ? 'Đăng nhập' : 'Đăng ký'}</h2>
           </Box>

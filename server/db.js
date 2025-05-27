@@ -3,7 +3,7 @@ require('dotenv').config();
 
 const config = {
   user: process.env.DB_USER || 'sa',
-  password: process.env.DB_PASSWORD || 'loc2025',
+  password: process.env.DB_PASSWORD || '12345',
   server: process.env.DB_SERVER || 'localhost', // hoặc tên instance SQL Server
   database: process.env.DB_NAME || 'SmokingSupportPlatform',
   options: {
