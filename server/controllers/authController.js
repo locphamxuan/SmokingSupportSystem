@@ -488,3 +488,84 @@ exports.addSmokingDailyLog = async (req, res) => {
     res.status(500).json({ message: 'Lỗi khi lưu nhật ký', error: error.message });
   }
 };
+
+// Thêm hoặc cập nhật kế hoạch cai thuốc cho user
+exports.createOrUpdateQuitPlan = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const {
+      startDate,
+      targetDate,
+      planType,
+      initialCigarettes,
+      dailyReduction,
+      milestones,
+      currentProgress,
+      planDetail
+    } = req.body;
+
+    // Validate dữ liệu đầu vào
+    if (!startDate || !targetDate || !planType) {
+      return res.status(400).json({ message: 'Thiếu thông tin bắt buộc!' });
+    }
+
+    // Kiểm tra user đã có kế hoạch chưa
+    const check = await sql.query`
+      SELECT * FROM QuitPlans WHERE UserId = ${userId}
+    `;
+
+    if (check.recordset.length > 0) {
+      // Update
+      await sql.query`
+        UPDATE QuitPlans
+        SET
+          StartDate = ${startDate},
+          TargetDate = ${targetDate},
+          PlanType = ${planType},
+          PlanDetail = ${planDetail || ''},
+          InitialCigarettes = ${initialCigarettes || 0},
+          DailyReduction = ${dailyReduction || 1},
+          Milestones = ${JSON.stringify(milestones || [])},
+          CurrentProgress = ${currentProgress || 0}
+        WHERE UserId = ${userId}
+      `;
+    } else {
+      // Insert
+      await sql.query`
+        INSERT INTO QuitPlans (UserId, StartDate, TargetDate, PlanType, PlanDetail, InitialCigarettes, DailyReduction, Milestones, CurrentProgress)
+        VALUES (${userId}, ${startDate}, ${targetDate}, ${planType}, ${planDetail || ''}, ${initialCigarettes || 0}, ${dailyReduction || 1}, ${JSON.stringify(milestones || [])}, ${currentProgress || 0})
+      `;
+    }
+
+    res.json({ message: 'Cập nhật kế hoạch cai thuốc thành công!' });
+  } catch (error) {
+    console.error('Lỗi tạo/cập nhật kế hoạch cai thuốc:', error);
+    res.status(500).json({ message: 'Lỗi khi tạo/cập nhật kế hoạch cai thuốc', error: error.message });
+  }
+};
+
+exports.getQuitPlan = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const result = await sql.query`
+      SELECT * FROM QuitPlans WHERE UserId = ${userId}
+    `;
+    if (result.recordset.length === 0) {
+      return res.json({ quitPlan: null });
+    }
+    const plan = result.recordset[0];
+    res.json({
+      quitPlan: {
+        startDate: plan.StartDate,
+        targetDate: plan.TargetDate,
+        planType: plan.PlanType,
+        initialCigarettes: plan.InitialCigarettes,
+        dailyReduction: plan.DailyReduction,
+        milestones: plan.Milestones ? JSON.parse(plan.Milestones) : [],
+        currentProgress: plan.CurrentProgress
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi khi lấy kế hoạch cai thuốc', error: error.message });
+  }
+};
