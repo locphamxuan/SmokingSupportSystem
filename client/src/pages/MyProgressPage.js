@@ -150,6 +150,24 @@ const MyProgressPage = () => {
       } catch (error) {
         console.error('❌ Failed to save to localStorage:', error);
       }
+
+      const progressRes = await axios.get('http://localhost:5000/api/auth/progress/latest', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // Khi setUserData, cập nhật luôn dailyLog nếu có progress mới nhất
+      if (progressRes.data.progress) {
+        setUserData(prev => ({
+          ...prev,
+          smokingStatus: {
+            ...prev.smokingStatus,
+            dailyLog: {
+              cigarettes: progressRes.data.progress.Cigarettes,
+              feeling: progressRes.data.progress.Note
+            }
+          }
+        }));
+      }
     } catch (error) {
       console.error('❌ Error fetching user data:', error);
       setError('Không thể tải thông tin người dùng hoặc kế hoạch.');
@@ -180,84 +198,6 @@ const MyProgressPage = () => {
       }
     };
   }, [fetchAllUserData]);
-
-  // Update smoking status with manual save
-  const handleUpdateSmokingStatus = async () => {
-    const { cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, dailyLog } = userData.smokingStatus;
-    if (
-      cigarettesPerDay === undefined ||
-      costPerPack === undefined ||
-      smokingFrequency === undefined ||
-      healthStatus === undefined ||
-      cigaretteType === undefined ||
-      dailyLog === undefined ||
-      cigarettesPerDay === '' ||
-      costPerPack === '' ||
-      smokingFrequency === '' ||
-      healthStatus === '' ||
-      cigaretteType === ''
-    ) {
-      setError('Vui lòng nhập đầy đủ thông tin tình trạng hút thuốc.');
-      return;
-    }
-    if (isNaN(Number(cigarettesPerDay)) || isNaN(Number(costPerPack))) {
-      setError('Số điếu thuốc mỗi ngày và giá mỗi bao phải là số.');
-      return;
-    }
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-      
-      const dataToSend = {
-        cigarettesPerDay: Number(cigarettesPerDay),
-        costPerPack: Number(costPerPack),
-        smokingFrequency: String(smokingFrequency),
-        healthStatus: String(healthStatus),
-        cigaretteType: String(cigaretteType || ''),
-        dailyCigarettes: Number(dailyLog.cigarettes || 0),
-        dailyFeeling: String(dailyLog.feeling || '')
-      };
-      
-      console.log('🔄 Manual save - sending data:', dataToSend);
-      
-      await axios.put('http://localhost:5000/api/auth/smoking-status', dataToSend, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      // Update saved reference
-      lastSavedDataRef.current = JSON.parse(JSON.stringify(userData));
-      
-      // Save to localStorage
-      try {
-        localStorage.setItem('myProgressData', JSON.stringify(userData));
-        console.log('✅ Manual save - data saved to localStorage');
-      } catch (error) {
-        console.error('❌ Failed to save to localStorage:', error);
-      }
-      
-      setSuccess('Cập nhật tình trạng hút thuốc thành công!');
-      setError('');
-      await fetchAllUserData();
-    } catch (error) {
-      console.error('❌ Manual save error:', error);
-      let errorMessage = 'Lỗi khi cập nhật tình trạng hút thuốc.';
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.response?.status === 401) {
-        errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
-        navigate('/login');
-      } else if (error.response?.status === 500) {
-        errorMessage = 'Lỗi server. Vui lòng thử lại sau.';
-      }
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Quit plan
   const handleCreateQuitPlan = () => {
@@ -318,6 +258,41 @@ const MyProgressPage = () => {
   const handleCloseSnackbar = () => {
     setSuccess('');
     setError('');
+  };
+
+  const handleSaveProgress = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+      // Lấy planId từ kế hoạch cai thuốc hiện tại (nếu có)
+      const planId = userData.quitPlan?.id || userData.quitPlan?.planId || 1; // hoặc lấy đúng id từ quitPlan
+      const date = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+      const cigarettes = Number(userData.smokingStatus.dailyLog.cigarettes || 0);
+      const moneySpent = ((userData.smokingStatus.dailyLog.cigarettes / 20) * userData.smokingStatus.costPerPack) || 0;
+      const note = userData.smokingStatus.dailyLog.feeling || '';
+
+      await axios.post('http://localhost:5000/api/auth/progress', {
+        planId,
+        date,
+        cigarettes,
+        moneySpent,
+        note
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setSuccess('Lưu nhật ký tiến độ thành công!');
+      setError('');
+      // Có thể gọi lại fetchAllUserData() nếu muốn cập nhật giao diện
+    } catch (error) {
+      setError('Lỗi khi lưu nhật ký tiến độ!');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading) {
@@ -643,15 +618,17 @@ const MyProgressPage = () => {
               />
             </Grid>
           </Grid>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSaveProgress}
+            sx={{ mt: 2 }}
+            disabled={loading}
+          >
+            Lưu nhật ký tiến độ
+          </Button>
         </Box>
-        <Button
-          variant="contained"
-          onClick={handleUpdateSmokingStatus}
-          sx={{ mt: 3 }}
-          disabled={loading}
-        >
-          {loading ? 'Đang cập nhật...' : 'Lưu thủ công'}
-        </Button>
+      
       </Paper>
       {/* Kế hoạch cai thuốc */}
       <Paper sx={{ p: 3 }}>
@@ -805,7 +782,7 @@ const MyProgressPage = () => {
               Hủy
             </Button>
             <Button variant="contained" onClick={handleSaveQuitPlan}>
-              Lưu kế hoạch vào server
+              Lưu kế hoạch 
             </Button>
           </Box>
         </Box>

@@ -4,7 +4,16 @@ GO
 USE SmokingSupportPlatform;
 GO
 
--- Tạo bảng Users trước tiên vì các bảng khác sẽ tham chiếu đến nó
+
+-- Tìm constraint
+  --SELECT OBJECT_NAME(object_id) AS ConstraintName, name AS ColumnName
+  --FROM sys.default_constraints
+  --WHERE parent_object_id = OBJECT_ID('Users');
+  -- Xóa constraint
+  --ALTER TABLE Users DROP CONSTRAINT DF__Users__costPerPa__29572725;
+
+--WHERE parent_object_id = OBJECT_ID('Users');
+
 CREATE TABLE Users (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     Username NVARCHAR(100) NOT NULL,
@@ -14,16 +23,10 @@ CREATE TABLE Users (
     Address NVARCHAR(255),
     Role NVARCHAR(50) NOT NULL DEFAULT 'guest',
     IsMember BIT NOT NULL DEFAULT 0,
-    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
-    cigarettesPerDay INT DEFAULT 0,
-    costPerPack INT DEFAULT 0,
-    smokingFrequency NVARCHAR(50) DEFAULT '',
-    healthStatus NVARCHAR(255) DEFAULT ''
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE()
+   
 );
 
-ALTER TABLE Users ADD cigaretteType NVARCHAR(255) DEFAULT '';
-ALTER TABLE Users ADD dailyCigarettes INT DEFAULT 0;
-ALTER TABLE Users ADD dailyFeeling NVARCHAR(255) DEFAULT '';
 GO
 
 CREATE TABLE Badges (
