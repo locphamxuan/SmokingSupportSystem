@@ -4,25 +4,22 @@ const { sql } = require('../db');
 exports.getUserDetail = async (req, res) => {
   try {
     const userId = req.params.id;
-    
-    console.log('Getting user detail for ID:', userId);
-    
-    // Lấy thông tin user từ database
-    const result = await sql.query`
-      SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address, CreatedAt,
-             cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, 
-             dailyCigarettes, dailyFeeling
-      FROM Users
-      WHERE Id = ${userId}
+    // Lấy thông tin user từ Users
+    const userResult = await sql.query`
+      SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address
+      FROM Users WHERE Id = ${userId}
     `;
-    
-    if (result.recordset.length === 0) {
+    if (userResult.recordset.length === 0) {
       return res.status(404).json({ message: 'Không tìm thấy người dùng' });
     }
-    
-    const user = result.recordset[0];
-    
-    // Format dữ liệu giống như ProfilePage
+    const user = userResult.recordset[0];
+
+    // Lấy thông tin hút thuốc từ SmokingProfiles
+    const profileResult = await sql.query`
+      SELECT * FROM SmokingProfiles WHERE UserId = ${userId}
+    `;
+    const profile = profileResult.recordset[0];
+
     const userDetail = {
       id: user.Id,
       username: user.Username,
@@ -31,35 +28,17 @@ exports.getUserDetail = async (req, res) => {
       address: user.Address || "",
       role: user.Role || 'guest',
       isMember: user.IsMember,
-      createdAt: user.CreatedAt,
-      smokingStatus: {
-        cigarettesPerDay: user.cigarettesPerDay || 0,
-        costPerPack: user.costPerPack || 0,
-        smokingFrequency: user.smokingFrequency || '',
-        healthStatus: user.healthStatus || '',
-        cigaretteType: user.cigaretteType || '',
-        quitReason: '',
-        dailyLog: {
-          cigarettes: user.dailyCigarettes || 0,
-          feeling: user.dailyFeeling || ''
-        }
-      },
-      quitPlan: {
-        startDate: '',
-        targetDate: '',
-        planType: '',
-        milestones: [],
-        currentProgress: 0,
-        initialCigarettes: 0,
-        dailyReduction: 1
-      },
-      achievements: []
+      smokingStatus: profile ? {
+        cigarettesPerDay: profile.cigarettesPerDay || 0,
+        costPerPack: profile.costPerPack || 0,
+        smokingFrequency: profile.smokingFrequency || '',
+        healthStatus: profile.healthStatus || '',
+        cigaretteType: profile.cigaretteType || '',
+        quitReason: profile.QuitReason || ''
+      } : {}
     };
-    
-    console.log('User detail found:', userDetail);
     res.json(userDetail);
   } catch (error) {
-    console.error('Get user detail error:', error);
     res.status(500).json({ message: 'Lỗi khi lấy thông tin chi tiết người dùng', error: error.message });
   }
 };
