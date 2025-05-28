@@ -149,22 +149,16 @@ const Navbar = () => {
                     Quản lý tài khoản
                   </MenuItem>
                 )}
-                <MenuItem 
-                  onClick={() => {
-                    handleClose();
-                    navigate('/my-progress');
-                  }}
-                >
-                  Theo dõi quá trình
-                </MenuItem>
-                <MenuItem 
-                  onClick={() => {
-                    handleClose();
-                    navigate('/achievements');
-                  }}
-                >
-                  Thành tích
-                </MenuItem>
+                {!isAdmin && (
+                  <MenuItem 
+                    onClick={() => {
+                      handleClose();
+                      navigate('/my-progress');
+                    }}
+                  >
+                    Theo dõi quá trình
+                  </MenuItem>
+                )}
                 <MenuItem onClick={handleLogout}>Đăng xuất</MenuItem>
               </Menu>
             </>
