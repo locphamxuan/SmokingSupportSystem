@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  Container, Paper, Typography, Grid, TextField, Button, Box, LinearProgress, List, ListItem, ListItemText, Snackbar, Alert, Dialog
+  Container, Paper, Typography, Grid, TextField, Button, Box, LinearProgress, List, ListItem, ListItemText, Snackbar, Alert, Dialog, Chip
 } from '@mui/material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -23,7 +23,71 @@ const MyProgressPage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState(''); // 'saving', 'saved', 'error'
   const navigate = useNavigate();
+  
+  // Refs for debouncing
+  const debounceTimeoutRef = useRef(null);
+  const lastSavedDataRef = useRef(null);
+
+  // Enhanced setUserData with auto-save
+  const setUserDataWithAutoSave = useCallback((newData) => {
+    setUserData(prevUserData => {
+      const updatedData = typeof newData === 'function' ? newData(prevUserData) : newData;
+      
+      // Save to localStorage immediately
+      try {
+        localStorage.setItem('myProgressData', JSON.stringify(updatedData));
+        console.log('✅ Data saved to localStorage');
+      } catch (error) {
+        console.error('❌ Failed to save to localStorage:', error);
+      }
+      
+      // Debounced save to server
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+
+      debounceTimeoutRef.current = setTimeout(async () => {
+        try {
+          // Check if data has actually changed
+          if (JSON.stringify(updatedData) === JSON.stringify(lastSavedDataRef.current)) {
+            return;
+          }
+
+          setAutoSaveStatus('saving');
+          const token = localStorage.getItem('token');
+          if (!token) return;
+
+          // Auto-save smoking status
+          await axios.put('http://localhost:5000/api/auth/smoking-status', {
+            cigarettesPerDay: Number(updatedData.smokingStatus.cigarettesPerDay),
+            costPerPack: Number(updatedData.smokingStatus.costPerPack),
+            smokingFrequency: String(updatedData.smokingStatus.smokingFrequency),
+            healthStatus: String(updatedData.smokingStatus.healthStatus),
+            cigaretteType: String(updatedData.smokingStatus.cigaretteType || ''),
+            dailyCigarettes: Number(updatedData.smokingStatus.dailyLog?.cigarettes || 0),
+            dailyFeeling: String(updatedData.smokingStatus.dailyLog?.feeling || '')
+          }, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+
+          lastSavedDataRef.current = JSON.parse(JSON.stringify(updatedData));
+          setAutoSaveStatus('saved');
+          console.log('💾 Auto-saved to server successfully');
+          
+          // Clear saved status after 2 seconds
+          setTimeout(() => setAutoSaveStatus(''), 2000);
+        } catch (error) {
+          console.error('❌ Auto-save failed:', error);
+          setAutoSaveStatus('error');
+          setTimeout(() => setAutoSaveStatus(''), 3000);
+        }
+      }, 2000); // 2 second delay
+      
+      return updatedData;
+    });
+  }, []);
 
   // Fetch all user data
   const fetchAllUserData = useCallback(async () => {
@@ -34,17 +98,30 @@ const MyProgressPage = () => {
         navigate('/login');
         return;
       }
-      // Gọi song song 2 API
+
+      console.log('🔄 Fetching user data from server...');
+
+      // Fetch from server first to get latest data
       const [profileRes, quitPlanRes] = await Promise.all([
         axios.get('http://localhost:5000/api/auth/profile', {
           headers: { Authorization: `Bearer ${token}` }
         }),
         axios.get('http://localhost:5000/api/auth/quit-plan', {
           headers: { Authorization: `Bearer ${token}` }
-        })
+        }).catch(() => ({ data: { quitPlan: null } })) // Handle quit plan not found
       ]);
-      setUserData({
-        ...profileRes.data,
+      
+      console.log('📥 Profile data received:', profileRes.data);
+      console.log('📥 Quit plan data received:', quitPlanRes.data);
+      
+      const serverData = {
+        id: profileRes.data.id,
+        username: profileRes.data.username,
+        email: profileRes.data.email,
+        phoneNumber: profileRes.data.phoneNumber,
+        address: profileRes.data.address,
+        role: profileRes.data.role,
+        isMember: profileRes.data.isMember,
         smokingStatus: {
           cigarettesPerDay: profileRes.data.smokingStatus?.cigarettesPerDay || 0,
           costPerPack: profileRes.data.smokingStatus?.costPerPack || 0,
@@ -58,9 +135,36 @@ const MyProgressPage = () => {
           }
         },
         quitPlan: quitPlanRes.data.quitPlan || null
-      });
+      };
+
+      console.log('📊 Processed server data:', serverData);
+      console.log('🚭 Smoking status:', serverData.smokingStatus);
+
+      setUserData(serverData);
+      lastSavedDataRef.current = JSON.parse(JSON.stringify(serverData));
+      
+      // Save to localStorage
+      try {
+        localStorage.setItem('myProgressData', JSON.stringify(serverData));
+        console.log('✅ Data saved to localStorage');
+      } catch (error) {
+        console.error('❌ Failed to save to localStorage:', error);
+      }
     } catch (error) {
+      console.error('❌ Error fetching user data:', error);
       setError('Không thể tải thông tin người dùng hoặc kế hoạch.');
+      
+      // Try to load from localStorage as fallback
+      try {
+        const savedData = localStorage.getItem('myProgressData');
+        if (savedData) {
+          const parsedData = JSON.parse(savedData);
+          console.log('📥 Loaded fallback data from localStorage:', parsedData);
+          setUserData(parsedData);
+        }
+      } catch (localError) {
+        console.error('❌ Failed to load from localStorage:', localError);
+      }
     } finally {
       setLoading(false);
     }
@@ -68,9 +172,16 @@ const MyProgressPage = () => {
 
   useEffect(() => {
     fetchAllUserData();
+    
+    // Cleanup timeout on unmount
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
   }, [fetchAllUserData]);
 
-  // Update smoking status
+  // Update smoking status with manual save
   const handleUpdateSmokingStatus = async () => {
     const { cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, dailyLog } = userData.smokingStatus;
     if (
@@ -100,7 +211,8 @@ const MyProgressPage = () => {
         navigate('/login');
         return;
       }
-      await axios.put('http://localhost:5000/api/auth/smoking-status', {
+      
+      const dataToSend = {
         cigarettesPerDay: Number(cigarettesPerDay),
         costPerPack: Number(costPerPack),
         smokingFrequency: String(smokingFrequency),
@@ -108,14 +220,40 @@ const MyProgressPage = () => {
         cigaretteType: String(cigaretteType || ''),
         dailyCigarettes: Number(dailyLog.cigarettes || 0),
         dailyFeeling: String(dailyLog.feeling || '')
-      }, {
+      };
+      
+      console.log('🔄 Manual save - sending data:', dataToSend);
+      
+      await axios.put('http://localhost:5000/api/auth/smoking-status', dataToSend, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
+      // Update saved reference
+      lastSavedDataRef.current = JSON.parse(JSON.stringify(userData));
+      
+      // Save to localStorage
+      try {
+        localStorage.setItem('myProgressData', JSON.stringify(userData));
+        console.log('✅ Manual save - data saved to localStorage');
+      } catch (error) {
+        console.error('❌ Failed to save to localStorage:', error);
+      }
+      
       setSuccess('Cập nhật tình trạng hút thuốc thành công!');
       setError('');
       await fetchAllUserData();
     } catch (error) {
-      setError('Lỗi khi cập nhật tình trạng hút thuốc.');
+      console.error('❌ Manual save error:', error);
+      let errorMessage = 'Lỗi khi cập nhật tình trạng hút thuốc.';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+        navigate('/login');
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Lỗi server. Vui lòng thử lại sau.';
+      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -123,7 +261,7 @@ const MyProgressPage = () => {
 
   // Quit plan
   const handleCreateQuitPlan = () => {
-    setUserData(prev => ({
+    setUserDataWithAutoSave(prev => ({
       ...prev,
       quitPlan: {
         startDate: '',
@@ -194,18 +332,175 @@ const MyProgressPage = () => {
 
   return (
     <Container maxWidth="lg">
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: '#1976d2', mt: 4 }}>
-        Theo dõi quá trình cai thuốc
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 4, mb: 2 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: '#1976d2' }}>
+          Theo dõi quá trình cai thuốc
+        </Typography>
+        
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {/* Refresh button */}
+          <Button
+            variant="outlined"
+            onClick={fetchAllUserData}
+            disabled={loading}
+            sx={{ 
+              minWidth: 120,
+              '&:hover': {
+                backgroundColor: '#1976d2',
+                color: 'white'
+              }
+            }}
+          >
+            {loading ? 'Đang tải...' : '🔄 Tải lại'}
+          </Button>
+          
+          {/* Auto-save status indicator */}
+          {autoSaveStatus && (
+            <Chip
+              label={
+                autoSaveStatus === 'saving' ? 'Đang lưu...' :
+                autoSaveStatus === 'saved' ? 'Đã lưu tự động' :
+                autoSaveStatus === 'error' ? 'Lỗi lưu tự động' : ''
+              }
+              color={
+                autoSaveStatus === 'saving' ? 'info' :
+                autoSaveStatus === 'saved' ? 'success' :
+                autoSaveStatus === 'error' ? 'error' : 'default'
+              }
+              size="small"
+              sx={{ 
+                animation: autoSaveStatus === 'saving' ? 'pulse 1.5s infinite' : 'none',
+                '@keyframes pulse': {
+                  '0%': { opacity: 1 },
+                  '50%': { opacity: 0.5 },
+                  '100%': { opacity: 1 }
+                }
+              }}
+            />
+          )}
+        </Box>
+      </Box>
+      
       <Snackbar open={!!error || !!success} autoHideDuration={6000} onClose={handleCloseSnackbar}>
         <Alert onClose={handleCloseSnackbar} severity={error ? 'error' : 'success'} sx={{ width: '100%' }}>
           {error || success}
         </Alert>
       </Snackbar>
-      {/* Tình trạng hút thuốc */}
+      
+      {/* Hiển thị thông tin hiện tại từ database */}
+      <Paper sx={{ p: 3, mb: 4, bgcolor: '#f8f9fa' }}>
+        <Typography variant="h6" gutterBottom sx={{ color: '#1976d2', fontWeight: 600 }}>
+          👤 Thông tin tài khoản
+        </Typography>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" color="text.secondary">Tên đăng nhập:</Typography>
+              <Typography variant="h6" color="primary">{userData.username}</Typography>
+            </Box>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" color="text.secondary">Email:</Typography>
+              <Typography variant="h6" color="primary">{userData.email}</Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" color="text.secondary">Vai trò:</Typography>
+              <Chip 
+                label={userData.role === 'admin' ? 'Quản trị viên' : userData.role === 'member' ? 'Thành viên' : userData.role === 'coach' ? 'Huấn luyện viên' : 'Khách'}
+                color={userData.role === 'admin' ? 'error' : userData.role === 'member' ? 'success' : userData.role === 'coach' ? 'info' : 'default'}
+                size="small"
+              />
+            </Box>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" color="text.secondary">Trạng thái thành viên:</Typography>
+              <Chip 
+                label={userData.isMember ? 'Premium' : 'Miễn phí'}
+                color={userData.isMember ? 'success' : 'default'}
+                size="small"
+              />
+            </Box>
+          </Grid>
+        </Grid>
+      </Paper>
+
+      {/* Hiển thị thông tin tình trạng hút thuốc từ database */}
+      <Paper sx={{ p: 3, mb: 4, bgcolor: '#f8f9fa' }}>
+        <Typography variant="h6" gutterBottom sx={{ color: '#1976d2', fontWeight: 600 }}>
+          📊 Thông tin tình trạng hút thuốc của bạn
+        </Typography>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" color="text.secondary">Số điếu thuốc/ngày:</Typography>
+              <Typography variant="h6" color="primary">{userData.smokingStatus.cigarettesPerDay} điếu</Typography>
+            </Box>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" color="text.secondary">Chi phí/gói:</Typography>
+              <Typography variant="h6" color="primary">{userData.smokingStatus.costPerPack.toLocaleString()} VNĐ</Typography>
+            </Box>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" color="text.secondary">Loại thuốc lá:</Typography>
+              <Typography variant="h6" color="primary">{userData.smokingStatus.cigaretteType || 'Chưa cập nhật'}</Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" color="text.secondary">Tần suất hút thuốc:</Typography>
+              <Typography variant="h6" color="primary">{userData.smokingStatus.smokingFrequency || 'Chưa cập nhật'}</Typography>
+            </Box>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" color="text.secondary">Tình trạng sức khỏe:</Typography>
+              <Typography variant="h6" color="primary">{userData.smokingStatus.healthStatus || 'Chưa cập nhật'}</Typography>
+            </Box>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" color="text.secondary">Nhật ký hôm nay:</Typography>
+              <Typography variant="body1" color="primary">
+                {userData.smokingStatus.dailyLog.cigarettes} điếu - {userData.smokingStatus.dailyLog.feeling || 'Chưa có cảm nhận'}
+              </Typography>
+            </Box>
+          </Grid>
+        </Grid>
+        
+        {/* Thống kê chi phí */}
+        <Box sx={{ mt: 3, p: 2, bgcolor: 'warning.light', borderRadius: 2 }}>
+          <Typography variant="h6" gutterBottom>💰 Thống kê chi phí</Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={6} md={3}>
+              <Typography variant="subtitle2">Chi phí/ngày:</Typography>
+              <Typography variant="h6" color="error">
+                {((userData.smokingStatus.cigarettesPerDay / 20) * userData.smokingStatus.costPerPack).toLocaleString()} VNĐ
+              </Typography>
+            </Grid>
+            <Grid item xs={6} md={3}>
+              <Typography variant="subtitle2">Chi phí/tháng:</Typography>
+              <Typography variant="h6" color="error">
+                {(((userData.smokingStatus.cigarettesPerDay / 20) * userData.smokingStatus.costPerPack) * 30).toLocaleString()} VNĐ
+              </Typography>
+            </Grid>
+            <Grid item xs={6} md={3}>
+              <Typography variant="subtitle2">Chi phí/năm:</Typography>
+              <Typography variant="h6" color="error">
+                {(((userData.smokingStatus.cigarettesPerDay / 20) * userData.smokingStatus.costPerPack) * 365).toLocaleString()} VNĐ
+              </Typography>
+            </Grid>
+            <Grid item xs={6} md={3}>
+              <Typography variant="subtitle2">Tổng điếu/tháng:</Typography>
+              <Typography variant="h6" color="warning.dark">
+                {userData.smokingStatus.cigarettesPerDay * 30} điếu
+              </Typography>
+            </Grid>
+          </Grid>
+        </Box>
+      </Paper>
+      
+      {/* Form chỉnh sửa tình trạng hút thuốc */}
       <Paper sx={{ p: 3, mb: 4 }}>
         <Typography variant="h6" gutterBottom>
-          Tình trạng hút thuốc
+          ✏️ Cập nhật tình trạng hút thuốc
+          <Typography variant="caption" sx={{ ml: 2, color: 'text.secondary' }}>
+            (Dữ liệu được lưu tự động khi bạn nhập)
+          </Typography>
         </Typography>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
@@ -214,7 +509,7 @@ const MyProgressPage = () => {
               type="number"
               label="Số điếu thuốc/ngày"
               value={userData.smokingStatus.cigarettesPerDay}
-              onChange={(e) => setUserData({
+              onChange={(e) => setUserDataWithAutoSave({
                 ...userData,
                 smokingStatus: {
                   ...userData.smokingStatus,
@@ -229,7 +524,7 @@ const MyProgressPage = () => {
               type="number"
               label="Chi phí/gói (VNĐ)"
               value={userData.smokingStatus.costPerPack}
-              onChange={(e) => setUserData({
+              onChange={(e) => setUserDataWithAutoSave({
                 ...userData,
                 smokingStatus: {
                   ...userData.smokingStatus,
@@ -243,7 +538,7 @@ const MyProgressPage = () => {
               fullWidth
               label="Loại thuốc lá"
               value={userData.smokingStatus.cigaretteType || ''}
-              onChange={(e) => setUserData({
+              onChange={(e) => setUserDataWithAutoSave({
                 ...userData,
                 smokingStatus: {
                   ...userData.smokingStatus,
@@ -259,7 +554,7 @@ const MyProgressPage = () => {
               fullWidth
               label="Tần suất hút thuốc"
               value={userData.smokingStatus.smokingFrequency}
-              onChange={(e) => setUserData({
+              onChange={(e) => setUserDataWithAutoSave({
                 ...userData,
                 smokingStatus: {
                   ...userData.smokingStatus,
@@ -273,7 +568,7 @@ const MyProgressPage = () => {
               fullWidth
               label="Tình trạng sức khỏe"
               value={userData.smokingStatus.healthStatus}
-              onChange={(e) => setUserData({
+              onChange={(e) => setUserDataWithAutoSave({
                 ...userData,
                 smokingStatus: {
                   ...userData.smokingStatus,
@@ -287,7 +582,7 @@ const MyProgressPage = () => {
               fullWidth
               label="Lý do muốn cai thuốc"
               value={userData.smokingStatus.quitReason || ''}
-              onChange={(e) => setUserData({
+              onChange={(e) => setUserDataWithAutoSave({
                 ...userData,
                 smokingStatus: {
                   ...userData.smokingStatus,
@@ -312,7 +607,7 @@ const MyProgressPage = () => {
                 type="number"
                 label="Số điếu đã hút hôm nay"
                 value={userData.smokingStatus.dailyLog?.cigarettes || 0}
-                onChange={(e) => setUserData({
+                onChange={(e) => setUserDataWithAutoSave({
                   ...userData,
                   smokingStatus: {
                     ...userData.smokingStatus,
@@ -331,7 +626,7 @@ const MyProgressPage = () => {
                 fullWidth
                 label="Cảm nhận"
                 value={userData.smokingStatus.dailyLog?.feeling || ''}
-                onChange={(e) => setUserData({
+                onChange={(e) => setUserDataWithAutoSave({
                   ...userData,
                   smokingStatus: {
                     ...userData.smokingStatus,
@@ -355,7 +650,7 @@ const MyProgressPage = () => {
           sx={{ mt: 3 }}
           disabled={loading}
         >
-          {loading ? 'Đang cập nhật...' : 'Cập nhật tình trạng'}
+          {loading ? 'Đang cập nhật...' : 'Lưu thủ công'}
         </Button>
       </Paper>
       {/* Kế hoạch cai thuốc */}
@@ -421,6 +716,9 @@ const MyProgressPage = () => {
         <Box sx={{ p: 3, minWidth: 350 }}>
           <Typography variant="h6" gutterBottom>
             Nhập thông tin kế hoạch cai thuốc
+            <Typography variant="caption" sx={{ ml: 2, color: 'text.secondary' }}>
+              (Tự động lưu khi nhập)
+            </Typography>
           </Typography>
           <TextField
             fullWidth
@@ -428,7 +726,7 @@ const MyProgressPage = () => {
             type="date"
             value={userData.quitPlan?.startDate || ''}
             onChange={e =>
-              setUserData(prev => ({
+              setUserDataWithAutoSave(prev => ({
                 ...prev,
                 quitPlan: { ...prev.quitPlan, startDate: e.target.value }
               }))
@@ -442,7 +740,7 @@ const MyProgressPage = () => {
             type="date"
             value={userData.quitPlan?.targetDate || ''}
             onChange={e =>
-              setUserData(prev => ({
+              setUserDataWithAutoSave(prev => ({
                 ...prev,
                 quitPlan: { ...prev.quitPlan, targetDate: e.target.value }
               }))
@@ -455,7 +753,7 @@ const MyProgressPage = () => {
             label="Loại kế hoạch (suggested/custom)"
             value={userData.quitPlan?.planType || ''}
             onChange={e =>
-              setUserData(prev => ({
+              setUserDataWithAutoSave(prev => ({
                 ...prev,
                 quitPlan: { ...prev.quitPlan, planType: e.target.value }
               }))
@@ -468,7 +766,7 @@ const MyProgressPage = () => {
             type="number"
             value={userData.quitPlan?.initialCigarettes || 0}
             onChange={e =>
-              setUserData(prev => ({
+              setUserDataWithAutoSave(prev => ({
                 ...prev,
                 quitPlan: { ...prev.quitPlan, initialCigarettes: e.target.value }
               }))
@@ -481,7 +779,7 @@ const MyProgressPage = () => {
             type="number"
             value={userData.quitPlan?.dailyReduction || 1}
             onChange={e =>
-              setUserData(prev => ({
+              setUserDataWithAutoSave(prev => ({
                 ...prev,
                 quitPlan: { ...prev.quitPlan, dailyReduction: e.target.value }
               }))
@@ -493,7 +791,7 @@ const MyProgressPage = () => {
             label="Chi tiết kế hoạch"
             value={userData.quitPlan?.planDetail || ''}
             onChange={e =>
-              setUserData(prev => ({
+              setUserDataWithAutoSave(prev => ({
                 ...prev,
                 quitPlan: { ...prev.quitPlan, planDetail: e.target.value }
               }))
@@ -507,7 +805,7 @@ const MyProgressPage = () => {
               Hủy
             </Button>
             <Button variant="contained" onClick={handleSaveQuitPlan}>
-              Lưu kế hoạch
+              Lưu kế hoạch vào server
             </Button>
           </Box>
         </Box>
