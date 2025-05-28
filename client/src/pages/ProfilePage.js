@@ -9,17 +9,10 @@ import {
   Button,
   Tabs,
   Tab,
-  Card,
-  CardContent,
-  CardActions,
   LinearProgress,
   List,
   ListItem,
   ListItemText,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Alert,
   Snackbar,
   Divider,
@@ -59,7 +52,6 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [openDialog, setOpenDialog] = useState(false);
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user"));
 
@@ -175,139 +167,6 @@ const ProfilePage = () => {
       setError('');
     } catch (error) {
       setError('Failed to update profile. Please try again later.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUpdateSmokingStatus = async () => {
-    // Validate input
-    const { cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, dailyLog } = userData.smokingStatus;
-    if (
-      cigarettesPerDay === undefined ||
-      costPerPack === undefined ||
-      smokingFrequency === undefined ||
-      healthStatus === undefined ||
-      cigaretteType === undefined ||
-      dailyLog === undefined ||
-      cigarettesPerDay === '' ||
-      costPerPack === '' ||
-      smokingFrequency === '' ||
-      healthStatus === '' ||
-      cigaretteType === ''
-    ) {
-      setError('Vui lòng nhập đầy đủ thông tin tình trạng hút thuốc.');
-      return;
-    }
-    if (isNaN(Number(cigarettesPerDay)) || isNaN(Number(costPerPack))) {
-      setError('Số điếu thuốc mỗi ngày và giá mỗi bao phải là số.');
-      return;
-    }
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-      console.log('=== SENDING SMOKING STATUS UPDATE ===');
-      const dataToSend = {
-        cigarettesPerDay: Number(cigarettesPerDay),
-        costPerPack: Number(costPerPack),
-        smokingFrequency: String(smokingFrequency),
-        healthStatus: String(healthStatus),
-        cigaretteType: String(cigaretteType || ''),
-        dailyCigarettes: Number(dailyLog.cigarettes || 0),
-        dailyFeeling: String(dailyLog.feeling || '')
-      };
-      console.log('Data to send:');
-      console.table(dataToSend);
-      console.dir(dataToSend);
-      const response = await axios.put('http://localhost:5000/api/auth/smoking-status', dataToSend, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      console.log('=== UPDATE RESPONSE ===');
-      console.log('Response status:', response.status);
-      console.log('Response data:');
-      console.dir(response.data);
-      
-      // Cập nhật state với dữ liệu vừa gửi để giữ lại trong form
-      const updatedSmokingStatus = {
-        cigarettesPerDay: Number(cigarettesPerDay),
-        costPerPack: Number(costPerPack),
-        smokingFrequency: String(smokingFrequency),
-        healthStatus: String(healthStatus),
-        cigaretteType: String(cigaretteType || ''),
-        quitReason: userData.smokingStatus.quitReason || '',
-        dailyLog: {
-          cigarettes: Number(dailyLog.cigarettes || 0),
-          feeling: String(dailyLog.feeling || '')
-        }
-      };
-      
-      console.log('=== UPDATING LOCAL STATE ===');
-      console.log('New smoking status:');
-      console.table(updatedSmokingStatus);
-      console.dir(updatedSmokingStatus);
-      
-      setUserData(prevData => ({
-        ...prevData,
-        smokingStatus: updatedSmokingStatus
-      }));
-      
-      setSuccess('Cập nhật tình trạng hút thuốc thành công!');
-      setError('');
-      
-      console.log('=== FETCHING UPDATED DATA ===');
-      // Fetch lại để đồng bộ với server
-      await fetchUserData();
-      console.log('=== UPDATE COMPLETED ===');
-    } catch (error) {
-      console.error('=== UPDATE ERROR ===');
-      console.error('Error details:', error);
-      console.error('Error response:', error.response?.data);
-      console.error('Error status:', error.response?.status);
-      
-      let errorMessage = 'Failed to update smoking status. Please try again later.';
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.response?.status === 401) {
-        errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
-        navigate('/login');
-      } else if (error.response?.status === 500) {
-        errorMessage = 'Lỗi server. Vui lòng thử lại sau.';
-      }
-      
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreateQuitPlan = () => {
-    setOpenDialog(true);
-  };
-
-  const handleSaveQuitPlan = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-      await axios.post(
-        'http://localhost:5000/api/auth/quit-plan',
-        userData.quitPlan,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setOpenDialog(false);
-      setSuccess('Tạo kế hoạch cai thuốc thành công!');
-      setError('');
-      await fetchQuitPlan();
-    } catch (error) {
-      setError('Failed to create quit plan. Please try again later.');
     } finally {
       setLoading(false);
     }

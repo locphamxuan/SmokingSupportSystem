@@ -54,10 +54,10 @@ exports.register = async (req, res) => {
       }
     }
 
-    // Mã hóa mật khẩu
-    const hash = await bcrypt.hash(password, 10);
+    // Lưu password dạng plain text (không mã hóa)
+    console.log('📝 Storing password as plain text for user:', username);
 
-    // Thêm người dùng mới
+    // Thêm người dùng mới với password plain text
     const insertResult = await sql.query`
       INSERT INTO Users (
         Username, 
@@ -71,7 +71,7 @@ exports.register = async (req, res) => {
       )
       VALUES (
         ${username}, 
-        ${hash}, 
+        ${password}, 
         ${email}, 
         ${phoneNumber}, 
         ${address}, 
@@ -100,6 +100,8 @@ exports.register = async (req, res) => {
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
     );
+
+    console.log('✅ User registered successfully with plain text password');
 
     // Trả về thông tin người dùng
     res.status(201).json({
