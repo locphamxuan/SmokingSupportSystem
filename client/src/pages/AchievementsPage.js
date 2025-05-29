@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Container, Typography, Paper, Grid, Card, CardContent, CardActions, Button } from '@mui/material';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 
 const AchievementsPage = () => {
   const [achievements, setAchievements] = useState([]);
@@ -9,7 +10,7 @@ const AchievementsPage = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
       // Giả sử achievements nằm trong profile, hoặc bạn có API riêng
-      const res = await axios.get('http://localhost:5000/api/auth/profile', {
+      const res = await axios.get(`${API_BASE_URL}/auth/profile`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAchievements(res.data.achievements || []);

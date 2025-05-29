@@ -20,6 +20,7 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 
 const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -63,7 +64,7 @@ const ProfilePage = () => {
         return;
       }
 
-      const response = await axios.get('http://localhost:5000/api/auth/profile', {
+      const response = await axios.get(`${API_BASE_URL}/auth/profile`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -105,7 +106,7 @@ const ProfilePage = () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
-      const res = await axios.get('http://localhost:5000/api/auth/quit-plan', {
+      const res = await axios.get(`${API_BASE_URL}/auth/quit-plan`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUserData(prev => ({
@@ -155,7 +156,7 @@ const ProfilePage = () => {
         setLoading(false);
         return;
       }
-      await axios.put('http://localhost:5000/api/auth/profile', {
+      await axios.put(`${API_BASE_URL}/auth/profile`, {
         username: userData.username,
         email: userData.email,
         phoneNumber: userData.phoneNumber,

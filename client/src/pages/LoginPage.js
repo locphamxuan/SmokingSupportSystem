@@ -9,15 +9,30 @@ import {
   Tab,
   CircularProgress,
   Alert,
-  Link,
+  Typography,
   IconButton,
-  Tooltip,
+  InputAdornment,
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  Divider,
+  Card,
+  CardContent
 } from '@mui/material';
-import { Home as HomeIcon } from '@mui/icons-material';
+import {
+  Home as HomeIcon,
+  Visibility,
+  VisibilityOff,
+  PersonAdd,
+  Login,
+  Email,
+  Phone,
+  LocationOn,
+  Person,
+  Lock,
+  SmokeFree
+} from '@mui/icons-material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config/api';
@@ -26,7 +41,9 @@ const LoginPage = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [userType, setUserType] = useState('member'); // 'member' or 'coach'
+  const [userType, setUserType] = useState('member');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const [loginData, setLoginData] = useState({ emailOrUsername: '', password: '' });
   const [loginErrors, setLoginErrors] = useState({ emailOrUsername: '', password: '' });
@@ -191,187 +208,345 @@ const LoginPage = () => {
   };
 
   return (
-    <Container maxWidth="sm">
-      <Box sx={{ my: 4 }}>
-        <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-          {/* Nút quay về trang chủ */}
-          <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
-            <Tooltip title="Quay về trang chủ">
-              <IconButton 
-                onClick={() => navigate('/')}
-                sx={{ 
-                  color: 'primary.main',
-                  '&:hover': {
-                    backgroundColor: 'primary.light',
-                    color: 'white'
-                  }
-                }}
-              >
-                <HomeIcon />
-              </IconButton>
-            </Tooltip>
+    <Box sx={{
+      minHeight: '100vh',
+      backgroundColor: '#f5f5f5',
+      display: 'flex',
+      alignItems: 'center',
+      padding: '20px 0'
+    }}>
+      <Container maxWidth="sm">
+        {/* Nút quay về trang chủ */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
+          <IconButton 
+            onClick={() => navigate('/')}
+            sx={{
+              backgroundColor: 'white',
+              color: '#1976d2',
+              '&:hover': {
+                backgroundColor: '#f0f0f0',
+              },
+              boxShadow: 1
+            }}
+          >
+            <HomeIcon />
+          </IconButton>
+        </Box>
+
+        <Paper elevation={2} sx={{ borderRadius: 2, overflow: 'hidden' }}>
+          {/* Header */}
+          <Box sx={{ 
+            textAlign: 'center', 
+            py: 3,
+            backgroundColor: '#1976d2',
+            color: 'white'
+          }}>
+            <SmokeFree sx={{ fontSize: 40, mb: 1 }} />
+            <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
+              Nền tảng hỗ trợ cai thuốc
+            </Typography>
+            <Typography variant="body2">
+              Hành trình hướng tới cuộc sống khỏe mạnh
+            </Typography>
           </Box>
-          
-          <Box sx={{ mb: 3, textAlign: 'center' }}>
-            <h2>{activeTab === 0 ? 'Đăng nhập' : 'Đăng ký'}</h2>
-          </Box>
-          
-          <Tabs value={activeTab} onChange={handleTabChange} centered sx={{ mb: 3 }}>
-            <Tab label="Đăng nhập" />
-            <Tab label="Đăng ký" />
+
+          {/* Tabs */}
+          <Tabs 
+            value={activeTab} 
+            onChange={handleTabChange}
+            variant="fullWidth"
+            sx={{
+              backgroundColor: 'white',
+              '& .MuiTabs-indicator': {
+                backgroundColor: '#1976d2',
+              }
+            }}
+          >
+            <Tab icon={<Login />} label="Đăng nhập" iconPosition="start" />
+            <Tab icon={<PersonAdd />} label="Đăng ký" iconPosition="start" />
           </Tabs>
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
+          <Box sx={{ p: 3 }}>
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
 
-          {activeTab === 0 ? (
-            <Box component="form" onSubmit={handleLoginSubmit} sx={{ mt: 3 }}>
-              <FormControl fullWidth margin="normal">
-                <InputLabel>Loại tài khoản</InputLabel>
-                <Select
-                  value={userType}
-                  onChange={(e) => setUserType(e.target.value)}
-                  label="Loại tài khoản"
+            {/* Form đăng nhập */}
+            {activeTab === 0 && (
+              <Box component="form" onSubmit={handleLoginSubmit}>
+                <Typography variant="h6" sx={{ mb: 3, textAlign: 'center', color: '#333' }}>
+                  Chào mừng trở lại!
+                </Typography>
+
+                {/* Chọn loại người dùng */}
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <InputLabel>Loại tài khoản</InputLabel>
+                  <Select
+                    value={userType}
+                    onChange={(e) => setUserType(e.target.value)}
+                  >
+                    <MenuItem value="member">Thành viên</MenuItem>
+                    <MenuItem value="coach">Huấn luyện viên</MenuItem>
+                  </Select>
+                </FormControl>
+
+                <TextField
+                  fullWidth
+                  name="emailOrUsername"
+                  label={userType === 'coach' ? 'Email' : 'Email hoặc tên đăng nhập'}
+                  value={loginData.emailOrUsername}
+                  onChange={handleLoginInputChange}
+                  error={!!loginErrors.emailOrUsername}
+                  helperText={loginErrors.emailOrUsername}
+                  sx={{ mb: 2 }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Email color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+
+                <TextField
+                  fullWidth
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  label="Mật khẩu"
+                  value={loginData.password}
+                  onChange={handleLoginInputChange}
+                  error={!!loginErrors.password}
+                  helperText={loginErrors.password}
+                  sx={{ mb: 3 }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Lock color="action" />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowPassword(!showPassword)}
+                          edge="end"
+                        >
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  disabled={loading}
+                  sx={{ mb: 2, py: 1.5 }}
                 >
-                  <MenuItem value="member">Thành viên</MenuItem>
-                  <MenuItem value="coach">Huấn luyện viên</MenuItem>
-                </Select>
-              </FormControl>
-              
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                label={userType === 'coach' ? "Email" : "Email hoặc Tên đăng nhập"}
-                name="emailOrUsername"
-                value={loginData.emailOrUsername}
-                onChange={handleLoginInputChange}
-                error={!!loginErrors.emailOrUsername}
-                helperText={loginErrors.emailOrUsername}
-                disabled={loading}
-              />
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                label="Mật khẩu"
-                name="password"
-                type="password"
-                value={loginData.password}
-                onChange={handleLoginInputChange}
-                error={!!loginErrors.password}
-                helperText={loginErrors.password}
-                disabled={loading}
-              />
-              <Box sx={{ mt: 1, mb: 2, textAlign: 'right' }}>
-                <Link href="/forgot-password" variant="body2">
-                  Quên mật khẩu?
-                </Link>
+                  {loading ? <CircularProgress size={24} color="inherit" /> : 'Đăng nhập'}
+                </Button>
+
+                <Divider sx={{ my: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Chưa có tài khoản?
+                  </Typography>
+                </Divider>
+
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  onClick={() => setActiveTab(1)}
+                >
+                  Tạo tài khoản mới
+                </Button>
               </Box>
-              <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                disabled={loading}
-                sx={{ mt: 3, mb: 2, py: 1.5 }}
-              >
-                {loading ? <CircularProgress size={24} /> : 'Đăng nhập'}
-              </Button>
-            </Box>
-          ) : (
-            <Box component="form" onSubmit={handleRegisterSubmit} sx={{ mt: 3 }}>
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                label="Tên đăng nhập"
-                name="username"
-                value={registerData.username}
-                onChange={handleRegisterInputChange}
-                error={!!registerErrors.username}
-                helperText={registerErrors.username}
-                disabled={loading}
-              />
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                label="Số điện thoại"
-                name="phoneNumber"
-                value={registerData.phoneNumber}
-                onChange={handleRegisterInputChange}
-                error={!!registerErrors.phoneNumber}
-                helperText={registerErrors.phoneNumber}
-                disabled={loading}
-              />
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                label="Địa chỉ"
-                name="address"
-                value={registerData.address}
-                onChange={handleRegisterInputChange}
-                error={!!registerErrors.address}
-                helperText={registerErrors.address}
-                disabled={loading}
-              />
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                label="Email"
-                name="email"
-                type="email"
-                value={registerData.email}
-                onChange={handleRegisterInputChange}
-                error={!!registerErrors.email}
-                helperText={registerErrors.email}
-                disabled={loading}
-              />
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                label="Mật khẩu"
-                name="password"
-                type="password"
-                value={registerData.password}
-                onChange={handleRegisterInputChange}
-                error={!!registerErrors.password}
-                helperText={registerErrors.password}
-                disabled={loading}
-              />
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                label="Xác nhận mật khẩu"
-                name="confirmPassword"
-                type="password"
-                value={registerData.confirmPassword}
-                onChange={handleRegisterInputChange}
-                error={!!registerErrors.confirmPassword}
-                helperText={registerErrors.confirmPassword}
-                disabled={loading}
-              />
-              <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                disabled={loading}
-                sx={{ mt: 3, mb: 2, py: 1.5 }}
-              >
-                {loading ? <CircularProgress size={24} /> : 'Đăng ký'}
-              </Button>
-            </Box>
-          )}
+            )}
+
+            {/* Form đăng ký */}
+            {activeTab === 1 && (
+              <Box component="form" onSubmit={handleRegisterSubmit}>
+                <Typography variant="h6" sx={{ mb: 3, textAlign: 'center', color: '#333' }}>
+                  Tham gia cùng chúng tôi!
+                </Typography>
+
+                <TextField
+                  fullWidth
+                  name="username"
+                  label="Tên đăng nhập"
+                  value={registerData.username}
+                  onChange={handleRegisterInputChange}
+                  error={!!registerErrors.username}
+                  helperText={registerErrors.username}
+                  sx={{ mb: 2 }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Person color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+
+                <TextField
+                  fullWidth
+                  name="email"
+                  label="Email"
+                  type="email"
+                  value={registerData.email}
+                  onChange={handleRegisterInputChange}
+                  error={!!registerErrors.email}
+                  helperText={registerErrors.email}
+                  sx={{ mb: 2 }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Email color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+
+                <TextField
+                  fullWidth
+                  name="phoneNumber"
+                  label="Số điện thoại"
+                  value={registerData.phoneNumber}
+                  onChange={handleRegisterInputChange}
+                  error={!!registerErrors.phoneNumber}
+                  helperText={registerErrors.phoneNumber}
+                  sx={{ mb: 2 }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Phone color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+
+                <TextField
+                  fullWidth
+                  name="address"
+                  label="Địa chỉ"
+                  value={registerData.address}
+                  onChange={handleRegisterInputChange}
+                  error={!!registerErrors.address}
+                  helperText={registerErrors.address}
+                  sx={{ mb: 2 }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LocationOn color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+
+                <TextField
+                  fullWidth
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  label="Mật khẩu"
+                  value={registerData.password}
+                  onChange={handleRegisterInputChange}
+                  error={!!registerErrors.password}
+                  helperText={registerErrors.password}
+                  sx={{ mb: 2 }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Lock color="action" />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowPassword(!showPassword)}
+                          edge="end"
+                        >
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+
+                <TextField
+                  fullWidth
+                  name="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  label="Xác nhận mật khẩu"
+                  value={registerData.confirmPassword}
+                  onChange={handleRegisterInputChange}
+                  error={!!registerErrors.confirmPassword}
+                  helperText={registerErrors.confirmPassword}
+                  sx={{ mb: 3 }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Lock color="action" />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          edge="end"
+                        >
+                          {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  disabled={loading}
+                  sx={{ mb: 2, py: 1.5 }}
+                >
+                  {loading ? <CircularProgress size={24} color="inherit" /> : 'Đăng ký'}
+                </Button>
+
+                <Divider sx={{ my: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Đã có tài khoản?
+                  </Typography>
+                </Divider>
+
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  onClick={() => setActiveTab(0)}
+                >
+                  Đăng nhập ngay
+                </Button>
+              </Box>
+            )}
+          </Box>
+
+          {/* Footer */}
+          <Box sx={{ 
+            textAlign: 'center', 
+            py: 2,
+            backgroundColor: '#f8f8f8',
+            borderTop: '1px solid #e0e0e0'
+          }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+              Tham gia cộng đồng hỗ trợ cai thuốc lá
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Hỗ trợ 24/7 - Hotline: 1800-8888-77
+            </Typography>
+          </Box>
         </Paper>
-      </Box>
-    </Container>
+      </Container>
+    </Box>
   );
 };
 

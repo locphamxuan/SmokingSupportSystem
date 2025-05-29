@@ -5,6 +5,9 @@ exports.getUserDetail = async (req, res) => {
   try {
     const userId = req.params.id;
     
+    console.log('=== GET USER DETAIL START ===');
+    console.log('User ID:', userId);
+    
     // Lấy thông tin user từ Users
     const userResult = await sql.query`
       SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address, CreatedAt
@@ -16,12 +19,19 @@ exports.getUserDetail = async (req, res) => {
     }
     
     const user = userResult.recordset[0];
+    console.log('User found:', user);
 
     // Lấy thông tin hút thuốc từ SmokingProfiles
     const profileResult = await sql.query`
       SELECT * FROM SmokingProfiles WHERE UserId = ${userId}
     `;
     const profile = profileResult.recordset[0];
+    console.log('=== SMOKING PROFILE DATA ===');
+    console.log('Profile found:', profile);
+    if (profile) {
+      console.log('QuitReason field:', profile.QuitReason);
+      console.log('Profile keys:', Object.keys(profile));
+    }
 
     // Lấy nhật ký hôm nay từ SmokingDailyLog
     const todayLogResult = await sql.query`
@@ -31,6 +41,7 @@ exports.getUserDetail = async (req, res) => {
       ORDER BY Id DESC
     `;
     const todayLog = todayLogResult.recordset[0];
+    console.log('Today log:', todayLog);
 
     const userDetail = {
       id: user.Id,
@@ -47,13 +58,17 @@ exports.getUserDetail = async (req, res) => {
         smokingFrequency: profile?.smokingFrequency || '',
         healthStatus: profile?.healthStatus || '',
         cigaretteType: profile?.cigaretteType || '',
-        quitReason: profile?.QuitReason || '',
+        quitReason: profile?.QuitReason || profile?.quitReason || '',
         dailyLog: {
           cigarettes: todayLog?.Cigarettes || 0,
           feeling: todayLog?.Feeling || ''
         }
       }
     };
+    
+    console.log('=== FINAL USER DETAIL ===');
+    console.log('smokingStatus.quitReason:', userDetail.smokingStatus.quitReason);
+    console.log('=== GET USER DETAIL END ===');
     
     res.json(userDetail);
   } catch (error) {

@@ -67,6 +67,7 @@ const MyProgressPage = () => {
             smokingFrequency: String(updatedData.smokingStatus.smokingFrequency),
             healthStatus: String(updatedData.smokingStatus.healthStatus),
             cigaretteType: String(updatedData.smokingStatus.cigaretteType || ''),
+            quitReason: String(updatedData.smokingStatus.quitReason || ''),
             dailyCigarettes: Number(updatedData.smokingStatus.dailyLog?.cigarettes || 0),
             dailyFeeling: String(updatedData.smokingStatus.dailyLog?.feeling || '')
           }, {
@@ -184,7 +185,7 @@ const MyProgressPage = () => {
 
   // Update smoking status with manual save
   const handleUpdateSmokingStatus = async () => {
-    const { cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, dailyLog } = userData.smokingStatus;
+    const { cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, quitReason, dailyLog } = userData.smokingStatus;
     if (
       cigarettesPerDay === undefined ||
       costPerPack === undefined ||
@@ -219,6 +220,7 @@ const MyProgressPage = () => {
         smokingFrequency: String(smokingFrequency),
         healthStatus: String(healthStatus),
         cigaretteType: String(cigaretteType || ''),
+        quitReason: String(quitReason || ''),
         dailyCigarettes: Number(dailyLog.cigarettes || 0),
         dailyFeeling: String(dailyLog.feeling || '')
       };
@@ -458,6 +460,14 @@ const MyProgressPage = () => {
               <Typography variant="subtitle2" color="text.secondary">Nhật ký hôm nay:</Typography>
               <Typography variant="body1" color="primary">
                 {userData.smokingStatus.dailyLog.cigarettes} điếu - {userData.smokingStatus.dailyLog.feeling || 'Chưa có cảm nhận'}
+              </Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={12}>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" color="text.secondary">Lý do muốn cai thuốc:</Typography>
+              <Typography variant="body1" color="primary" sx={{ fontStyle: userData.smokingStatus.quitReason ? 'normal' : 'italic' }}>
+                {userData.smokingStatus.quitReason || 'Chưa có lý do được ghi nhận'}
               </Typography>
             </Box>
           </Grid>

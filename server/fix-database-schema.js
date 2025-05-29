@@ -37,6 +37,27 @@ async function fixDatabaseSchema() {
       console.log('✅ cigaretteType column already exists');
     }
     
+    // Kiểm tra xem cột QuitReason đã tồn tại chưa
+    const checkQuitReasonColumn = await sql.query`
+      SELECT COLUMN_NAME 
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_NAME = 'SmokingProfiles' AND COLUMN_NAME = 'QuitReason'
+    `;
+    
+    if (checkQuitReasonColumn.recordset.length === 0) {
+      console.log('🔧 Adding QuitReason column to SmokingProfiles...');
+      
+      // Thêm cột QuitReason
+      await sql.query`
+        ALTER TABLE SmokingProfiles
+        ADD QuitReason NVARCHAR(500)
+      `;
+      
+      console.log('✅ Added QuitReason column successfully');
+    } else {
+      console.log('✅ QuitReason column already exists');
+    }
+    
     // Kiểm tra cấu trúc bảng cuối cùng
     const columns = await sql.query`
       SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE
