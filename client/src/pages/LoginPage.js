@@ -20,6 +20,7 @@ import {
 import { Home as HomeIcon } from '@mui/icons-material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../config/api';
 
 const LoginPage = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -128,8 +129,8 @@ const LoginPage = () => {
     setError('');
     try {
       const endpoint = userType === 'coach' 
-        ? 'http://localhost:5000/api/coach/login'
-        : 'http://localhost:5000/api/auth/login';
+        ? `${API_BASE_URL}/coach/login`
+        : `${API_BASE_URL}/auth/login`;
 
       const loginPayload = userType === 'coach' 
         ? { email: loginData.emailOrUsername, password: loginData.password }
@@ -165,7 +166,7 @@ const LoginPage = () => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/register', {
+      const response = await axios.post(`${API_BASE_URL}/auth/register`, {
         username: registerData.username,
         email: registerData.email,
         password: registerData.password,

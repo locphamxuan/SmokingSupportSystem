@@ -4,6 +4,7 @@ import {
 } from '@mui/material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../config/api';
 
 const MyProgressPage = () => {
   const [userData, setUserData] = useState({
@@ -60,7 +61,7 @@ const MyProgressPage = () => {
           if (!token) return;
 
           // Auto-save smoking status
-          await axios.put('http://localhost:5000/api/auth/smoking-status', {
+          await axios.put(`${API_BASE_URL}/auth/smoking-status`, {
             cigarettesPerDay: Number(updatedData.smokingStatus.cigarettesPerDay),
             costPerPack: Number(updatedData.smokingStatus.costPerPack),
             smokingFrequency: String(updatedData.smokingStatus.smokingFrequency),
@@ -103,10 +104,10 @@ const MyProgressPage = () => {
 
       // Fetch from server first to get latest data
       const [profileRes, quitPlanRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/auth/profile', {
+        axios.get(`${API_BASE_URL}/auth/profile`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        axios.get('http://localhost:5000/api/auth/quit-plan', {
+        axios.get(`${API_BASE_URL}/auth/quit-plan`, {
           headers: { Authorization: `Bearer ${token}` }
         }).catch(() => ({ data: { quitPlan: null } })) // Handle quit plan not found
       ]);
@@ -224,7 +225,7 @@ const MyProgressPage = () => {
       
       console.log('🔄 Manual save - sending data:', dataToSend);
       
-      await axios.put('http://localhost:5000/api/auth/smoking-status', dataToSend, {
+      await axios.put(`${API_BASE_URL}/auth/smoking-status`, dataToSend, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -300,7 +301,7 @@ const MyProgressPage = () => {
         return;
       }
       await axios.post(
-        'http://localhost:5000/api/auth/quit-plan',
+        `${API_BASE_URL}/auth/quit-plan`,
         plan,
         { headers: { Authorization: `Bearer ${token}` } }
       );

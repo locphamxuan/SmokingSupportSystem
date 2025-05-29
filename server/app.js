@@ -28,8 +28,7 @@ app.get('/api/test-user/:id', async (req, res) => {
     const userId = req.params.id;
     
     const result = await sql.query`
-      SELECT Id, Username, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, 
-             dailyCigarettes, dailyFeeling
+      SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address, CreatedAt
       FROM Users WHERE Id = ${userId}
     `;
     
@@ -50,7 +49,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Có lỗi xảy ra!', error: err.message });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`API URL: http://localhost:${PORT}/api`);
