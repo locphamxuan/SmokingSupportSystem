@@ -4,7 +4,16 @@ GO
 USE SmokingSupportPlatform;
 GO
 
--- Tạo bảng Users trước tiên vì các bảng khác sẽ tham chiếu đến nó
+
+-- Tìm constraint
+  --SELECT OBJECT_NAME(object_id) AS ConstraintName, name AS ColumnName
+  --FROM sys.default_constraints
+  --WHERE parent_object_id = OBJECT_ID('Users');
+  -- Xóa constraint
+  --ALTER TABLE Users DROP CONSTRAINT DF__Users__costPerPa__29572725;
+
+--WHERE parent_object_id = OBJECT_ID('Users');
+
 CREATE TABLE Users (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     Username NVARCHAR(100) NOT NULL,
@@ -14,16 +23,10 @@ CREATE TABLE Users (
     Address NVARCHAR(255),
     Role NVARCHAR(50) NOT NULL DEFAULT 'guest',
     IsMember BIT NOT NULL DEFAULT 0,
-    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
-    cigarettesPerDay INT DEFAULT 0,
-    costPerPack INT DEFAULT 0,
-    smokingFrequency NVARCHAR(50) DEFAULT '',
-    healthStatus NVARCHAR(255) DEFAULT ''
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE()
+   
 );
 
-ALTER TABLE Users ADD cigaretteType NVARCHAR(255) DEFAULT '';
-ALTER TABLE Users ADD dailyCigarettes INT DEFAULT 0;
-ALTER TABLE Users ADD dailyFeeling NVARCHAR(255) DEFAULT '';
 GO
 
 CREATE TABLE Badges (
@@ -158,6 +161,29 @@ CREATE TABLE SmokingDailyLog (
 );
 GO
 
+    CREATE TABLE ConsultationSchedules (
+      Id INT PRIMARY KEY IDENTITY(1,1),
+      MemberId INT NOT NULL,
+      CoachId INT NULL,
+      ScheduledTime DATETIME NOT NULL,
+      Status NVARCHAR(50) DEFAULT 'chua tu van', -- 'chua tu van', 'da tu van', 'can theo doi'
+      Note NVARCHAR(MAX) NULL,
+      CreatedAt DATETIME DEFAULT GETDATE(),
+      FOREIGN KEY (MemberId) REFERENCES Users(Id),
+      FOREIGN KEY (CoachId) REFERENCES Users(Id)
+    );
+
+	    CREATE TABLE Messages (
+      Id INT PRIMARY KEY IDENTITY(1,1),
+      SenderId INT NOT NULL,
+      ReceiverId INT NOT NULL,
+      Content NVARCHAR(MAX) NOT NULL,
+      SentAt DATETIME DEFAULT GETDATE(),
+      IsRead BIT DEFAULT 0,
+      FOREIGN KEY (SenderId) REFERENCES Users(Id),
+      FOREIGN KEY (ReceiverId) REFERENCES Users(Id)
+    );
+
 -- Dữ liệu mẫu cho Users
 INSERT INTO Users (Username, Password, Email, Role)
 VALUES (N'admin', N'admin123', N'admin@smoking.com', 'admin');
@@ -208,3 +234,15 @@ GO
 INSERT INTO Rankings (UserId, TotalDaysWithoutSmoking, TotalMoneySaved)
 VALUES (2, 5, 125000);
 GO
+
+
+-- Cập nhật role coach cho user bất kỳ (ví dụ user có Id = 3)
+UPDATE Users
+SET Role = 'coach'
+WHERE Id = 3;
+GO
+
+-- Kiểm tra các user có role coach
+SELECT Id, Username, Role FROM Users WHERE Role = 'coach';
+GO
+
