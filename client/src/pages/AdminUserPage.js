@@ -151,15 +151,49 @@ const AdminUserPage = () => {
 
   const fetchUsers = async () => {
     try {
+      console.log('Fetching users...');
       const data = await getUsers();
+      console.log('Users data received:', data);
+      
+      if (!data || !Array.isArray(data)) {
+        console.error('Invalid data format received:', data);
+        setSnackbar({
+          open: true,
+          message: "Dữ liệu người dùng không hợp lệ",
+          severity: "error",
+        });
+        return;
+      }
+
       // Sắp xếp danh sách theo ID tăng dần
       const sortedData = data.sort((a, b) => a.id - b.id);
+      console.log('Sorted users data:', sortedData);
       setUsers(sortedData);
     } catch (error) {
       console.error("Lỗi khi tải danh sách người dùng:", error);
+      console.error("Error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      let errorMessage = "Lỗi khi tải danh sách người dùng";
+      
+      if (error.response) {
+        if (error.response.status === 401) {
+          errorMessage = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
+        } else if (error.response.status === 403) {
+          errorMessage = "Bạn không có quyền truy cập trang này.";
+        } else if (error.response.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error.request) {
+        errorMessage = "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.";
+      }
+      
       setSnackbar({
         open: true,
-        message: "Lỗi khi tải danh sách người dùng",
+        message: errorMessage,
         severity: "error",
       });
     }

@@ -123,35 +123,42 @@ const LoginPage = () => {
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     if (!validateLoginForm()) return;
-    
+
     setLoading(true);
     setError('');
     try {
-      const endpoint = userType === 'coach' 
-        ? 'http://localhost:5000/api/coach/login'
-        : 'http://localhost:5000/api/auth/login';
-
-      const loginPayload = userType === 'coach' 
-        ? { email: loginData.emailOrUsername, password: loginData.password }
-        : loginData;
+      const endpoint = 'http://localhost:5000/api/auth/login';
+      const loginPayload = {
+        email: loginData.emailOrUsername,
+        password: loginData.password
+      };
 
       const response = await axios.post(endpoint, loginPayload);
-      const { token, user, coach } = response.data;
-      
+      const { token, user } = response.data;
+
+      // Kiểm tra role với userType đã chọn
+      if (
+        (userType === 'member' && user.role !== 'member' && user.role !== 'guest') ||
+        (userType === 'coach' && user.role !== 'coach') ||
+        (userType === 'admin' && user.role !== 'admin')
+      ) {
+        setError('Tài khoản không đúng loại bạn đã chọn!');
+        setLoading(false);
+        return;
+      }
+
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user || coach));
-      
+      localStorage.setItem('user', JSON.stringify(user));
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
-      if (userType === 'coach') {
+
+      if (user.role === 'coach') {
         navigate('/coach-portal');
-      } else if (user?.role === 'admin') {
+      } else if (user.role === 'admin') {
         navigate('/admin/users');
       } else {
         navigate('/');
       }
     } catch (error) {
-      console.error('Lỗi đăng nhập:', error);
       setError(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại!');
     } finally {
       setLoading(false);
@@ -237,6 +244,7 @@ const LoginPage = () => {
                 >
                   <MenuItem value="member">Thành viên</MenuItem>
                   <MenuItem value="coach">Huấn luyện viên</MenuItem>
+                  <MenuItem value="admin">Quản trị viên</MenuItem>
                 </Select>
               </FormControl>
               

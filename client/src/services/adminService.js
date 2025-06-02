@@ -7,11 +7,36 @@ const getToken = () => {
 };
 
 export const getUsers = async () => {
-  const token = getToken();
-  const response = await axios.get(`${API_URL}/admin/users`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-  return response.data;
+  try {
+    const token = getToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    console.log('Fetching users with token:', token.substring(0, 10) + '...');
+    
+    const response = await axios.get(`${API_URL}/admin/users`, {
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log('Users API response:', response.data);
+    
+    if (!response.data) {
+      throw new Error('No data received from server');
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error('Error in getUsers:', error);
+    if (error.response) {
+      console.error('Error response:', error.response.data);
+      console.error('Error status:', error.response.status);
+    }
+    throw error;
+  }
 };
 
 export const getUserDetail = async (id) => {

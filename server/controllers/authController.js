@@ -130,7 +130,7 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     console.log('Login request body:', req.body); // Debug log
-    const { email, emailOrUsername, password } = req.body;
+    const { email, emailOrUsername, password, userType } = req.body;
     const loginField = emailOrUsername || email; // Hỗ trợ cả hai trường
     
     console.log('Login field:', loginField, 'Password provided:', !!password); // Debug log
