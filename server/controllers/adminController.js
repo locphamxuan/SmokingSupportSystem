@@ -47,40 +47,25 @@ exports.getUserDetail = async (req, res) => {
 exports.getUsers = async (req, res) => {
   try {
     const result = await sql.query`
-      SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address, CreatedAt,
-             cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, dailyCigarettes, dailyFeeling
+      SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address, CreatedAt
       FROM Users
       ORDER BY CreatedAt DESC
     `;
     
-    console.log('Raw database result:', result.recordset.length, 'users found'); // Debug log
+    const users = result.recordset.map(user => ({
+      id: user.Id,
+      username: user.Username,
+      email: user.Email,
+      phoneNumber: user.PhoneNumber || "",
+      address: user.Address || "",
+      role: user.Role || 'guest',
+      isMember: user.IsMember,
+      createdAt: user.CreatedAt
+    }));
     
-    const users = result.recordset.map(user => {
-      return {
-        id: user.Id,
-        username: user.Username,
-        email: user.Email,
-        phoneNumber: user.PhoneNumber || "",
-        address: user.Address || "",
-        role: user.Role || 'guest',
-        isMember: user.IsMember,
-        createdAt: user.CreatedAt,
-        smokingStatus: {
-          cigarettesPerDay: user.cigarettesPerDay || 0,
-          costPerPack: user.costPerPack || 0,
-          smokingFrequency: user.smokingFrequency || '',
-          healthStatus: user.healthStatus || '',
-          cigaretteType: user.cigaretteType || '',
-          dailyCigarettes: user.dailyCigarettes || 0,
-          dailyFeeling: user.dailyFeeling || ''
-        }
-      };
-    });
-    
-    console.log('Mapped users:', users.length); // Debug log
     res.json(users);
   } catch (error) {
-    console.error('Database error:', error); // Debug log
+    console.error('Database error:', error);
     res.status(500).json({ message: 'Get users failed', error: error.message });
   }
 };

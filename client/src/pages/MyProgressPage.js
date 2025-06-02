@@ -50,7 +50,7 @@ const MyProgressPage = () => {
 
       debounceTimeoutRef.current = setTimeout(async () => {
         try {
-          // Check if data has actually changed
+          // Kiểm tra xem dữ liệu có thay đổi không
           if (JSON.stringify(updatedData) === JSON.stringify(lastSavedDataRef.current)) {
             return;
           }
@@ -59,7 +59,7 @@ const MyProgressPage = () => {
           const token = localStorage.getItem('token');
           if (!token) return;
 
-          // Auto-save smoking status
+          // Tụ động lưu trạng thái hút thuốc
           await axios.put('http://localhost:5000/api/auth/smoking-status', {
             cigarettesPerDay: Number(updatedData.smokingStatus.cigarettesPerDay),
             costPerPack: Number(updatedData.smokingStatus.costPerPack),
@@ -76,7 +76,7 @@ const MyProgressPage = () => {
           setAutoSaveStatus('saved');
           console.log('💾 Auto-saved to server successfully');
           
-          // Clear saved status after 2 seconds
+          // XÓa và lưu status sau 2 giây
           setTimeout(() => setAutoSaveStatus(''), 2000);
         } catch (error) {
           console.error('❌ Auto-save failed:', error);

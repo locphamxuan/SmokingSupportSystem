@@ -161,6 +161,29 @@ CREATE TABLE SmokingDailyLog (
 );
 GO
 
+    CREATE TABLE ConsultationSchedules (
+      Id INT PRIMARY KEY IDENTITY(1,1),
+      MemberId INT NOT NULL,
+      CoachId INT NULL,
+      ScheduledTime DATETIME NOT NULL,
+      Status NVARCHAR(50) DEFAULT 'chua tu van', -- 'chua tu van', 'da tu van', 'can theo doi'
+      Note NVARCHAR(MAX) NULL,
+      CreatedAt DATETIME DEFAULT GETDATE(),
+      FOREIGN KEY (MemberId) REFERENCES Users(Id),
+      FOREIGN KEY (CoachId) REFERENCES Users(Id)
+    );
+
+	    CREATE TABLE Messages (
+      Id INT PRIMARY KEY IDENTITY(1,1),
+      SenderId INT NOT NULL,
+      ReceiverId INT NOT NULL,
+      Content NVARCHAR(MAX) NOT NULL,
+      SentAt DATETIME DEFAULT GETDATE(),
+      IsRead BIT DEFAULT 0,
+      FOREIGN KEY (SenderId) REFERENCES Users(Id),
+      FOREIGN KEY (ReceiverId) REFERENCES Users(Id)
+    );
+
 -- Dữ liệu mẫu cho Users
 INSERT INTO Users (Username, Password, Email, Role)
 VALUES (N'admin', N'admin123', N'admin@smoking.com', 'admin');
@@ -211,3 +234,15 @@ GO
 INSERT INTO Rankings (UserId, TotalDaysWithoutSmoking, TotalMoneySaved)
 VALUES (2, 5, 125000);
 GO
+
+
+-- Cập nhật role coach cho user bất kỳ (ví dụ user có Id = 3)
+UPDATE Users
+SET Role = 'coach'
+WHERE Id = 3;
+GO
+
+-- Kiểm tra các user có role coach
+SELECT Id, Username, Role FROM Users WHERE Role = 'coach';
+GO
+

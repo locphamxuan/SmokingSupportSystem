@@ -4,6 +4,9 @@ const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 require('dotenv').config();
 const { connectDB } = require('./db');
+const consultationRoutes = require('./routes/consultationRoutes');
+const messageRoutes = require('./routes/messageRoutes');
+const coachRoutes = require('./routes/coachRoutes');
 
 const app = express();
 
@@ -17,6 +20,10 @@ connectDB();
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/consultations', consultationRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/messages', require('./routes/messageRoutes'));
+app.use('/api/coaches', coachRoutes);
 
 app.get('/api/test', (req, res) => {
   res.json({ message: 'API is working!', timestamp: new Date().toISOString() });
