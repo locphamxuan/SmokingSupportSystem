@@ -20,10 +20,10 @@ connectDB();
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', require('./routes/adminRoutes'));
-app.use('/api/consultations', consultationRoutes);
+app.use('/api/lich-tu-van', consultationRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/messages', require('./routes/messageRoutes'));
-app.use('/api/coaches', coachRoutes);
+app.use('/api/hlv', coachRoutes);
 
 app.get('/api/test', (req, res) => {
   res.json({ message: 'API is working!', timestamp: new Date().toISOString() });
