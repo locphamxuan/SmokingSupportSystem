@@ -16,6 +16,8 @@ import BookConsultationPage from './pages/BookConsultationPage';
 import ChatCoachPage from './pages/ChatCoachPage';
 import CoachPortalPage from './pages/CoachPortalPage';
 import CoachChatMembersPage from './pages/CoachChatMembersPage';
+import CoachMemberListPage from './pages/CoachMemberListPage';
+import CoachMemberDetailPage from './pages/CoachMemberDetailPage';
 
 const theme = createTheme({
   palette: {
@@ -92,7 +94,10 @@ function App() {
           <Route path="/chat-coach/:coachId" element={<ChatCoachPage />} />
           <Route path="/coach-portal" element={<CoachPortalPage />} />
           <Route path="/coach-chat-members" element={<CoachChatMembersPage />} />
+          <Route path="/coach-members" element={<CoachMemberListPage />} />
+          <Route path="/coach-member/:memberId" element={<CoachMemberDetailPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
+          
         </Routes>
       </Router>
     </ThemeProvider>
