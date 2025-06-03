@@ -27,7 +27,9 @@ import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
 
 // Styled components
-const StyledCard = styled(Card)(({ theme, isPremium }) => ({
+const StyledCard = styled(Card, {
+  shouldForwardProp: (prop) => prop !== 'isPremium'
+})(({ theme, isPremium }) => ({
   height: '100%',
   borderRadius: 15,
   boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',

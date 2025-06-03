@@ -15,5 +15,7 @@ router.put('/upgrade-member', auth.verifyToken, authController.upgradeMember);
 router.post('/smoking-daily-log', auth.verifyToken, authController.addSmokingDailyLog);
 router.post('/quit-plan', auth.verifyToken, authController.createOrUpdateQuitPlan);
 router.get('/quit-plan', auth.verifyToken, authController.getQuitPlan);
+router.post('/progress', auth.verifyToken, authController.addProgress);
+router.get('/progress/latest', auth.verifyToken, authController.getLatestProgress);
 
 module.exports = router;

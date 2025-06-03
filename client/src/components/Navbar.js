@@ -32,6 +32,7 @@ const Navbar = () => {
     user = null;
   }
   const isAdmin = user && user.role === 'admin';
+  const isCoach = user && user.role === 'coach';
 
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -87,7 +88,7 @@ const Navbar = () => {
           <Button color="inherit" component={RouterLink} to="/leaderboard">
             Bảng xếp hạng
           </Button>
-          {isLoggedIn && !isAdmin && (
+          {isLoggedIn && !isAdmin && !isCoach && (
             <Button 
               color="inherit" 
               component={RouterLink} 
@@ -101,6 +102,15 @@ const Navbar = () => {
               }}
             >
               Gói Premium
+            </Button>
+          )}
+          {isLoggedIn && !isAdmin && !isCoach && (
+            <Button 
+              color="inherit" 
+              component={RouterLink} 
+              to="/consult-coach"
+            >
+              Tư vấn & Đặt lịch
             </Button>
           )}
         </Box>
@@ -149,22 +159,46 @@ const Navbar = () => {
                     Quản lý tài khoản
                   </MenuItem>
                 )}
-                <MenuItem 
-                  onClick={() => {
-                    handleClose();
-                    navigate('/my-progress');
-                  }}
-                >
-                  Theo dõi quá trình
-                </MenuItem>
-                <MenuItem 
-                  onClick={() => {
-                    handleClose();
-                    navigate('/achievements');
-                  }}
-                >
-                  Thành tích
-                </MenuItem>
+                {!isAdmin && !isCoach && (
+                  <MenuItem 
+                    onClick={() => {
+                      handleClose();
+                      navigate('/my-progress');
+                    }}
+                  >
+                    Theo dõi quá trình
+                  </MenuItem>
+                )}
+                {isCoach && (
+                  <MenuItem
+                    onClick={() => {
+                      handleClose();
+                      navigate('/coach-portal');
+                    }}
+                  >
+                    Lịch tư vấn
+                  </MenuItem>
+                )}
+                {isCoach && (
+                  <MenuItem
+                    onClick={() => {
+                      handleClose();
+                      navigate('/coach-chat-members');
+                    }}
+                  >
+                    Trò chuyện với thành viên
+                  </MenuItem>
+                )}
+                {isCoach && (
+                  <MenuItem
+                    onClick={() => {
+                      handleClose();
+                      navigate('/coach-members');
+                    }}
+                  >
+                    Quản lý kế hoạch & tiến trình
+                  </MenuItem>
+                )}
                 <MenuItem onClick={handleLogout}>Đăng xuất</MenuItem>
               </Menu>
             </>

@@ -5,44 +5,24 @@ exports.getUserDetail = async (req, res) => {
   try {
     const userId = req.params.id;
     
-    console.log('=== GET USER DETAIL START ===');
-    console.log('User ID:', userId);
+    console.log('Getting user detail for ID:', userId);
     
-    // Lấy thông tin user từ Users
-    const userResult = await sql.query`
-      SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address, CreatedAt
-      FROM Users WHERE Id = ${userId}
+    // Lấy thông tin user từ database
+    const result = await sql.query`
+      SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address, CreatedAt,
+             cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, 
+             dailyCigarettes, dailyFeeling
+      FROM Users
+      WHERE Id = ${userId}
     `;
     
-    if (userResult.recordset.length === 0) {
+    if (result.recordset.length === 0) {
       return res.status(404).json({ message: 'Không tìm thấy người dùng' });
     }
     
-    const user = userResult.recordset[0];
-    console.log('User found:', user);
-
-    // Lấy thông tin hút thuốc từ SmokingProfiles
-    const profileResult = await sql.query`
-      SELECT * FROM SmokingProfiles WHERE UserId = ${userId}
-    `;
-    const profile = profileResult.recordset[0];
-    console.log('=== SMOKING PROFILE DATA ===');
-    console.log('Profile found:', profile);
-    if (profile) {
-      console.log('QuitReason field:', profile.QuitReason);
-      console.log('Profile keys:', Object.keys(profile));
-    }
-
-    // Lấy nhật ký hôm nay từ SmokingDailyLog
-    const todayLogResult = await sql.query`
-      SELECT TOP 1 Cigarettes, Feeling 
-      FROM SmokingDailyLog 
-      WHERE UserId = ${userId} AND LogDate = CAST(GETDATE() AS DATE)
-      ORDER BY Id DESC
-    `;
-    const todayLog = todayLogResult.recordset[0];
-    console.log('Today log:', todayLog);
-
+    const user = result.recordset[0];
+    
+    // Format dữ liệu giống như ProfilePage
     const userDetail = {
       id: user.Id,
       username: user.Username,
@@ -53,26 +33,33 @@ exports.getUserDetail = async (req, res) => {
       isMember: user.IsMember,
       createdAt: user.CreatedAt,
       smokingStatus: {
-        cigarettesPerDay: profile?.cigarettesPerDay || 0,
-        costPerPack: profile?.costPerPack || 0,
-        smokingFrequency: profile?.smokingFrequency || '',
-        healthStatus: profile?.healthStatus || '',
-        cigaretteType: profile?.cigaretteType || '',
-        quitReason: profile?.QuitReason || profile?.quitReason || '',
+        cigarettesPerDay: user.cigarettesPerDay || 0,
+        costPerPack: user.costPerPack || 0,
+        smokingFrequency: user.smokingFrequency || '',
+        healthStatus: user.healthStatus || '',
+        cigaretteType: user.cigaretteType || '',
+        quitReason: '',
         dailyLog: {
-          cigarettes: todayLog?.Cigarettes || 0,
-          feeling: todayLog?.Feeling || ''
+          cigarettes: user.dailyCigarettes || 0,
+          feeling: user.dailyFeeling || ''
         }
-      }
+      },
+      quitPlan: {
+        startDate: '',
+        targetDate: '',
+        planType: '',
+        milestones: [],
+        currentProgress: 0,
+        initialCigarettes: 0,
+        dailyReduction: 1
+      },
+      achievements: []
     };
     
-    console.log('=== FINAL USER DETAIL ===');
-    console.log('smokingStatus.quitReason:', userDetail.smokingStatus.quitReason);
-    console.log('=== GET USER DETAIL END ===');
-    
+    console.log('User detail found:', userDetail);
     res.json(userDetail);
   } catch (error) {
-    console.error('Error in getUserDetail:', error);
+    console.error('Get user detail error:', error);
     res.status(500).json({ message: 'Lỗi khi lấy thông tin chi tiết người dùng', error: error.message });
   }
 };
@@ -81,9 +68,10 @@ exports.getUserDetail = async (req, res) => {
 exports.getUsers = async (req, res) => {
   try {
     const result = await sql.query`
-      SELECT u.Id, u.Username, u.Email, u.Role, u.IsMember, u.PhoneNumber, u.Address, u.CreatedAt
-      FROM Users u
-      ORDER BY u.CreatedAt DESC
+      SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address, CreatedAt,
+             cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, dailyCigarettes, dailyFeeling
+      FROM Users
+      ORDER BY CreatedAt DESC
     `;
     
     console.log('Raw database result:', result.recordset.length, 'users found'); // Debug log
@@ -97,14 +85,22 @@ exports.getUsers = async (req, res) => {
         address: user.Address || "",
         role: user.Role || 'guest',
         isMember: user.IsMember,
-        createdAt: user.CreatedAt
+        createdAt: user.CreatedAt,
+        smokingStatus: {
+          cigarettesPerDay: user.cigarettesPerDay || 0,
+          costPerPack: user.costPerPack || 0,
+          smokingFrequency: user.smokingFrequency || '',
+          healthStatus: user.healthStatus || '',
+          cigaretteType: user.cigaretteType || '',
+          dailyCigarettes: user.dailyCigarettes || 0,
+          dailyFeeling: user.dailyFeeling || ''
+        }
       };
     });
     
-    console.log('Mapped users:', users.length); // Debug log
     res.json(users);
   } catch (error) {
-    console.error('Database error:', error); // Debug log
+    console.error('Database error:', error);
     res.status(500).json({ message: 'Get users failed', error: error.message });
   }
 };

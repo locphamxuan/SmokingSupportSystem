@@ -23,10 +23,6 @@ Nhấn “Đăng ký”
 Thanh toán (nếu là gói trả phí) → Trở thành Member
 
 🟢 2. Member (Người dùng đã đăng ký)
-🔹 Onboarding:
-Đăng nhập
-
-Thiết lập hồ sơ (cân nặng, giới tính, tình trạng hút thuốc...)
 
 🔹 Chức năng chính:
 Khai báo tình trạng hút thuốc

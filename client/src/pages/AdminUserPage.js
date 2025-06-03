@@ -151,15 +151,49 @@ const AdminUserPage = () => {
 
   const fetchUsers = async () => {
     try {
+      console.log('Fetching users...');
       const data = await getUsers();
+      console.log('Users data received:', data);
+      
+      if (!data || !Array.isArray(data)) {
+        console.error('Invalid data format received:', data);
+        setSnackbar({
+          open: true,
+          message: "Dữ liệu người dùng không hợp lệ",
+          severity: "error",
+        });
+        return;
+      }
+
       // Sắp xếp danh sách theo ID tăng dần
       const sortedData = data.sort((a, b) => a.id - b.id);
+      console.log('Sorted users data:', sortedData);
       setUsers(sortedData);
     } catch (error) {
       console.error("Lỗi khi tải danh sách người dùng:", error);
+      console.error("Error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      let errorMessage = "Lỗi khi tải danh sách người dùng";
+      
+      if (error.response) {
+        if (error.response.status === 401) {
+          errorMessage = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
+        } else if (error.response.status === 403) {
+          errorMessage = "Bạn không có quyền truy cập trang này.";
+        } else if (error.response.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error.request) {
+        errorMessage = "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.";
+      }
+      
       setSnackbar({
         open: true,
-        message: "Lỗi khi tải danh sách người dùng",
+        message: errorMessage,
         severity: "error",
       });
     }
@@ -343,6 +377,8 @@ const AdminUserPage = () => {
       const userDetail = await getUserDetail(userId);
       
       console.log('User detail received:', userDetail);
+      console.log('SmokingStatus:', userDetail.smokingStatus);
+      console.log('QuitReason:', userDetail.smokingStatus?.quitReason);
       setSelectedUserDetail(userDetail);
       setDetailOpen(true);
     } catch (error) {
@@ -808,6 +844,67 @@ const AdminUserPage = () => {
                       </Typography>
                     </Grid>
                   </Grid>
+                </Paper>
+              </Grid>
+
+              {/* Kế hoạch cai thuốc */}
+              <Grid item xs={12}>
+                <Typography variant="h6" sx={{ mb: 2, color: '#1976d2', fontWeight: 600 }}>
+                  Kế hoạch cai thuốc
+                </Typography>
+                <Paper sx={{ p: 2, bgcolor: selectedUserDetail.quitPlan ? '#e3f2fd' : '#ffebee' }}>
+                  {selectedUserDetail.quitPlan ? (
+                    <Grid container spacing={2}>
+                      <Grid item xs={6}>
+                        <Typography variant="body2" color="text.secondary">Ngày bắt đầu:</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                          {selectedUserDetail.quitPlan.startDate ? new Date(selectedUserDetail.quitPlan.startDate).toLocaleDateString('vi-VN') : "Chưa có"}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="body2" color="text.secondary">Ngày mục tiêu:</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                          {selectedUserDetail.quitPlan.targetDate ? new Date(selectedUserDetail.quitPlan.targetDate).toLocaleDateString('vi-VN') : "Chưa có"}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="body2" color="text.secondary">Loại kế hoạch:</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                          {selectedUserDetail.quitPlan.planType || "Chưa có"}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="body2" color="text.secondary">Tiến độ hiện tại:</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                          {selectedUserDetail.quitPlan.currentProgress || 0}%
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="body2" color="text.secondary">Số điếu ban đầu:</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                          {selectedUserDetail.quitPlan.initialCigarettes || 0} điếu
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="body2" color="text.secondary">Giảm mỗi ngày:</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                          {selectedUserDetail.quitPlan.dailyReduction || 0} điếu
+                        </Typography>
+                      </Grid>
+                      {selectedUserDetail.quitPlan.planDetail && (
+                        <Grid item xs={12}>
+                          <Typography variant="body2" color="text.secondary">Chi tiết kế hoạch:</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                            {selectedUserDetail.quitPlan.planDetail}
+                          </Typography>
+                        </Grid>
+                      )}
+                    </Grid>
+                  ) : (
+                    <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                      Người dùng chưa tạo kế hoạch cai thuốc
+                    </Typography>
+                  )}
                 </Paper>
               </Grid>
 

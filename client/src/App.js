@@ -11,6 +11,13 @@ import ProfilePage from './pages/ProfilePage';
 import SubscriptionPlans from './pages/SubscriptionPlans';
 import MyProgressPage from './pages/MyProgressPage';
 import AchievementsPage from './pages/AchievementsPage';
+import ConsultCoachPage from './pages/ConsultCoachPage';
+import BookConsultationPage from './pages/BookConsultationPage';
+import ChatCoachPage from './pages/ChatCoachPage';
+import CoachPortalPage from './pages/CoachPortalPage';
+import CoachChatMembersPage from './pages/CoachChatMembersPage';
+import CoachMemberListPage from './pages/CoachMemberListPage';
+import CoachMemberDetailPage from './pages/CoachMemberDetailPage';
 
 const theme = createTheme({
   palette: {
@@ -52,8 +59,8 @@ function App() {
       <Router future={{ v7_relativeSplatPath: true }}>
         <Navbar />
         <Routes>
-        <Route path="/my-progress" element={<MyProgressPage />} />
-        <Route path="/achievements" element={<AchievementsPage />} />
+          <Route path="/my-progress" element={<MyProgressPage />} />
+          <Route path="/achievements" element={<AchievementsPage />} />
           <Route path="/" element={<HomePage />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
@@ -82,7 +89,15 @@ function App() {
               </ProtectedRoute>
             } 
           />
+          <Route path="/consult-coach" element={<ConsultCoachPage />} />
+          <Route path="/book-consultation" element={<BookConsultationPage />} />
+          <Route path="/chat-coach/:coachId" element={<ChatCoachPage />} />
+          <Route path="/coach-portal" element={<CoachPortalPage />} />
+          <Route path="/coach-chat-members" element={<CoachChatMembersPage />} />
+          <Route path="/coach-members" element={<CoachMemberListPage />} />
+          <Route path="/coach-member/:memberId" element={<CoachMemberDetailPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
+          
         </Routes>
       </Router>
     </ThemeProvider>
