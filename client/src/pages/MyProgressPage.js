@@ -59,16 +59,21 @@ const MyProgressPage = () => {
           const token = localStorage.getItem('token');
           if (!token) return;
 
-          // Tụ động lưu trạng thái hút thuốc
-          await axios.put('http://localhost:5000/api/auth/smoking-status', {
+          const requestData = {
             cigarettesPerDay: Number(updatedData.smokingStatus.cigarettesPerDay),
             costPerPack: Number(updatedData.smokingStatus.costPerPack),
             smokingFrequency: String(updatedData.smokingStatus.smokingFrequency),
             healthStatus: String(updatedData.smokingStatus.healthStatus),
             cigaretteType: String(updatedData.smokingStatus.cigaretteType || ''),
+            quitReason: String(updatedData.smokingStatus.quitReason || ''),
             dailyCigarettes: Number(updatedData.smokingStatus.dailyLog?.cigarettes || 0),
             dailyFeeling: String(updatedData.smokingStatus.dailyLog?.feeling || '')
-          }, {
+          };
+
+          console.log('💾 Auto-saving data:', requestData);
+
+          // Tự động lưu trạng thái hút thuốc
+          await axios.put('http://localhost:5000/api/auth/smoking-status', requestData, {
             headers: { Authorization: `Bearer ${token}` }
           });
 
@@ -80,7 +85,15 @@ const MyProgressPage = () => {
           setTimeout(() => setAutoSaveStatus(''), 2000);
         } catch (error) {
           console.error('❌ Auto-save failed:', error);
+          console.error('❌ Error response:', error.response?.data);
+          console.error('❌ Error status:', error.response?.status);
+          console.error('❌ Error message:', error.message);
           setAutoSaveStatus('error');
+          
+          // Hiển thị lỗi chi tiết cho user
+          const errorMessage = error.response?.data?.message || error.message || 'Lỗi không xác định';
+          setError(`Lỗi khi lưu dữ liệu: ${errorMessage}`);
+          
           setTimeout(() => setAutoSaveStatus(''), 3000);
         }
       }, 2000); // 2 second delay
@@ -268,14 +281,64 @@ const MyProgressPage = () => {
         navigate('/login');
         return;
       }
-      // Lấy planId từ kế hoạch cai thuốc hiện tại (nếu có)
-      const planId = userData.quitPlan?.id || userData.quitPlan?.planId || 1; // hoặc lấy đúng id từ quitPlan
+
+      console.log('🔄 Saving progress...');
+      console.log('userData.quitPlan:', userData.quitPlan);
+
+      // Kiểm tra xem user có kế hoạch cai thuốc không
+      let planId = null;
+      
+      if (userData.quitPlan && userData.quitPlan.id) {
+        planId = userData.quitPlan.id;
+      } else {
+        // Nếu chưa có kế hoạch, tạo một kế hoạch mặc định
+        console.log('⚠️ No quit plan found, creating default plan...');
+        
+        const defaultPlan = {
+          startDate: new Date().toISOString().slice(0, 10),
+          targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), // 30 days later
+          planType: 'custom',
+          initialCigarettes: userData.smokingStatus.cigarettesPerDay || 0,
+          dailyReduction: 1,
+          milestones: [],
+          currentProgress: 0,
+          planDetail: 'Kế hoạch tự động tạo để lưu nhật ký'
+        };
+
+        try {
+          const planResponse = await axios.post(
+            'http://localhost:5000/api/auth/quit-plan',
+            defaultPlan,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          console.log('✅ Default plan created successfully:', planResponse.data);
+          
+          // Use the actual planId returned from the server
+          planId = planResponse.data.planId;
+          
+          // Refresh user data to get the updated quit plan
+          await fetchAllUserData();
+        } catch (planError) {
+          console.error('❌ Error creating default plan:', planError);
+          planId = 1; // Fallback planId only if creation fails
+        }
+      }
+
       const date = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
       const cigarettes = Number(userData.smokingStatus.dailyLog.cigarettes || 0);
-      const moneySpent = ((userData.smokingStatus.dailyLog.cigarettes / 20) * userData.smokingStatus.costPerPack) || 0;
+      const moneySpent = cigarettes > 0 ? ((cigarettes / 20) * (userData.smokingStatus.costPerPack || 0)) : 0;
       const note = userData.smokingStatus.dailyLog.feeling || '';
 
-      await axios.post('http://localhost:5000/api/auth/progress', {
+      console.log('📊 Progress data to save:', {
+        planId,
+        date,
+        cigarettes,
+        moneySpent,
+        note
+      });
+
+      const response = await axios.post('http://localhost:5000/api/auth/progress', {
         planId,
         date,
         cigarettes,
@@ -285,11 +348,25 @@ const MyProgressPage = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
 
+      console.log('✅ Progress saved successfully:', response.data);
       setSuccess('Lưu nhật ký tiến độ thành công!');
       setError('');
+      
       // Có thể gọi lại fetchAllUserData() nếu muốn cập nhật giao diện
+      // await fetchAllUserData();
     } catch (error) {
-      setError('Lỗi khi lưu nhật ký tiến độ!');
+      console.error('❌ Error saving progress:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      let errorMessage = 'Lỗi khi lưu nhật ký tiến độ!';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -435,6 +512,22 @@ const MyProgressPage = () => {
               </Typography>
             </Box>
           </Grid>
+          <Grid item xs={12}>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" color="text.secondary">Lý do muốn cai thuốc:</Typography>
+              {userData.smokingStatus.quitReason ? (
+                <Typography variant="body1" color="primary">
+                  {userData.smokingStatus.quitReason}
+                </Typography>
+              ) : (
+                <Box sx={{ p: 2, bgcolor: '#fff3e0', borderRadius: 1, border: '1px solid #ff9800' }}>
+                  <Typography variant="body2" color="warning.dark" sx={{ fontStyle: 'italic' }}>
+                    ⚠️ Chưa có lý do cai thuốc - Vui lòng nhập ở form bên dưới để admin có thể hỗ trợ bạn tốt hơn
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          </Grid>
         </Grid>
         
         {/* Thống kê chi phí */}
@@ -568,6 +661,9 @@ const MyProgressPage = () => {
               multiline
               rows={3}
               disabled={loading}
+              placeholder="Ví dụ: Để có sức khỏe tốt hơn, tiết kiệm tiền, vì gia đình..."
+              helperText={!userData.smokingStatus.quitReason ? "⚠️ Thông tin này sẽ giúp admin hiểu rõ hơn về mục tiêu của bạn" : "✅ Thông tin này sẽ hiển thị cho admin"}
+              error={!userData.smokingStatus.quitReason}
             />
           </Grid>
         </Grid>

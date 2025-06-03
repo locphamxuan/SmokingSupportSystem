@@ -70,6 +70,7 @@ CREATE TABLE SmokingProfiles (
     smokingFrequency NVARCHAR(50),
     healthStatus NVARCHAR(255),
     QuitReason NVARCHAR(255),
+    cigaretteType NVARCHAR(100),
     FOREIGN KEY (UserId) REFERENCES Users(Id)
 );
 GO
@@ -246,3 +247,41 @@ GO
 SELECT Id, Username, Role FROM Users WHERE Role = 'coach';
 GO
 
+-- Thêm column cigaretteType vào bảng SmokingProfiles nếu chưa có
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('SmokingProfiles') AND name = 'cigaretteType')
+BEGIN
+    ALTER TABLE SmokingProfiles ADD cigaretteType NVARCHAR(100);
+END
+GO
+
+-- Thêm thêm các column cần thiết cho QuitPlans
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('QuitPlans') AND name = 'InitialCigarettes')
+BEGIN
+    ALTER TABLE QuitPlans ADD InitialCigarettes INT DEFAULT 0;
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('QuitPlans') AND name = 'DailyReduction')
+BEGIN
+    ALTER TABLE QuitPlans ADD DailyReduction INT DEFAULT 1;
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('QuitPlans') AND name = 'Milestones')
+BEGIN
+    ALTER TABLE QuitPlans ADD Milestones NVARCHAR(MAX);
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('QuitPlans') AND name = 'CurrentProgress')
+BEGIN
+    ALTER TABLE QuitPlans ADD CurrentProgress INT DEFAULT 0;
+END
+GO
+
+-- Thêm column CoachNote vào bảng Progress
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Progress') AND name = 'CoachNote')
+BEGIN
+    ALTER TABLE Progress ADD CoachNote NVARCHAR(255);
+END
+GO

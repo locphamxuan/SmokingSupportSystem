@@ -222,6 +222,13 @@ exports.getProfile = async (req, res) => {
     `;
     const profile = profileResult.recordset[0];
 
+    // Lấy nhật ký hôm nay từ SmokingDailyLog
+    const today = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+    const dailyLogResult = await sql.query`
+      SELECT * FROM SmokingDailyLog WHERE UserId = ${userId} AND LogDate = ${today}
+    `;
+    const dailyLog = dailyLogResult.recordset[0];
+
     res.json({
       id: user.Id,
       username: user.Username,
@@ -236,10 +243,26 @@ exports.getProfile = async (req, res) => {
         smokingFrequency: profile.smokingFrequency || '',
         healthStatus: profile.healthStatus || '',
         cigaretteType: profile.cigaretteType || '',
-        quitReason: profile.QuitReason || ''
-      } : {}
+        quitReason: profile.QuitReason || '',
+        dailyLog: {
+          cigarettes: dailyLog ? dailyLog.Cigarettes : 0,
+          feeling: dailyLog ? dailyLog.Feeling : ''
+        }
+      } : {
+        cigarettesPerDay: 0,
+        costPerPack: 0,
+        smokingFrequency: '',
+        healthStatus: '',
+        cigaretteType: '',
+        quitReason: '',
+        dailyLog: {
+          cigarettes: 0,
+          feeling: ''
+        }
+      }
     });
   } catch (error) {
+    console.error('Lỗi getProfile:', error);
     res.status(500).json({ message: 'Lỗi khi lấy thông tin người dùng', error: error.message });
   }
 };
@@ -325,36 +348,114 @@ exports.updateSmokingStatus = async (req, res) => {
       smokingFrequency,
       healthStatus,
       cigaretteType,
-      quitReason
+      quitReason,
+      dailyCigarettes,
+      dailyFeeling
     } = req.body;
+
+    console.log('🔄 updateSmokingStatus called for user:', userId);
+    console.log('📥 Request data:', req.body);
+    console.log('📝 QuitReason received:', quitReason);
 
     // Kiểm tra đã có profile chưa
     const check = await sql.query`
       SELECT * FROM SmokingProfiles WHERE UserId = ${userId}
     `;
+    
+    console.log('🔍 Existing profile check:', check.recordset.length > 0 ? 'Found' : 'Not found');
+    
     if (check.recordset.length > 0) {
-      // Update
-      await sql.query`
-        UPDATE SmokingProfiles
-        SET
-          cigarettesPerDay = ${cigarettesPerDay},
-          costPerPack = ${costPerPack},
-          smokingFrequency = ${smokingFrequency},
-          healthStatus = ${healthStatus},
-          QuitReason = ${quitReason || ''},
-          cigaretteType = ${cigaretteType || ''}
-        WHERE UserId = ${userId}
-      `;
+      console.log('📝 Updating existing profile...');
+      // Update - Try with QuitReason first, fallback without it if column doesn't exist
+      try {
+        await sql.query`
+          UPDATE SmokingProfiles
+          SET
+            cigarettesPerDay = ${cigarettesPerDay},
+            costPerPack = ${costPerPack},
+            smokingFrequency = ${smokingFrequency},
+            healthStatus = ${healthStatus},
+            QuitReason = ${quitReason || ''},
+            cigaretteType = ${cigaretteType || ''}
+          WHERE UserId = ${userId}
+        `;
+        console.log('✅ Profile updated successfully with QuitReason');
+      } catch (columnError) {
+        console.warn('⚠️ QuitReason column might not exist, trying without it:', columnError.message);
+        // Fallback: Update without QuitReason column
+        await sql.query`
+          UPDATE SmokingProfiles
+          SET
+            cigarettesPerDay = ${cigarettesPerDay},
+            costPerPack = ${costPerPack},
+            smokingFrequency = ${smokingFrequency},
+            healthStatus = ${healthStatus},
+            cigaretteType = ${cigaretteType || ''}
+          WHERE UserId = ${userId}
+        `;
+        console.log('✅ Profile updated successfully without QuitReason');
+      }
     } else {
-      // Insert
-      await sql.query`
-        INSERT INTO SmokingProfiles (UserId, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, QuitReason, cigaretteType)
-        VALUES (${userId}, ${cigarettesPerDay}, ${costPerPack}, ${smokingFrequency}, ${healthStatus}, ${quitReason || ''}, ${cigaretteType || ''})
-      `;
+      console.log('📝 Creating new profile...');
+      // Insert - Try with QuitReason first, fallback without it if column doesn't exist
+      try {
+        await sql.query`
+          INSERT INTO SmokingProfiles (UserId, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, QuitReason, cigaretteType)
+          VALUES (${userId}, ${cigarettesPerDay}, ${costPerPack}, ${smokingFrequency}, ${healthStatus}, ${quitReason || ''}, ${cigaretteType || ''})
+        `;
+        console.log('✅ New profile created successfully with QuitReason');
+      } catch (columnError) {
+        console.warn('⚠️ QuitReason column might not exist, trying without it:', columnError.message);
+        // Fallback: Insert without QuitReason column
+        await sql.query`
+          INSERT INTO SmokingProfiles (UserId, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType)
+          VALUES (${userId}, ${cigarettesPerDay}, ${costPerPack}, ${smokingFrequency}, ${healthStatus}, ${cigaretteType || ''})
+        `;
+        console.log('✅ New profile created successfully without QuitReason');
+      }
     }
 
+    // Lưu nhật ký hàng ngày nếu có dữ liệu
+    if (dailyCigarettes !== undefined || dailyFeeling) {
+      const today = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+      console.log('📅 Saving daily log for date:', today);
+      
+      // Kiểm tra đã có nhật ký hôm nay chưa
+      const dailyLogCheck = await sql.query`
+        SELECT * FROM SmokingDailyLog WHERE UserId = ${userId} AND LogDate = ${today}
+      `;
+      
+      if (dailyLogCheck.recordset.length > 0) {
+        // Update nhật ký hôm nay
+        await sql.query`
+          UPDATE SmokingDailyLog
+          SET
+            Cigarettes = ${dailyCigarettes || 0},
+            Feeling = ${dailyFeeling || ''}
+          WHERE UserId = ${userId} AND LogDate = ${today}
+        `;
+        console.log('✅ Daily log updated');
+      } else {
+        // Insert nhật ký mới
+        await sql.query`
+          INSERT INTO SmokingDailyLog (UserId, LogDate, Cigarettes, Feeling)
+          VALUES (${userId}, ${today}, ${dailyCigarettes || 0}, ${dailyFeeling || ''})
+        `;
+        console.log('✅ New daily log created');
+      }
+    }
+
+    console.log('✅ updateSmokingStatus completed successfully');
     res.json({ message: 'Cập nhật tình trạng hút thuốc thành công' });
   } catch (error) {
+    console.error('❌ Lỗi cập nhật smoking status:', error);
+    console.error('❌ Error details:', {
+      message: error.message,
+      code: error.code,
+      severity: error.severity,
+      state: error.state,
+      lineNumber: error.lineNumber
+    });
     res.status(500).json({ message: 'Lỗi khi cập nhật tình trạng hút thuốc', error: error.message });
   }
 };
@@ -427,6 +528,9 @@ exports.createOrUpdateQuitPlan = async (req, res) => {
       planDetail
     } = req.body;
 
+    console.log('📝 Creating/updating quit plan for user:', userId);
+    console.log('Plan data:', req.body);
+
     // Validate dữ liệu đầu vào
     if (!startDate || !targetDate || !planType) {
       return res.status(400).json({ message: 'Thiếu thông tin bắt buộc!' });
@@ -437,8 +541,11 @@ exports.createOrUpdateQuitPlan = async (req, res) => {
       SELECT * FROM QuitPlans WHERE UserId = ${userId}
     `;
 
+    let planId;
+
     if (check.recordset.length > 0) {
       // Update
+      planId = check.recordset[0].Id;
       await sql.query`
         UPDATE QuitPlans
         SET
@@ -452,15 +559,23 @@ exports.createOrUpdateQuitPlan = async (req, res) => {
           CurrentProgress = ${currentProgress || 0}
         WHERE UserId = ${userId}
       `;
+      console.log('✅ Updated existing quit plan with ID:', planId);
     } else {
       // Insert
-      await sql.query`
+      const insertResult = await sql.query`
         INSERT INTO QuitPlans (UserId, StartDate, TargetDate, PlanType, PlanDetail, InitialCigarettes, DailyReduction, Milestones, CurrentProgress)
-        VALUES (${userId}, ${startDate}, ${targetDate}, ${planType}, ${planDetail || ''}, ${initialCigarettes || 0}, ${dailyReduction || 1}, ${JSON.stringify(milestones || [])}, ${currentProgress || 0})
+        VALUES (${userId}, ${startDate}, ${targetDate}, ${planType}, ${planDetail || ''}, ${initialCigarettes || 0}, ${dailyReduction || 1}, ${JSON.stringify(milestones || [])}, ${currentProgress || 0});
+        
+        SELECT SCOPE_IDENTITY() AS PlanId;
       `;
+      planId = insertResult.recordset[0].PlanId;
+      console.log('✅ Created new quit plan with ID:', planId);
     }
 
-    res.json({ message: 'Cập nhật kế hoạch cai thuốc thành công!' });
+    res.json({ 
+      message: 'Cập nhật kế hoạch cai thuốc thành công!', 
+      planId: planId 
+    });
   } catch (error) {
     console.error('Lỗi tạo/cập nhật kế hoạch cai thuốc:', error);
     res.status(500).json({ message: 'Lỗi khi tạo/cập nhật kế hoạch cai thuốc', error: error.message });
@@ -477,18 +592,23 @@ exports.getQuitPlan = async (req, res) => {
       return res.json({ quitPlan: null });
     }
     const plan = result.recordset[0];
-    res.json({
-      quitPlan: {
-        startDate: plan.StartDate,
-        targetDate: plan.TargetDate,
-        planType: plan.PlanType,
-        initialCigarettes: plan.InitialCigarettes,
-        dailyReduction: plan.DailyReduction,
-        milestones: plan.Milestones ? JSON.parse(plan.Milestones) : [],
-        currentProgress: plan.CurrentProgress
-      }
-    });
+    
+    const quitPlanData = {
+      id: plan.Id,
+      startDate: plan.StartDate,
+      targetDate: plan.TargetDate,
+      planType: plan.PlanType,
+      planDetail: plan.PlanDetail,
+      initialCigarettes: plan.InitialCigarettes,
+      dailyReduction: plan.DailyReduction,
+      milestones: plan.Milestones ? JSON.parse(plan.Milestones) : [],
+      currentProgress: plan.CurrentProgress
+    };
+    
+    console.log('📋 Quit plan retrieved:', quitPlanData);
+    res.json({ quitPlan: quitPlanData });
   } catch (error) {
+    console.error('Lỗi getQuitPlan:', error);
     res.status(500).json({ message: 'Lỗi khi lấy kế hoạch cai thuốc', error: error.message });
   }
 };
@@ -498,12 +618,56 @@ exports.addProgress = async (req, res) => {
   try {
     const userId = req.user.userId;
     const { planId, date, cigarettes, moneySpent, note } = req.body;
-    await sql.query`
-      INSERT INTO Progress (UserId, PlanId, Date, Cigarettes, MoneySpent, Note)
-      VALUES (${userId}, ${planId}, ${date}, ${cigarettes}, ${moneySpent}, ${note || ''})
+    
+    console.log('📊 Adding progress for user:', userId);
+    console.log('Progress data:', { planId, date, cigarettes, moneySpent, note });
+
+    // Kiểm tra planId có tồn tại không
+    if (!planId) {
+      console.log('❌ No planId provided');
+      return res.status(400).json({ message: 'Thiếu planId để lưu tiến độ' });
+    }
+
+    // Kiểm tra plan có tồn tại không
+    const planCheck = await sql.query`
+      SELECT Id FROM QuitPlans WHERE Id = ${planId} AND UserId = ${userId}
     `;
+    
+    if (planCheck.recordset.length === 0) {
+      console.log('❌ Plan not found for planId:', planId, 'and userId:', userId);
+      return res.status(404).json({ message: 'Không tìm thấy kế hoạch cai thuốc' });
+    }
+
+    // Kiểm tra xem đã có progress cho ngày này chưa
+    const existingProgress = await sql.query`
+      SELECT Id FROM Progress WHERE UserId = ${userId} AND PlanId = ${planId} AND Date = ${date}
+    `;
+
+    if (existingProgress.recordset.length > 0) {
+      // Update existing progress
+      await sql.query`
+        UPDATE Progress 
+        SET Cigarettes = ${cigarettes}, MoneySpent = ${moneySpent}, Note = ${note || ''}
+        WHERE UserId = ${userId} AND PlanId = ${planId} AND Date = ${date}
+      `;
+      console.log('✅ Updated existing progress for date:', date);
+    } else {
+      // Insert new progress
+      await sql.query`
+        INSERT INTO Progress (UserId, PlanId, Date, Cigarettes, MoneySpent, Note)
+        VALUES (${userId}, ${planId}, ${date}, ${cigarettes}, ${moneySpent}, ${note || ''})
+      `;
+      console.log('✅ Created new progress for date:', date);
+    }
+
     res.json({ message: 'Lưu tiến độ thành công' });
   } catch (error) {
+    console.error('❌ Error in addProgress:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code
+    });
     res.status(500).json({ message: 'Lỗi khi lưu tiến độ', error: error.message });
   }
 };

@@ -20,6 +20,19 @@ exports.getUserDetail = async (req, res) => {
     `;
     const profile = profileResult.recordset[0];
 
+    // Lấy nhật ký hôm nay từ SmokingDailyLog
+    const today = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+    const dailyLogResult = await sql.query`
+      SELECT * FROM SmokingDailyLog WHERE UserId = ${userId} AND LogDate = ${today}
+    `;
+    const dailyLog = dailyLogResult.recordset[0];
+
+    // Lấy kế hoạch cai thuốc
+    const quitPlanResult = await sql.query`
+      SELECT * FROM QuitPlans WHERE UserId = ${userId}
+    `;
+    const quitPlan = quitPlanResult.recordset[0];
+
     const userDetail = {
       id: user.Id,
       username: user.Username,
@@ -34,11 +47,40 @@ exports.getUserDetail = async (req, res) => {
         smokingFrequency: profile.smokingFrequency || '',
         healthStatus: profile.healthStatus || '',
         cigaretteType: profile.cigaretteType || '',
-        quitReason: profile.QuitReason || ''
-      } : {}
+        quitReason: profile.QuitReason || '',
+        dailyLog: {
+          cigarettes: dailyLog ? dailyLog.Cigarettes : 0,
+          feeling: dailyLog ? dailyLog.Feeling : ''
+        }
+      } : {
+        cigarettesPerDay: 0,
+        costPerPack: 0,
+        smokingFrequency: '',
+        healthStatus: '',
+        cigaretteType: '',
+        quitReason: '',
+        dailyLog: {
+          cigarettes: 0,
+          feeling: ''
+        }
+      },
+      quitPlan: quitPlan ? {
+        id: quitPlan.Id,
+        startDate: quitPlan.StartDate,
+        targetDate: quitPlan.TargetDate,
+        planType: quitPlan.PlanType,
+        planDetail: quitPlan.PlanDetail,
+        initialCigarettes: quitPlan.InitialCigarettes,
+        dailyReduction: quitPlan.DailyReduction,
+        milestones: quitPlan.Milestones ? JSON.parse(quitPlan.Milestones) : [],
+        currentProgress: quitPlan.CurrentProgress
+      } : null
     };
+    
+    console.log('User detail retrieved for admin:', userDetail);
     res.json(userDetail);
   } catch (error) {
+    console.error('Lỗi getUserDetail:', error);
     res.status(500).json({ message: 'Lỗi khi lấy thông tin chi tiết người dùng', error: error.message });
   }
 };
