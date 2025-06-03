@@ -213,35 +213,46 @@ exports.getProfile = async (req, res) => {
     console.log('Requested User ID:', userId);
     console.log('User ID type:', typeof userId);
     
-    const result = await sql.query`
-      SELECT Id, Username, Email, PhoneNumber, Address, Role, IsMember, CreatedAt,
-             cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, 
-             dailyCigarettes, dailyFeeling
+    // Lấy thông tin user cơ bản
+    const userResult = await sql.query`
+      SELECT Id, Username, Email, PhoneNumber, Address, Role, IsMember, CreatedAt
       FROM Users WHERE Id = ${userId}
     `;
     
-    console.log('Query result count:', result.recordset.length);
+    if (userResult.recordset.length === 0) {
+      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+    }
     
-    const user = result.recordset[0];
-
+    const user = userResult.recordset[0];
+    
+    // Lấy smoking profile từ SmokingProfiles table
+    const profileResult = await sql.query`
+      SELECT cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, QuitReason
+      FROM SmokingProfiles 
+      WHERE UserId = ${userId}
+    `;
+    
+    // Lấy daily log hôm nay từ SmokingDailyLog table
+    const today = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
+    const dailyLogResult = await sql.query`
+      SELECT Cigarettes, Feeling
+      FROM SmokingDailyLog 
+      WHERE UserId = ${userId} AND LogDate = ${today}
+    `;
+    
+    const profile = profileResult.recordset[0] || {};
+    const dailyLog = dailyLogResult.recordset[0] || {};
+    
     console.log('=== GET PROFILE DEBUG ===');
-    console.log('Found user:', user ? 'YES' : 'NO');
+    console.log('Found user:', !!user);
+    console.log('Found profile:', !!profile.cigarettesPerDay);
+    console.log('Found daily log:', !!dailyLog.Cigarettes);
+    
     if (user) {
       console.log('User ID from DB:', user.Id);
       console.log('Username:', user.Username);
-      console.log('Raw smoking data:', {
-        cigarettesPerDay: user.cigarettesPerDay,
-        costPerPack: user.costPerPack,
-        smokingFrequency: user.smokingFrequency,
-        healthStatus: user.healthStatus,
-        cigaretteType: user.cigaretteType,
-        dailyCigarettes: user.dailyCigarettes,
-        dailyFeeling: user.dailyFeeling
-      });
-    }
-
-    if (!user) {
-      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+      console.log('Smoking profile data:', profile);
+      console.log('Daily log data:', dailyLog);
     }
 
     res.json({
@@ -254,15 +265,15 @@ exports.getProfile = async (req, res) => {
       isMember: user.IsMember,
       createdAt: user.CreatedAt,
       smokingStatus: {
-        cigarettesPerDay: user.cigarettesPerDay || 0,
-        costPerPack: user.costPerPack || 0,
-        smokingFrequency: user.smokingFrequency || '',
-        healthStatus: user.healthStatus || '',
-        cigaretteType: user.cigaretteType || '',
-        quitReason: '',
+        cigarettesPerDay: profile.cigarettesPerDay || 0,
+        costPerPack: profile.costPerPack || 0,
+        smokingFrequency: profile.smokingFrequency || '',
+        healthStatus: profile.healthStatus || '',
+        cigaretteType: profile.cigaretteType || '',
+        quitReason: profile.QuitReason || '',
         dailyLog: {
-          cigarettes: user.dailyCigarettes || 0,
-          feeling: user.dailyFeeling || ''
+          cigarettes: dailyLog.Cigarettes || 0,
+          feeling: dailyLog.Feeling || ''
         }
       },
       quitPlan: {
@@ -358,83 +369,150 @@ exports.upgradeMember = async (req, res) => {
 
 // Cập nhật tình trạng hút thuốc
 exports.updateSmokingStatus = async (req, res) => {
+  console.log('=== USER SMOKING STATUS UPDATE ===');
+  console.log('User ID:', req.user.userId);
+  console.log('Request body:', req.body);
+  
   try {
-    const userId = req.user.userId;
-    let {
-      cigarettesPerDay,
-      costPerPack,
-      smokingFrequency,
-      healthStatus,
-      cigaretteType,
-      quitReason,
-      dailyCigarettes,
-      dailyFeeling
+    const { 
+      cigarettesPerDay, 
+      costPerPack, 
+      smokingFrequency, 
+      healthStatus, 
+      cigaretteType, 
+      quitReason, 
+      dailyCigarettes, 
+      dailyFeeling 
     } = req.body;
+    const userId = req.user.userId;
 
-    // Validate input bắt buộc
-    if (
-      cigarettesPerDay === undefined ||
-      costPerPack === undefined ||
-      smokingFrequency === undefined ||
-      healthStatus === undefined
-    ) {
-      return res.status(400).json({ message: 'Vui lòng nhập đầy đủ thông tin tình trạng hút thuốc.' });
+    console.log('Processing smoking status update for user:', userId);
+
+    // Bước 1: Cập nhật hoặc tạo mới SmokingProfile
+    console.log('Updating SmokingProfiles table...');
+    
+    // Kiểm tra xem user đã có smoking profile chưa
+    const existingProfile = await sql.query`
+      SELECT Id FROM SmokingProfiles WHERE UserId = ${userId}
+    `;
+
+    if (existingProfile.recordset.length > 0) {
+      // Update existing profile
+      console.log('Updating existing smoking profile...');
+      await sql.query`
+        UPDATE SmokingProfiles
+        SET
+          cigarettesPerDay = ${cigarettesPerDay || 0},
+          costPerPack = ${costPerPack || 0},
+          smokingFrequency = ${smokingFrequency || ''},
+          healthStatus = ${healthStatus || ''},
+          cigaretteType = ${cigaretteType || ''},
+          QuitReason = ${quitReason || ''}
+        WHERE UserId = ${userId}
+      `;
+    } else {
+      // Create new profile
+      console.log('Creating new smoking profile...');
+      await sql.query`
+        INSERT INTO SmokingProfiles (UserId, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, QuitReason)
+        VALUES (${userId}, ${cigarettesPerDay || 0}, ${costPerPack || 0}, ${smokingFrequency || ''}, ${healthStatus || ''}, ${cigaretteType || ''}, ${quitReason || ''})
+      `;
     }
 
-    // Gán giá trị mặc định nếu undefined
-    cigaretteType = cigaretteType ?? '';
-    dailyCigarettes = dailyCigarettes ?? 0;
-    dailyFeeling = dailyFeeling ?? '';
-
-    await sql.query`
-      UPDATE Users
-      SET
-        cigarettesPerDay = ${cigarettesPerDay},
-        costPerPack = ${costPerPack},
-        smokingFrequency = ${smokingFrequency},
-        healthStatus = ${healthStatus},
-        cigaretteType = ${cigaretteType},
-        dailyCigarettes = ${dailyCigarettes},
-        dailyFeeling = ${dailyFeeling}
-      WHERE Id = ${userId}
+    // Bước 2: Cập nhật hoặc tạo mới SmokingDailyLog cho hôm nay
+    console.log('Updating SmokingDailyLog table...');
+    
+    const today = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
+    
+    // Kiểm tra xem đã có log cho hôm nay chưa
+    const existingLog = await sql.query`
+      SELECT Id FROM SmokingDailyLog WHERE UserId = ${userId} AND LogDate = ${today}
     `;
 
-    const result = await sql.query`
-      SELECT Id, Username, Email, PhoneNumber, Address, Role, IsMember, CreatedAt,
-             cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, 
-             dailyCigarettes, dailyFeeling
-      FROM Users WHERE Id = ${userId}
+    if (existingLog.recordset.length > 0) {
+      // Update existing daily log
+      console.log('Updating existing daily log for today...');
+      await sql.query`
+        UPDATE SmokingDailyLog
+        SET
+          Cigarettes = ${dailyCigarettes || 0},
+          Feeling = ${dailyFeeling || ''}
+        WHERE UserId = ${userId} AND LogDate = ${today}
+      `;
+    } else {
+      // Create new daily log
+      console.log('Creating new daily log for today...');
+      await sql.query`
+        INSERT INTO SmokingDailyLog (UserId, LogDate, Cigarettes, Feeling)
+        VALUES (${userId}, ${today}, ${dailyCigarettes || 0}, ${dailyFeeling || ''})
+      `;
+    }
+
+    // Bước 3: Lấy thông tin đã cập nhật để trả về
+    console.log('Fetching updated smoking status data...');
+    
+    // Lấy smoking profile
+    const profileResult = await sql.query`
+      SELECT cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, QuitReason
+      FROM SmokingProfiles WHERE UserId = ${userId}
     `;
-    const user = result.recordset[0];
-    res.json({
-      message: 'Cập nhật tình trạng hút thuốc thành công',
+    
+    // Lấy daily log hôm nay
+    const logResult = await sql.query`
+      SELECT Cigarettes, Feeling
+      FROM SmokingDailyLog WHERE UserId = ${userId} AND LogDate = ${today}
+    `;
+
+    // Lấy thông tin user
+    const userResult = await sql.query`
+      SELECT Id, Username, Email FROM Users WHERE Id = ${userId}
+    `;
+    
+    const user = userResult.recordset[0];
+    const profile = profileResult.recordset[0] || {};
+    const dailyLog = logResult.recordset[0] || {};
+
+    const updatedSmokingStatus = {
+      cigarettesPerDay: profile.cigarettesPerDay || 0,
+      costPerPack: profile.costPerPack || 0,
+      smokingFrequency: profile.smokingFrequency || '',
+      healthStatus: profile.healthStatus || '',
+      cigaretteType: profile.cigaretteType || '',
+      quitReason: profile.QuitReason || '',
+      dailyLog: {
+        cigarettes: dailyLog.Cigarettes || 0,
+        feeling: dailyLog.Feeling || ''
+      }
+    };
+
+    console.log('=== SMOKING STATUS UPDATE SUCCESS ===');
+    console.log('Updated smoking status data:', updatedSmokingStatus);
+    
+    const response = {
+      success: true,
+      message: 'Cập nhật thông tin hút thuốc thành công',
       user: {
-        id: user.Id,
+        userId: user.Id,
         username: user.Username,
         email: user.Email,
-        phoneNumber: user.PhoneNumber || "",
-        address: user.Address || "",
-        role: user.Role,
-        isMember: user.IsMember,
-        smokingStatus: {
-          cigarettesPerDay: user.cigarettesPerDay || 0,
-          costPerPack: user.costPerPack || 0,
-          smokingFrequency: user.smokingFrequency || '',
-          healthStatus: user.healthStatus || '',
-          cigaretteType: user.cigaretteType || '',
-          quitReason: '',
-          dailyLog: {
-            cigarettes: user.dailyCigarettes || 0,
-            feeling: user.dailyFeeling || ''
-          }
-        }
+        smokingStatus: updatedSmokingStatus
       }
-    });
+    };
+    
+    console.log('Sending response:', response);
+    res.status(200).json(response);
+    
   } catch (error) {
-    console.error('Lỗi cập nhật tình trạng hút thuốc:', error);
+    console.error('=== SMOKING STATUS UPDATE ERROR ===');
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    
     res.status(500).json({ 
-      message: 'Lỗi khi cập nhật tình trạng hút thuốc',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Đã xảy ra lỗi, vui lòng thử lại sau'
+      success: false,
+      message: 'Cập nhật thông tin hút thuốc thất bại', 
+      error: error.message,
+      details: error.name
     });
   }
 };
@@ -482,13 +560,55 @@ exports.addSmokingDailyLog = async (req, res) => {
   try {
     const userId = req.user.userId;
     const { cigarettes, feeling } = req.body;
-    await sql.query`
-      INSERT INTO SmokingDailyLog (UserId, Cigarettes, Feeling)
-      VALUES (${userId}, ${cigarettes}, ${feeling})
+    
+    console.log('=== ADD SMOKING DAILY LOG ===');
+    console.log('User ID:', userId);
+    console.log('Data:', { cigarettes, feeling });
+    
+    const today = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
+    
+    // Kiểm tra xem đã có log cho hôm nay chưa
+    const existingLog = await sql.query`
+      SELECT Id FROM SmokingDailyLog WHERE UserId = ${userId} AND LogDate = ${today}
     `;
-    res.json({ message: 'Lưu nhật ký thành công' });
+
+    if (existingLog.recordset.length > 0) {
+      // Update existing log
+      console.log('Updating existing daily log for today...');
+      await sql.query`
+        UPDATE SmokingDailyLog
+        SET
+          Cigarettes = ${cigarettes || 0},
+          Feeling = ${feeling || ''}
+        WHERE UserId = ${userId} AND LogDate = ${today}
+      `;
+    } else {
+      // Create new log
+      console.log('Creating new daily log for today...');
+      await sql.query`
+        INSERT INTO SmokingDailyLog (UserId, LogDate, Cigarettes, Feeling)
+        VALUES (${userId}, ${today}, ${cigarettes || 0}, ${feeling || ''})
+      `;
+    }
+    
+    console.log('✅ Daily log saved successfully');
+    res.json({ 
+      success: true,
+      message: 'Lưu nhật ký hàng ngày thành công',
+      data: {
+        userId,
+        date: today,
+        cigarettes: cigarettes || 0,
+        feeling: feeling || ''
+      }
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Lỗi khi lưu nhật ký', error: error.message });
+    console.error('❌ Error saving daily log:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Lỗi khi lưu nhật ký hàng ngày', 
+      error: error.message 
+    });
   }
 };
 
@@ -589,5 +709,101 @@ exports.getQuitPlan = async (req, res) => {
   } catch (error) {
     console.error('Lỗi getQuitPlan:', error);
     res.status(500).json({ message: 'Lỗi khi lấy kế hoạch cai thuốc', error: error.message });
+  }
+};
+
+// Thêm tiến độ/nhật ký cho kế hoạch cai thuốc
+exports.addProgress = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { planId, date, cigarettes, moneySpent, note } = req.body;
+
+    console.log('📊 Adding progress for user:', userId);
+    console.log('Progress data:', { planId, date, cigarettes, moneySpent, note });
+
+    // Validate dữ liệu đầu vào
+    if (!planId || !date) {
+      return res.status(400).json({ message: 'Thiếu thông tin bắt buộc (planId, date)!' });
+    }
+
+    // Kiểm tra xem đã có record cho ngày này chưa
+    const existingProgress = await sql.query`
+      SELECT * FROM Progress 
+      WHERE PlanId = ${planId} AND Date = ${date} AND UserId = ${userId}
+    `;
+
+    if (existingProgress.recordset.length > 0) {
+      // Update existing record
+      await sql.query`
+        UPDATE Progress 
+        SET 
+          Cigarettes = ${cigarettes || 0},
+          MoneySpent = ${moneySpent || 0},
+          Note = ${note || ''}
+        WHERE PlanId = ${planId} AND Date = ${date} AND UserId = ${userId}
+      `;
+      console.log('✅ Updated existing progress record');
+    } else {
+      // Insert new record with UserId
+      await sql.query`
+        INSERT INTO Progress (UserId, PlanId, Date, Cigarettes, MoneySpent, Note)
+        VALUES (${userId}, ${planId}, ${date}, ${cigarettes || 0}, ${moneySpent || 0}, ${note || ''})
+      `;
+      console.log('✅ Created new progress record');
+    }
+
+    res.json({ 
+      message: 'Lưu tiến độ thành công!',
+      data: { planId, date, cigarettes, moneySpent, note }
+    });
+  } catch (error) {
+    console.error('❌ Error adding progress:', error);
+    res.status(500).json({ 
+      message: 'Lỗi khi lưu tiến độ', 
+      error: error.message 
+    });
+  }
+};
+
+// Lấy tiến độ mới nhất
+exports.getLatestProgress = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    console.log('📈 Getting latest progress for user:', userId);
+
+    // Lấy tiến độ mới nhất từ các kế hoạch của user
+    const result = await sql.query`
+      SELECT TOP 1 p.*, qp.UserId
+      FROM Progress p
+      INNER JOIN QuitPlans qp ON p.PlanId = qp.Id
+      WHERE qp.UserId = ${userId}
+      ORDER BY p.Date DESC
+    `;
+
+    if (result.recordset.length === 0) {
+      console.log('📈 No progress found for user:', userId);
+      return res.json({ progress: null });
+    }
+
+    const progress = result.recordset[0];
+    console.log('📈 Latest progress retrieved:', progress);
+
+    res.json({ 
+      progress: {
+        id: progress.Id,
+        planId: progress.PlanId,
+        date: progress.Date,
+        cigarettes: progress.Cigarettes,
+        moneySpent: progress.MoneySpent,
+        note: progress.Note
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error getting latest progress:', error);
+    res.status(500).json({ 
+      message: 'Lỗi khi lấy tiến độ mới nhất', 
+      error: error.message 
+    });
   }
 };

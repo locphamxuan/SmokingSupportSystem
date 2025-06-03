@@ -15,7 +15,10 @@ const MyProgressPage = () => {
       healthStatus: '',
       cigaretteType: '',
       quitReason: '',
-      dailyLog: { cigarettes: 0, feeling: '' }
+      dailyLog: { 
+        cigarettes: 0, 
+        feeling: '' 
+      }
     },
     quitPlan: null,
     role: 'guest'
@@ -61,7 +64,7 @@ const MyProgressPage = () => {
           if (!token) return;
 
           // Auto-save smoking status
-          await axios.put('http://localhost:5000/api/auth/smoking-status', {
+          const requestData = {
             cigarettesPerDay: Number(updatedData.smokingStatus.cigarettesPerDay),
             costPerPack: Number(updatedData.smokingStatus.costPerPack),
             smokingFrequency: String(updatedData.smokingStatus.smokingFrequency),
@@ -75,7 +78,7 @@ const MyProgressPage = () => {
           console.log('💾 Auto-saving data:', requestData);
 
           // Tự động lưu trạng thái hút thuốc
-          await axios.put('http://localhost:5000/api/auth/smoking-status', requestData, {
+          await axios.put(`${API_BASE_URL}/auth/smoking-status`, requestData, {
             headers: { Authorization: `Bearer ${token}` }
           });
 
@@ -166,7 +169,7 @@ const MyProgressPage = () => {
         console.error('❌ Failed to save to localStorage:', error);
       }
 
-      const progressRes = await axios.get('http://localhost:5000/api/auth/progress/latest', {
+      const progressRes = await axios.get('http://localhost:3001/api/auth/progress/latest', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -213,84 +216,6 @@ const MyProgressPage = () => {
       }
     };
   }, [fetchAllUserData]);
-
-  // Update smoking status with manual save
-  const handleUpdateSmokingStatus = async () => {
-    const { cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, dailyLog } = userData.smokingStatus;
-    if (
-      cigarettesPerDay === undefined ||
-      costPerPack === undefined ||
-      smokingFrequency === undefined ||
-      healthStatus === undefined ||
-      cigaretteType === undefined ||
-      dailyLog === undefined ||
-      cigarettesPerDay === '' ||
-      costPerPack === '' ||
-      smokingFrequency === '' ||
-      healthStatus === '' ||
-      cigaretteType === ''
-    ) {
-      setError('Vui lòng nhập đầy đủ thông tin tình trạng hút thuốc.');
-      return;
-    }
-    if (isNaN(Number(cigarettesPerDay)) || isNaN(Number(costPerPack))) {
-      setError('Số điếu thuốc mỗi ngày và giá mỗi bao phải là số.');
-      return;
-    }
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-      
-      const dataToSend = {
-        cigarettesPerDay: Number(cigarettesPerDay),
-        costPerPack: Number(costPerPack),
-        smokingFrequency: String(smokingFrequency),
-        healthStatus: String(healthStatus),
-        cigaretteType: String(cigaretteType || ''),
-        dailyCigarettes: Number(dailyLog.cigarettes || 0),
-        dailyFeeling: String(dailyLog.feeling || '')
-      };
-      
-      console.log('🔄 Manual save - sending data:', dataToSend);
-      
-      await axios.put('http://localhost:5000/api/auth/smoking-status', dataToSend, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      // Update saved reference
-      lastSavedDataRef.current = JSON.parse(JSON.stringify(userData));
-      
-      // Save to localStorage
-      try {
-        localStorage.setItem('myProgressData', JSON.stringify(userData));
-        console.log('✅ Manual save - data saved to localStorage');
-      } catch (error) {
-        console.error('❌ Failed to save to localStorage:', error);
-      }
-      
-      setSuccess('Cập nhật tình trạng hút thuốc thành công!');
-      setError('');
-      await fetchAllUserData();
-    } catch (error) {
-      console.error('❌ Manual save error:', error);
-      let errorMessage = 'Lỗi khi cập nhật tình trạng hút thuốc.';
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.response?.status === 401) {
-        errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
-        navigate('/login');
-      } else if (error.response?.status === 500) {
-        errorMessage = 'Lỗi server. Vui lòng thử lại sau.';
-      }
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Quit plan
   const handleCreateQuitPlan = () => {
@@ -363,86 +288,34 @@ const MyProgressPage = () => {
       }
 
       console.log('🔄 Saving progress...');
-      console.log('userData.quitPlan:', userData.quitPlan);
 
-      // Kiểm tra xem user có kế hoạch cai thuốc không
-      let planId = null;
-      
-      if (userData.quitPlan && userData.quitPlan.id) {
-        planId = userData.quitPlan.id;
-      } else {
-        // Nếu chưa có kế hoạch, tạo một kế hoạch mặc định
-        console.log('⚠️ No quit plan found, creating default plan...');
-        
-        const defaultPlan = {
-          startDate: new Date().toISOString().slice(0, 10),
-          targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), // 30 days later
-          planType: 'custom',
-          initialCigarettes: userData.smokingStatus.cigarettesPerDay || 0,
-          dailyReduction: 1,
-          milestones: [],
-          currentProgress: 0,
-          planDetail: 'Kế hoạch tự động tạo để lưu nhật ký'
-        };
+      // Lưu daily log vào SmokingDailyLog table
+      const dailyLogData = {
+        cigarettes: Number(userData.smokingStatus.dailyLog.cigarettes || 0),
+        feeling: userData.smokingStatus.dailyLog.feeling || ''
+      };
 
-        try {
-          const planResponse = await axios.post(
-            'http://localhost:5000/api/auth/quit-plan',
-            defaultPlan,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
+      console.log('📊 Daily log data to save:', dailyLogData);
 
-          console.log('✅ Default plan created successfully:', planResponse.data);
-          
-          // Use the actual planId returned from the server
-          planId = planResponse.data.planId;
-          
-          // Refresh user data to get the updated quit plan
-          await fetchAllUserData();
-        } catch (planError) {
-          console.error('❌ Error creating default plan:', planError);
-          planId = 1; // Fallback planId only if creation fails
-        }
-      }
-
-      const date = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
-      const cigarettes = Number(userData.smokingStatus.dailyLog.cigarettes || 0);
-      const moneySpent = cigarettes > 0 ? ((cigarettes / 20) * (userData.smokingStatus.costPerPack || 0)) : 0;
-      const note = userData.smokingStatus.dailyLog.feeling || '';
-
-      console.log('📊 Progress data to save:', {
-        planId,
-        date,
-        cigarettes,
-        moneySpent,
-        note
-      });
-
-      const response = await axios.post('http://localhost:5000/api/auth/progress', {
-        planId,
-        date,
-        cigarettes,
-        moneySpent,
-        note
-      }, {
+      const response = await axios.post(`${API_BASE_URL}/auth/smoking-daily-log`, dailyLogData, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      console.log('✅ Progress saved successfully:', response.data);
-      setSuccess('Lưu nhật ký tiến độ thành công!');
+      console.log('✅ Daily log saved successfully:', response.data);
+      setSuccess('Lưu nhật ký thành công!');
       setError('');
       
-      // Có thể gọi lại fetchAllUserData() nếu muốn cập nhật giao diện
-      // await fetchAllUserData();
+      // Cập nhật lại dữ liệu để sync với database
+      await fetchAllUserData();
     } catch (error) {
-      console.error('❌ Error saving progress:', error);
+      console.error('❌ Error saving daily log:', error);
       console.error('Error details:', {
         message: error.message,
         response: error.response?.data,
         status: error.response?.status
       });
       
-      let errorMessage = 'Lỗi khi lưu nhật ký tiến độ!';
+      let errorMessage = 'Lỗi khi lưu nhật ký!';
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       }
@@ -584,6 +457,19 @@ const MyProgressPage = () => {
             <Box sx={{ mb: 2 }}>
               <Typography variant="subtitle2" color="text.secondary">Tình trạng sức khỏe:</Typography>
               <Typography variant="h6" color="primary">{userData.smokingStatus.healthStatus || 'Chưa cập nhật'}</Typography>
+            </Box>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" color="text.secondary">Lý do muốn cai thuốc:</Typography>
+              <Typography 
+                variant="body1" 
+                color={userData.smokingStatus.quitReason ? "primary" : "warning.main"}
+                sx={{ 
+                  fontStyle: userData.smokingStatus.quitReason ? 'normal' : 'italic',
+                  fontWeight: userData.smokingStatus.quitReason ? 500 : 400
+                }}
+              >
+                {userData.smokingStatus.quitReason || '⚠️ Chưa nhập lý do muốn cai thuốc'}
+              </Typography>
             </Box>
             <Box sx={{ mb: 2 }}>
               <Typography variant="subtitle2" color="text.secondary">Nhật ký hôm nay:</Typography>
@@ -747,8 +633,8 @@ const MyProgressPage = () => {
                   smokingStatus: {
                     ...userData.smokingStatus,
                     dailyLog: {
-                      ...userData.smokingStatus.dailyLog,
-                      cigarettes: e.target.value
+                      cigarettes: e.target.value,
+                      feeling: userData.smokingStatus.dailyLog?.feeling || ''
                     }
                   }
                 })}
@@ -766,7 +652,7 @@ const MyProgressPage = () => {
                   smokingStatus: {
                     ...userData.smokingStatus,
                     dailyLog: {
-                      ...userData.smokingStatus.dailyLog,
+                      cigarettes: userData.smokingStatus.dailyLog?.cigarettes || 0,
                       feeling: e.target.value
                     }
                   }

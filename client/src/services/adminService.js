@@ -126,3 +126,28 @@ export const deleteBlog = async (id) => {
   });
   return response.data;
 };
+
+export const updateSmokingStatus = async (id, smokingData) => {
+  const token = getToken();
+  console.log('Sending smoking status update for user:', id, 'with data:', smokingData);
+  
+  try {
+    const response = await axios.put(`${API_URL}/admin/user/${id}/smoking`, smokingData, {
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log('Smoking status update response status:', response.status);
+    console.log('Smoking status update response data:', response.data);
+    
+    return response.data;
+  } catch (error) {
+    console.error('Smoking status update request failed:', error);
+    console.error('Error response:', error.response);
+    console.error('Error status:', error.response?.status);
+    console.error('Error data:', error.response?.data);
+    throw error;
+  }
+};

@@ -162,7 +162,7 @@ const LoginPage = () => {
     setLoading(true);
     setError('');
     try {
-      const endpoint = 'http://localhost:5000/api/auth/login';
+      const endpoint = 'http://localhost:3001/api/auth/login';
       const loginPayload = {
         email: loginData.emailOrUsername,
         password: loginData.password
@@ -206,7 +206,7 @@ const LoginPage = () => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/register', {
+      const response = await axios.post('http://localhost:3001/api/auth/register', {
         username: registerData.username,
         email: registerData.email,
         password: registerData.password,

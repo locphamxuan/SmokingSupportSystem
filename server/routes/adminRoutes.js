@@ -6,6 +6,9 @@ const { verifyToken, isAdmin } = require('../middlewares/auth');
 // Lấy thông tin chi tiết một user (đặt trước các route khác để tránh conflict)
 router.get('/user/:id', verifyToken, isAdmin, adminController.getUserDetail);
 
+// Cập nhật smoking status cho user
+router.put('/user/:id/smoking', verifyToken, isAdmin, adminController.updateSmokingStatus);
+
 // Test endpoint
 router.get('/test/:id', verifyToken, isAdmin, (req, res) => {
   res.json({ success: true, message: 'Test endpoint working', id: req.params.id });

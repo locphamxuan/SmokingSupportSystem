@@ -69,8 +69,8 @@ CREATE TABLE SmokingProfiles (
     costPerPack INT,
     smokingFrequency NVARCHAR(50),
     healthStatus NVARCHAR(255),
-    QuitReason NVARCHAR(255),
     cigaretteType NVARCHAR(100),
+    QuitReason NVARCHAR(255),
     FOREIGN KEY (UserId) REFERENCES Users(Id)
 );
 GO
@@ -199,8 +199,8 @@ VALUES (N'coach1', N'coach123', N'coach1@gmail.com', 'coach');
 GO
 
 -- Dữ liệu mẫu cho SmokingProfiles
-INSERT INTO SmokingProfiles (UserId, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, QuitReason)
-VALUES (2, 10, 25000, N'Ngày 2 lần', N'Bình thường', N'Vì sức khỏe');
+INSERT INTO SmokingProfiles (UserId, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, QuitReason)
+VALUES (2, 10, 25000, N'Ngày 2 lần', N'Bình thường', N'Thuốc lá điếu', N'Vì sức khỏe');
 GO
 
 -- Dữ liệu mẫu cho Badges
@@ -245,43 +245,4 @@ GO
 
 -- Kiểm tra các user có role coach
 SELECT Id, Username, Role FROM Users WHERE Role = 'coach';
-GO
-
--- Thêm column cigaretteType vào bảng SmokingProfiles nếu chưa có
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('SmokingProfiles') AND name = 'cigaretteType')
-BEGIN
-    ALTER TABLE SmokingProfiles ADD cigaretteType NVARCHAR(100);
-END
-GO
-
--- Thêm thêm các column cần thiết cho QuitPlans
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('QuitPlans') AND name = 'InitialCigarettes')
-BEGIN
-    ALTER TABLE QuitPlans ADD InitialCigarettes INT DEFAULT 0;
-END
-GO
-
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('QuitPlans') AND name = 'DailyReduction')
-BEGIN
-    ALTER TABLE QuitPlans ADD DailyReduction INT DEFAULT 1;
-END
-GO
-
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('QuitPlans') AND name = 'Milestones')
-BEGIN
-    ALTER TABLE QuitPlans ADD Milestones NVARCHAR(MAX);
-END
-GO
-
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('QuitPlans') AND name = 'CurrentProgress')
-BEGIN
-    ALTER TABLE QuitPlans ADD CurrentProgress INT DEFAULT 0;
-END
-GO
-
--- Thêm column CoachNote vào bảng Progress
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Progress') AND name = 'CoachNote')
-BEGIN
-    ALTER TABLE Progress ADD CoachNote NVARCHAR(255);
-END
 GO
