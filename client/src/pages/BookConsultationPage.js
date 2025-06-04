@@ -1,4 +1,4 @@
-//trang đặt lịch coach
+//trang đặt lịch với coach
 
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
@@ -20,13 +20,27 @@ const BookConsultationPage = () => {
   const location = useLocation();
 
   useEffect(() => {
+    // Kiểm tra đăng nhập
+    if (!user) {
+      setError('Vui lòng đăng nhập để sử dụng tính năng này!');
+      setTimeout(() => navigate('/login'), 2000);
+      return;
+    }
+
+    // Kiểm tra member có gói premium không
+    if (!user.isMember || user.role !== 'member') {
+      setError('Bạn cần nâng cấp lên gói Premium để sử dụng tính năng này!');
+      setTimeout(() => navigate('/subscription'), 2000);
+      return;
+    }
+
     axios.get('http://localhost:5000/api/coaches', {
       headers: { Authorization: `Bearer ${token}` }
     }).then(res => {
       setCoaches(res.data);
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, [token]);
+  }, [token, user, navigate]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -38,10 +52,34 @@ const BookConsultationPage = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    // Kiểm tra đăng nhập
+    if (!user) {
+      setError('Vui lòng đăng nhập để sử dụng tính năng này!');
+      setTimeout(() => navigate('/login'), 2000);
+      return;
+    }
+
+    // Kiểm tra member có gói premium không
+    if (!user.isMember || user.role !== 'member') {
+      setError('Bạn cần nâng cấp lên gói Premium để sử dụng tính năng này!');
+      setTimeout(() => navigate('/subscription'), 2000);
+      return;
+    }
+
     if (!coachId || !scheduledTime) {
       setError('Vui lòng chọn coach và thời gian!');
       return;
     }
+
+    // Kiểm tra thời gian đặt lịch phải trong tương lai
+    const scheduledDate = new Date(scheduledTime);
+    const now = new Date();
+    if (scheduledDate <= now) {
+      setError('Thời gian tư vấn phải trong tương lai!');
+      return;
+    }
+
     try {
       const isoTime = new Date(scheduledTime).toISOString();
       await axios.post('http://localhost:5000/api/consultations', {
@@ -53,7 +91,14 @@ const BookConsultationPage = () => {
       setSuccess('Đặt lịch thành công!');
       setTimeout(() => navigate('/consult-coach'), 1500);
     } catch (err) {
-      setError('Đặt lịch thất bại!');
+      if (err.response?.status === 403) {
+        setError('Bạn cần nâng cấp lên gói Premium để sử dụng tính năng này!');
+        setTimeout(() => navigate('/subscription'), 2000);
+      } else if (err.response?.status === 400) {
+        setError(err.response.data.message || 'Đặt lịch thất bại!');
+      } else {
+        setError('Đặt lịch thất bại!');
+      }
     }
   };
 
@@ -71,6 +116,8 @@ const BookConsultationPage = () => {
               Đặt lịch tư vấn với Coach
             </Typography>
           </Box>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
           <form onSubmit={handleBook}>
             <TextField
               select
@@ -80,6 +127,7 @@ const BookConsultationPage = () => {
               fullWidth
               required
               margin="normal"
+              disabled={!user?.isMember || user?.role !== 'member'}
             >
               <MenuItem value="">-- Chọn coach --</MenuItem>
               {coaches.map(coach => (
@@ -97,6 +145,7 @@ const BookConsultationPage = () => {
               required
               margin="normal"
               InputLabelProps={{ shrink: true }}
+              disabled={!user?.isMember || user?.role !== 'member'}
             />
             <TextField
               label="Ghi chú"
@@ -105,15 +154,15 @@ const BookConsultationPage = () => {
               fullWidth
               margin="normal"
               placeholder="Ghi chú (không bắt buộc)"
+              disabled={!user?.isMember || user?.role !== 'member'}
             />
-            {success && <Alert severity="success" sx={{ mt: 2 }}>{success}</Alert>}
-            {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
             <Button
               type="submit"
               variant="contained"
               color="primary"
               fullWidth
               sx={{ mt: 3, py: 1.5, fontWeight: 600 }}
+              disabled={!user?.isMember || user?.role !== 'member'}
             >
               Đặt lịch
             </Button>

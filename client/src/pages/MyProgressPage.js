@@ -4,6 +4,7 @@ import {
 } from '@mui/material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../config/api';
 
 const MyProgressPage = () => {
   const [userData, setUserData] = useState({
@@ -14,7 +15,10 @@ const MyProgressPage = () => {
       healthStatus: '',
       cigaretteType: '',
       quitReason: '',
-      dailyLog: { cigarettes: 0, feeling: '' }
+      dailyLog: { 
+        cigarettes: 0, 
+        feeling: '' 
+      }
     },
     quitPlan: null,
     role: 'guest'
@@ -59,16 +63,22 @@ const MyProgressPage = () => {
           const token = localStorage.getItem('token');
           if (!token) return;
 
-          // Tụ động lưu trạng thái hút thuốc
-          await axios.put('http://localhost:5000/api/auth/smoking-status', {
+          // Auto-save smoking status
+          const requestData = {
             cigarettesPerDay: Number(updatedData.smokingStatus.cigarettesPerDay),
             costPerPack: Number(updatedData.smokingStatus.costPerPack),
             smokingFrequency: String(updatedData.smokingStatus.smokingFrequency),
             healthStatus: String(updatedData.smokingStatus.healthStatus),
             cigaretteType: String(updatedData.smokingStatus.cigaretteType || ''),
+            quitReason: String(updatedData.smokingStatus.quitReason || ''),
             dailyCigarettes: Number(updatedData.smokingStatus.dailyLog?.cigarettes || 0),
             dailyFeeling: String(updatedData.smokingStatus.dailyLog?.feeling || '')
-          }, {
+          };
+
+          console.log('💾 Auto-saving data:', requestData);
+
+          // Tự động lưu trạng thái hút thuốc
+          await axios.put(`${API_BASE_URL}/auth/smoking-status`, requestData, {
             headers: { Authorization: `Bearer ${token}` }
           });
 
@@ -80,7 +90,15 @@ const MyProgressPage = () => {
           setTimeout(() => setAutoSaveStatus(''), 2000);
         } catch (error) {
           console.error('❌ Auto-save failed:', error);
+          console.error('❌ Error response:', error.response?.data);
+          console.error('❌ Error status:', error.response?.status);
+          console.error('❌ Error message:', error.message);
           setAutoSaveStatus('error');
+          
+          // Hiển thị lỗi chi tiết cho user
+          const errorMessage = error.response?.data?.message || error.message || 'Lỗi không xác định';
+          setError(`Lỗi khi lưu dữ liệu: ${errorMessage}`);
+          
           setTimeout(() => setAutoSaveStatus(''), 3000);
         }
       }, 2000); // 2 second delay
@@ -103,10 +121,10 @@ const MyProgressPage = () => {
 
       // Fetch from server first to get latest data
       const [profileRes, quitPlanRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/auth/profile', {
+        axios.get(`${API_BASE_URL}/auth/profile`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        axios.get('http://localhost:5000/api/auth/quit-plan', {
+        axios.get(`${API_BASE_URL}/auth/quit-plan`, {
           headers: { Authorization: `Bearer ${token}` }
         }).catch(() => ({ data: { quitPlan: null } })) // Handle quit plan not found
       ]);
@@ -151,7 +169,7 @@ const MyProgressPage = () => {
         console.error('❌ Failed to save to localStorage:', error);
       }
 
-      const progressRes = await axios.get('http://localhost:5000/api/auth/progress/latest', {
+      const progressRes = await axios.get('http://localhost:3001/api/auth/progress/latest', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -240,7 +258,7 @@ const MyProgressPage = () => {
         return;
       }
       await axios.post(
-        'http://localhost:5000/api/auth/quit-plan',
+        `${API_BASE_URL}/auth/quit-plan`,
         plan,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -268,28 +286,40 @@ const MyProgressPage = () => {
         navigate('/login');
         return;
       }
-      // Lấy planId từ kế hoạch cai thuốc hiện tại (nếu có)
-      const planId = userData.quitPlan?.id || userData.quitPlan?.planId || 1; // hoặc lấy đúng id từ quitPlan
-      const date = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
-      const cigarettes = Number(userData.smokingStatus.dailyLog.cigarettes || 0);
-      const moneySpent = ((userData.smokingStatus.dailyLog.cigarettes / 20) * userData.smokingStatus.costPerPack) || 0;
-      const note = userData.smokingStatus.dailyLog.feeling || '';
 
-      await axios.post('http://localhost:5000/api/auth/progress', {
-        planId,
-        date,
-        cigarettes,
-        moneySpent,
-        note
-      }, {
+      console.log('🔄 Saving progress...');
+
+      // Lưu daily log vào SmokingDailyLog table
+      const dailyLogData = {
+        cigarettes: Number(userData.smokingStatus.dailyLog.cigarettes || 0),
+        feeling: userData.smokingStatus.dailyLog.feeling || ''
+      };
+
+      console.log('📊 Daily log data to save:', dailyLogData);
+
+      const response = await axios.post(`${API_BASE_URL}/auth/smoking-daily-log`, dailyLogData, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      setSuccess('Lưu nhật ký tiến độ thành công!');
+      console.log('✅ Daily log saved successfully:', response.data);
+      setSuccess('Lưu nhật ký thành công!');
       setError('');
-      // Có thể gọi lại fetchAllUserData() nếu muốn cập nhật giao diện
+      
+      // Cập nhật lại dữ liệu để sync với database
+      await fetchAllUserData();
     } catch (error) {
-      setError('Lỗi khi lưu nhật ký tiến độ!');
+      console.error('❌ Error saving daily log:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      let errorMessage = 'Lỗi khi lưu nhật ký!';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -427,6 +457,19 @@ const MyProgressPage = () => {
             <Box sx={{ mb: 2 }}>
               <Typography variant="subtitle2" color="text.secondary">Tình trạng sức khỏe:</Typography>
               <Typography variant="h6" color="primary">{userData.smokingStatus.healthStatus || 'Chưa cập nhật'}</Typography>
+            </Box>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" color="text.secondary">Lý do muốn cai thuốc:</Typography>
+              <Typography 
+                variant="body1" 
+                color={userData.smokingStatus.quitReason ? "primary" : "warning.main"}
+                sx={{ 
+                  fontStyle: userData.smokingStatus.quitReason ? 'normal' : 'italic',
+                  fontWeight: userData.smokingStatus.quitReason ? 500 : 400
+                }}
+              >
+                {userData.smokingStatus.quitReason || '⚠️ Chưa nhập lý do muốn cai thuốc'}
+              </Typography>
             </Box>
             <Box sx={{ mb: 2 }}>
               <Typography variant="subtitle2" color="text.secondary">Nhật ký hôm nay:</Typography>
@@ -568,6 +611,9 @@ const MyProgressPage = () => {
               multiline
               rows={3}
               disabled={loading}
+              placeholder="Ví dụ: Để có sức khỏe tốt hơn, tiết kiệm tiền, vì gia đình..."
+              helperText={!userData.smokingStatus.quitReason ? "⚠️ Thông tin này sẽ giúp admin hiểu rõ hơn về mục tiêu của bạn" : "✅ Thông tin này sẽ hiển thị cho admin"}
+              error={!userData.smokingStatus.quitReason}
             />
           </Grid>
         </Grid>
@@ -587,8 +633,8 @@ const MyProgressPage = () => {
                   smokingStatus: {
                     ...userData.smokingStatus,
                     dailyLog: {
-                      ...userData.smokingStatus.dailyLog,
-                      cigarettes: e.target.value
+                      cigarettes: e.target.value,
+                      feeling: userData.smokingStatus.dailyLog?.feeling || ''
                     }
                   }
                 })}
@@ -606,7 +652,7 @@ const MyProgressPage = () => {
                   smokingStatus: {
                     ...userData.smokingStatus,
                     dailyLog: {
-                      ...userData.smokingStatus.dailyLog,
+                      cigarettes: userData.smokingStatus.dailyLog?.cigarettes || 0,
                       feeling: e.target.value
                     }
                   }

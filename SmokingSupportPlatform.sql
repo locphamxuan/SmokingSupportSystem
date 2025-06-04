@@ -69,6 +69,7 @@ CREATE TABLE SmokingProfiles (
     costPerPack INT,
     smokingFrequency NVARCHAR(50),
     healthStatus NVARCHAR(255),
+    cigaretteType NVARCHAR(100),
     QuitReason NVARCHAR(255),
     FOREIGN KEY (UserId) REFERENCES Users(Id)
 );
@@ -198,8 +199,8 @@ VALUES (N'coach1', N'coach123', N'coach1@gmail.com', 'coach');
 GO
 
 -- Dữ liệu mẫu cho SmokingProfiles
-INSERT INTO SmokingProfiles (UserId, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, QuitReason)
-VALUES (2, 10, 25000, N'Ngày 2 lần', N'Bình thường', N'Vì sức khỏe');
+INSERT INTO SmokingProfiles (UserId, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, QuitReason)
+VALUES (2, 10, 25000, N'Ngày 2 lần', N'Bình thường', N'Thuốc lá điếu', N'Vì sức khỏe');
 GO
 
 -- Dữ liệu mẫu cho Badges
@@ -245,4 +246,3 @@ GO
 -- Kiểm tra các user có role coach
 SELECT Id, Username, Role FROM Users WHERE Role = 'coach';
 GO
-

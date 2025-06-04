@@ -40,13 +40,14 @@ import {
   Search as SearchIcon,
   Dashboard as DashboardIcon
 } from "@mui/icons-material";
-import { getUsers, getUserDetail, updateUser, deleteUser } from "../services/adminService";
+import { getUsers, getUserDetail, updateUser, deleteUser, updateSmokingStatus } from "../services/adminService";
 
 const AdminUserPage = () => {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [open, setOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [smokingEditOpen, setSmokingEditOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedUserDetail, setSelectedUserDetail] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -59,6 +60,16 @@ const AdminUserPage = () => {
     address: "",
     role: "",
     isMember: false
+  });
+  const [smokingFormData, setSmokingFormData] = useState({
+    cigarettesPerDay: 0,
+    costPerPack: 0,
+    smokingFrequency: '',
+    healthStatus: '',
+    cigaretteType: '',
+    quitReason: '',
+    dailyCigarettes: 0,
+    dailyFeeling: ''
   });
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -377,6 +388,8 @@ const AdminUserPage = () => {
       const userDetail = await getUserDetail(userId);
       
       console.log('User detail received:', userDetail);
+      console.log('SmokingStatus:', userDetail.smokingStatus);
+      console.log('QuitReason:', userDetail.smokingStatus?.quitReason);
       setSelectedUserDetail(userDetail);
       setDetailOpen(true);
     } catch (error) {
@@ -392,6 +405,77 @@ const AdminUserPage = () => {
   const handleCloseDetail = () => {
     setDetailOpen(false);
     setSelectedUserDetail(null);
+  };
+
+  const handleEditSmokingStatus = async (userDetail) => {
+    // Set form data với thông tin hiện tại
+    setSmokingFormData({
+      cigarettesPerDay: userDetail.smokingStatus.cigarettesPerDay || 0,
+      costPerPack: userDetail.smokingStatus.costPerPack || 0,
+      smokingFrequency: userDetail.smokingStatus.smokingFrequency || '',
+      healthStatus: userDetail.smokingStatus.healthStatus || '',
+      cigaretteType: userDetail.smokingStatus.cigaretteType || '',
+      quitReason: userDetail.smokingStatus.quitReason || '',
+      dailyCigarettes: userDetail.smokingStatus.dailyCigarettes || 0,
+      dailyFeeling: userDetail.smokingStatus.dailyFeeling || ''
+    });
+    setSmokingEditOpen(true);
+  };
+
+  const handleSmokingInputChange = (e) => {
+    const { name, value } = e.target;
+    setSmokingFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleCloseSmokingEdit = () => {
+    setSmokingEditOpen(false);
+    setSmokingFormData({
+      cigarettesPerDay: 0,
+      costPerPack: 0,
+      smokingFrequency: '',
+      healthStatus: '',
+      cigaretteType: '',
+      quitReason: '',
+      dailyCigarettes: 0,
+      dailyFeeling: ''
+    });
+  };
+
+  const handleSaveSmokingStatus = async () => {
+    try {
+      console.log('=== SMOKING STATUS UPDATE ===');
+      console.log('User ID:', selectedUserDetail.id);
+      console.log('Smoking data:', smokingFormData);
+      
+      // Gọi API để cập nhật smoking status
+      const result = await updateSmokingStatus(selectedUserDetail.id, smokingFormData);
+      console.log('Smoking status update result:', result);
+      
+      setSnackbar({
+        open: true,
+        message: "Thông tin hút thuốc đã được cập nhật thành công!",
+        severity: "success",
+      });
+      
+      // Refresh user detail
+      await handleViewUserDetail(selectedUserDetail.id);
+      
+      // Refresh users list
+      await fetchUsers();
+      
+      handleCloseSmokingEdit();
+      
+    } catch (error) {
+      console.error("Error updating smoking status:", error);
+      setSnackbar({
+        open: true,
+        message: "Lỗi khi cập nhật thông tin hút thuốc: " + (error.response?.data?.message || error.message),
+        severity: "error",
+      });
+    }
   };
 
   const stats = getStatistics();
@@ -832,16 +916,77 @@ const AdminUserPage = () => {
                     <Grid item xs={6}>
                       <Typography variant="body2" color="text.secondary">Số điếu đã hút hôm nay:</Typography>
                       <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                        {selectedUserDetail.smokingStatus.dailyLog?.cigarettes || 0} điếu
+                        {selectedUserDetail.smokingStatus.dailyCigarettes || 0} điếu
                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="text.secondary">Cảm giác hôm nay:</Typography>
                       <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                        {selectedUserDetail.smokingStatus.dailyLog?.feeling || "Chưa ghi nhận"}
+                        {selectedUserDetail.smokingStatus.dailyFeeling || "Chưa ghi nhận"}
                       </Typography>
                     </Grid>
                   </Grid>
+                </Paper>
+              </Grid>
+
+              {/* Kế hoạch cai thuốc */}
+              <Grid item xs={12}>
+                <Typography variant="h6" sx={{ mb: 2, color: '#1976d2', fontWeight: 600 }}>
+                  Kế hoạch cai thuốc
+                </Typography>
+                <Paper sx={{ p: 2, bgcolor: selectedUserDetail.quitPlan ? '#e3f2fd' : '#ffebee' }}>
+                  {selectedUserDetail.quitPlan ? (
+                    <Grid container spacing={2}>
+                      <Grid item xs={6}>
+                        <Typography variant="body2" color="text.secondary">Ngày bắt đầu:</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                          {selectedUserDetail.quitPlan.startDate ? new Date(selectedUserDetail.quitPlan.startDate).toLocaleDateString('vi-VN') : "Chưa có"}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="body2" color="text.secondary">Ngày mục tiêu:</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                          {selectedUserDetail.quitPlan.targetDate ? new Date(selectedUserDetail.quitPlan.targetDate).toLocaleDateString('vi-VN') : "Chưa có"}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="body2" color="text.secondary">Loại kế hoạch:</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                          {selectedUserDetail.quitPlan.planType || "Chưa có"}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="body2" color="text.secondary">Tiến độ hiện tại:</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                          {selectedUserDetail.quitPlan.currentProgress || 0}%
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="body2" color="text.secondary">Số điếu ban đầu:</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                          {selectedUserDetail.quitPlan.initialCigarettes || 0} điếu
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="body2" color="text.secondary">Giảm mỗi ngày:</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                          {selectedUserDetail.quitPlan.dailyReduction || 0} điếu
+                        </Typography>
+                      </Grid>
+                      {selectedUserDetail.quitPlan.planDetail && (
+                        <Grid item xs={12}>
+                          <Typography variant="body2" color="text.secondary">Chi tiết kế hoạch:</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                            {selectedUserDetail.quitPlan.planDetail}
+                          </Typography>
+                        </Grid>
+                      )}
+                    </Grid>
+                  ) : (
+                    <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                      Người dùng chưa tạo kế hoạch cai thuốc
+                    </Typography>
+                  )}
                 </Paper>
               </Grid>
 
@@ -876,6 +1021,138 @@ const AdminUserPage = () => {
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={handleCloseDetail} variant="outlined">
             Đóng
+          </Button>
+          <Button 
+            onClick={() => handleEditSmokingStatus(selectedUserDetail)} 
+            variant="contained" 
+            sx={{ bgcolor: '#ff9800', '&:hover': { bgcolor: '#f57c00' } }}
+          >
+            Chỉnh sửa thông tin hút thuốc
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Smoking Edit Dialog */}
+      <Dialog open={smokingEditOpen} onClose={handleCloseSmokingEdit} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ bgcolor: '#1976d2', color: 'white' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <EditIcon sx={{ mr: 1 }} />
+            Chỉnh sửa thông tin hút thuốc
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                name="cigarettesPerDay"
+                label="Số điếu thuốc/ngày"
+                value={smokingFormData.cigarettesPerDay}
+                onChange={handleSmokingInputChange}
+                fullWidth
+                type="number"
+                inputProps={{ min: 0 }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                name="costPerPack"
+                label="Giá mỗi bao (VNĐ)"
+                value={smokingFormData.costPerPack}
+                onChange={handleSmokingInputChange}
+                fullWidth
+                type="number"
+                inputProps={{ min: 0 }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Tần suất hút</InputLabel>
+                <Select
+                  name="smokingFrequency"
+                  value={smokingFormData.smokingFrequency}
+                  label="Tần suất hút"
+                  onChange={handleSmokingInputChange}
+                >
+                  <MenuItem value="Hàng ngày">Hàng ngày</MenuItem>
+                  <MenuItem value="Thỉnh thoảng">Thỉnh thoảng</MenuItem>
+                  <MenuItem value="Cuối tuần">Cuối tuần</MenuItem>
+                  <MenuItem value="Khi stress">Khi stress</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Tình trạng sức khỏe</InputLabel>
+                <Select
+                  name="healthStatus"
+                  value={smokingFormData.healthStatus}
+                  label="Tình trạng sức khỏe"
+                  onChange={handleSmokingInputChange}
+                >
+                  <MenuItem value="Khỏe mạnh">Khỏe mạnh</MenuItem>
+                  <MenuItem value="Bình thường">Bình thường</MenuItem>
+                  <MenuItem value="Có vấn đề nhẹ">Có vấn đề nhẹ</MenuItem>
+                  <MenuItem value="Có vấn đề nghiêm trọng">Có vấn đề nghiêm trọng</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Loại thuốc</InputLabel>
+                <Select
+                  name="cigaretteType"
+                  value={smokingFormData.cigaretteType}
+                  label="Loại thuốc"
+                  onChange={handleSmokingInputChange}
+                >
+                  <MenuItem value="Thuốc lá thường">Thuốc lá thường</MenuItem>
+                  <MenuItem value="Thuốc lá nhẹ">Thuốc lá nhẹ</MenuItem>
+                  <MenuItem value="Thuốc lá điện tử">Thuốc lá điện tử</MenuItem>
+                  <MenuItem value="Xì gà">Xì gà</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                name="quitReason"
+                label="Lý do muốn cai"
+                value={smokingFormData.quitReason}
+                onChange={handleSmokingInputChange}
+                fullWidth
+                multiline
+                rows={3}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                name="dailyCigarettes"
+                label="Số điếu đã hút hôm nay"
+                value={smokingFormData.dailyCigarettes}
+                onChange={handleSmokingInputChange}
+                fullWidth
+                type="number"
+                inputProps={{ min: 0 }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                name="dailyFeeling"
+                label="Cảm giác hôm nay"
+                value={smokingFormData.dailyFeeling}
+                onChange={handleSmokingInputChange}
+                fullWidth
+                multiline
+                rows={3}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={handleCloseSmokingEdit} variant="outlined">
+            Hủy
+          </Button>
+          <Button onClick={handleSaveSmokingStatus} variant="contained">
+            Lưu thay đổi
           </Button>
         </DialogActions>
       </Dialog>

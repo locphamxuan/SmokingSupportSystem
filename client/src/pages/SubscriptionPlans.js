@@ -24,6 +24,7 @@ import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import { useNavigate } from 'react-router-dom';
 import Payment from '../components/Payment';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 
 // Styled components
 const StyledCard = styled(Card, {
@@ -115,7 +116,7 @@ const SubscriptionPlans = () => {
         return;
       }
 
-      const response = await axios.put('http://localhost:5000/api/auth/upgrade-member', {}, {
+      const response = await axios.put(`${API_BASE_URL}/auth/upgrade-member`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       

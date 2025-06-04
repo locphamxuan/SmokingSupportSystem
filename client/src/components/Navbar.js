@@ -113,9 +113,6 @@ const Navbar = () => {
               Tư vấn & Đặt lịch
             </Button>
           )}
-          {isLoggedIn && isCoach && (
-            <Button onClick={() => navigate('/coach-chat-members')}>Trả lời chat</Button>
-          )}
         </Box>
 
         {/* User menu bên phải */}
@@ -180,6 +177,26 @@ const Navbar = () => {
                     }}
                   >
                     Lịch tư vấn
+                  </MenuItem>
+                )}
+                {isCoach && (
+                  <MenuItem
+                    onClick={() => {
+                      handleClose();
+                      navigate('/coach-chat-members');
+                    }}
+                  >
+                    Trò chuyện với thành viên
+                  </MenuItem>
+                )}
+                {isCoach && (
+                  <MenuItem
+                    onClick={() => {
+                      handleClose();
+                      navigate('/coach-members');
+                    }}
+                  >
+                    Quản lý kế hoạch & tiến trình
                   </MenuItem>
                 )}
                 <MenuItem onClick={handleLogout}>Đăng xuất</MenuItem>
