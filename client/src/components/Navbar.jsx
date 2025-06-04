@@ -67,7 +67,7 @@ const Navbar = () => {
         >
           <SmokeIcon sx={{ fontSize: 32, mr: 1, color: '#68d391' }} />
           <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-            🚭 Cai Thuốc Lá
+            Hành Trình Không Khói
           </Typography>
         </Box>
         
