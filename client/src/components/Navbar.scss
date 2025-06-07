@@ -1,0 +1,171 @@
+.header {
+    background: #ffffff;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 8px 20px; // Giảm padding top/bottom của header
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+
+    .header-left {
+        display: flex;
+        align-items: center;
+        gap: 40px;
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            height: 50px; // Chiều cao cố định cho container logo
+
+            .logo-img {
+                height: 40px; // Chiều cao của logo
+                width: auto; // Tự động điều chỉnh chiều rộng
+                object-fit: contain; // Giữ tỷ lệ khung hình
+                display: block;
+            }
+
+            .logo-text {
+                font-size: 20px; // hoặc 18px nếu muốn cân đối
+            }
+        }
+
+
+
+        .nav {
+            display: flex;
+            gap: 24px;
+
+            .nav-item {
+                text-decoration: none;
+                color: #333;
+                font-size: 14px;
+                padding: 8px 12px;
+                border-radius: 4px;
+                transition: all 0.3s ease;
+
+                &:hover {
+                    background-color: #f0f0f0;
+                }
+
+                &.active {
+                    background-color: #4a90e2;
+                    color: #ffffff;
+                }
+            }
+        }
+    }
+
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+
+        .auth-buttons {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+
+            .nav-item {
+                text-decoration: none;
+                color: #666;
+                font-size: 14px;
+                padding: 8px 12px;
+                border-radius: 4px;
+                transition: all 0.3s ease;
+
+                &:hover {
+                    background-color: #f0f0f0;
+                }
+            }
+
+            .btn-primary {
+                text-decoration: none;
+                background-color: #4a90e2;
+                color: #ffffff;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: 500;
+                transition: all 0.3s ease;
+
+                &:hover {
+                    background-color: darken(#4a90e2, 10%);
+                }
+            }
+        }
+
+        .user-menu {
+            position: relative;
+
+            .avatar-container {
+                cursor: pointer;
+
+                .user-avatar {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                    object-fit: cover;
+                }
+            }
+
+            .dropdown-menu {
+                position: absolute;
+                top: 100%;
+                right: 0;
+                margin-top: 8px;
+                background: #ffffff;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                min-width: 180px;
+                padding: 8px 0;
+
+                .dropdown-item {
+                    display: block;
+                    padding: 8px 16px;
+                    color: #333;
+                    text-decoration: none;
+                    font-size: 14px;
+                    width: 100%;
+                    text-align: left;
+                    border: none;
+                    background: none;
+                    cursor: pointer;
+                    transition: background-color 0.3s ease;
+
+                    &:hover {
+                        background-color: #f8f9fa;
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Responsive styles
+@media (max-width: 992px) {
+    .header {
+        .header-left {
+            .nav {
+                display: none;
+            }
+        }
+    }
+}
+
+@media (max-width: 768px) {
+    .header {
+        padding: 12px;
+        flex-direction: column;
+        gap: 12px;
+
+        .header-left,
+        .header-right {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+}
