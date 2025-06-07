@@ -6,9 +6,10 @@ import HomePage from './pages/HomePage';
 import BlogPage from './pages/BlogPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import AdminUserPage from './pages/AdminUserPage';
-import LoginPage from './pages/LoginPage';
+import LoginPage from './pages/Login';
 import ProfilePage from './pages/ProfilePage';
 import SubscriptionPlans from './pages/SubscriptionPlans';
+import Register from './pages/Register';
 
 const theme = createTheme({
   palette: {
@@ -62,6 +63,8 @@ function App() {
             } 
           />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<Register />} />
+        
           <Route 
             path="/profile" 
             element={
