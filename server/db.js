@@ -8,7 +8,9 @@ const config = {
   database: process.env.DB_NAME || 'SmokingSupportPlatform',
   options: {
     encrypt: false, // true nếu dùng Azure
-    trustServerCertificate: true // dùng cho local dev
+    trustServerCertificate: true, // dùng cho local dev
+    charset: 'utf8',
+    // collate: 'Vietnamese_CI_AS' // Thử collation cụ thể nếu utf8 không đủ
   }
 };
 

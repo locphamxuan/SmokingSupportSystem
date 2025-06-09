@@ -1,4 +1,4 @@
-//trang đăng ký gói nâng cấp
+// Trang đăng ký gói nâng cấp
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -17,15 +17,19 @@ import {
   Alert,
   Snackbar,
   Divider,
-  Paper
+  Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import { useNavigate } from 'react-router-dom';
-import Payment from '../components/Payment';
+import Payment from '../components/Payment'; // Component xử lý thanh toán
 import axios from 'axios';
 
-// Styled components
+// Styled components cho các thành phần UI
 const StyledCard = styled(Card, {
   shouldForwardProp: (prop) => prop !== 'isPremium'
 })(({ theme, isPremium }) => ({
@@ -76,11 +80,16 @@ const PremiumStatusCard = styled(Paper)(({ theme }) => ({
 
 const SubscriptionPlans = () => {
   const navigate = useNavigate();
+  // State để lưu trữ thông báo lỗi
   const [error, setError] = useState('');
+  // State để lưu trữ thông báo thành công
   const [success, setSuccess] = useState('');
+  // State để quản lý việc mở/đóng dialog thanh toán
   const [paymentOpen, setPaymentOpen] = useState(false);
+  // State để lưu trữ thông tin người dùng hiện tại
   const [user, setUser] = useState(null);
 
+  // Định nghĩa các tính năng cho gói miễn phí và Premium
   const features = {
     free: [
       'Theo dõi thời gian cai thuốc',
@@ -89,7 +98,7 @@ const SubscriptionPlans = () => {
       'Cộng đồng hỗ trợ'
     ],
     premium: [
-      'Tất cả tính năng Free',
+      'Tất cả tính năng của gói Miễn phí',
       'Nhật ký chi tiết với hình ảnh',
       'Thống kê nâng cao',
       'Tư vấn chuyên gia',
@@ -98,39 +107,43 @@ const SubscriptionPlans = () => {
     ]
   };
 
+  // Xử lý khi nhấn nút nâng cấp
   const handleUpgrade = () => {
-    setPaymentOpen(true);
+    setPaymentOpen(true); // Mở dialog thanh toán
   };
 
+  // Xử lý đóng Snackbar thông báo
   const handleCloseSnackbar = () => {
     setError('');
     setSuccess('');
   };
 
+  // Xử lý khi thanh toán thành công
   const handlePaymentSuccess = async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        navigate('/login');
+        navigate('/login'); // Điều hướng nếu không có token
         return;
       }
 
+      // Gửi yêu cầu API để nâng cấp tài khoản thành viên
       const response = await axios.put('http://localhost:5000/api/auth/upgrade-member', {}, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` } // Gửi token xác thực
       });
       
       if (response.data && response.data.user) {
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        localStorage.setItem('user', JSON.stringify(response.data.user)); // Cập nhật thông tin người dùng trong localStorage
         setUser(response.data.user);
-        setSuccess('Nâng cấp tài khoản thành công!');
+        setSuccess('Nâng cấp tài khoản thành công!'); // Thông báo thành công
         setTimeout(() => {
-          navigate('/profile');
+          navigate('/profile'); // Điều hướng về trang profile sau 2 giây
         }, 2000);
       }
     } catch (error) {
-      console.error('Error upgrading account:', error);
+      console.error('Lỗi khi nâng cấp tài khoản:', error);
       if (error.response?.status === 401) {
-        localStorage.removeItem('token');
+        localStorage.removeItem('token'); // Xóa token và user nếu phiên hết hạn
         localStorage.removeItem('user');
         navigate('/login');
       } else if (error.response?.status === 400) {
@@ -141,6 +154,7 @@ const SubscriptionPlans = () => {
     }
   };
 
+  // useEffect để tải thông tin người dùng khi component được mount
   useEffect(() => {
     const userStr = localStorage.getItem("user");
     let currentUser = null;
@@ -153,23 +167,25 @@ const SubscriptionPlans = () => {
     }
 
     if (!currentUser) {
-      navigate('/login');
+      navigate('/login'); // Điều hướng nếu không có người dùng
       return;
     }
 
+    // Nếu là admin, điều hướng về trang admin
     if (currentUser.role === "admin") {
       navigate("/admin/users");
       return;
     }
 
-    setUser(currentUser);
+    setUser(currentUser); // Cập nhật state user
   }, [navigate]);
 
-  // Kiểm tra user đã là premium member chưa
+  // Kiểm tra xem người dùng đã là thành viên Premium hay chưa
   const isPremiumMember = user && (user.role === 'member' || user.isMember);
 
+  // Hiển thị trạng thái tải nếu chưa có thông tin người dùng
   if (!user) {
-    return null; // Loading state
+    return null; // Có thể thay bằng CircularProgress hoặc Skeleton
   }
 
   return (
@@ -179,8 +195,9 @@ const SubscriptionPlans = () => {
       py: 5
     }}>
       <Container>
+        {/* Hiển thị giao diện cho thành viên Premium hoặc Guest */}
         {isPremiumMember ? (
-          // Hiển thị cho user đã là premium member
+          // Giao diện cho user đã là Premium member
           <>
             <PremiumStatusCard>
               <WorkspacePremiumIcon sx={{ fontSize: 80, color: '#ff6b35', mb: 2 }} />
@@ -188,7 +205,7 @@ const SubscriptionPlans = () => {
                 🎉 Bạn đã đăng ký gói Premium!
               </Typography>
               <Typography variant="h6" color="text.secondary" paragraph>
-                Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ Premium của chúng tôi
+                Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ Premium của chúng tôi.
               </Typography>
               <Button
                 variant="contained"
@@ -231,15 +248,16 @@ const SubscriptionPlans = () => {
             </Grid>
           </>
         ) : (
-          // Hiển thị cho guest user
+          // Giao diện cho Guest user (chưa phải Premium)
           <>
             <Typography variant="h4" align="center" gutterBottom sx={{ mb: 5 }}>
               Chọn gói phù hợp với bạn
             </Typography>
             <Typography variant="h6" align="center" color="text.secondary" paragraph>
-              Nâng cấp lên Premium để trải nghiệm đầy đủ tính năng
+              Nâng cấp lên Premium để trải nghiệm đầy đủ tính năng.
             </Typography>
             <Grid container spacing={4} justifyContent="center">
+              {/* Gói Miễn phí */}
               <Grid item xs={12} md={6} lg={5}>
                 <StyledCard>
                   <CardContent sx={{ textAlign: 'center' }}>
@@ -249,51 +267,53 @@ const SubscriptionPlans = () => {
                     <Typography variant="h3" color="primary" gutterBottom>
                       Miễn phí
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Gói hiện tại của bạn
-                    </Typography>
-                    
-                    <Divider sx={{ my: 2 }} />
+                    <Typography variant="body2" color="text.secondary">Trải nghiệm cơ bản</Typography>
+                    <Divider sx={{ my: 3 }} />
                     <FeatureList>
                       {features.free.map((feature, index) => (
                         <FeatureItem key={index}>
                           <ListItemIcon sx={{ minWidth: 40 }}>
-                            <CheckCircleIcon sx={{ color: '#28a745' }} />
+                            <CheckCircleIcon color="success" />
                           </ListItemIcon>
                           <ListItemText primary={feature} />
                         </FeatureItem>
                       ))}
                     </FeatureList>
+                    <Button 
+                      variant="outlined" 
+                      disabled 
+                      size="large" 
+                      sx={{ mt: 4 }}
+                    >
+                      Đang sử dụng
+                    </Button>
                   </CardContent>
                 </StyledCard>
               </Grid>
+              {/* Gói Premium */}
               <Grid item xs={12} md={6} lg={5}>
                 <StyledCard isPremium>
                   <CardContent sx={{ textAlign: 'center' }}>
                     <Typography variant="h5" gutterBottom sx={{ mb: 4 }}>
                       Gói Premium
                     </Typography>
-                    <Typography variant="h3" gutterBottom>
-                      199.000đ/tháng
+                    <Typography variant="h3" gutterBottom sx={{ color: 'white', fontWeight: 'bold' }}>
+                      199.000 VNĐ <br/>
+                      <Typography variant="subtitle1" sx={{ color: 'rgba(255,255,255,0.7)' }}>/tháng</Typography>
                     </Typography>
-                    <Typography variant="body2" gutterBottom sx={{ opacity: 0.9 }}>
-                      Trải nghiệm đầy đủ tính năng
-                    </Typography>
-                    
-                    <Divider sx={{ my: 2 }} />
+                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>Nâng cao trải nghiệm</Typography>
+                    <Divider sx={{ my: 3, borderColor: 'rgba(255,255,255,0.3)' }} />
                     <FeatureList>
                       {features.premium.map((feature, index) => (
                         <FeatureItem key={index}>
                           <ListItemIcon sx={{ minWidth: 40 }}>
                             <CheckCircleIcon sx={{ color: 'white' }} />
                           </ListItemIcon>
-                          <ListItemText primary={feature} />
+                          <ListItemText primary={feature} sx={{ color: 'white' }} />
                         </FeatureItem>
                       ))}
                     </FeatureList>
-                    <UpgradeButton
-                      variant="contained"
-                      size="large"
+                    <UpgradeButton 
                       onClick={handleUpgrade}
                     >
                       Nâng cấp ngay
@@ -304,28 +324,25 @@ const SubscriptionPlans = () => {
             </Grid>
           </>
         )}
+
+        {/* Dialog thanh toán */}
+        <Dialog open={paymentOpen} onClose={() => setPaymentOpen(false)} maxWidth="md" fullWidth>
+          <DialogTitle sx={{ backgroundColor: '#1976d2', color: 'white' }}>Thanh toán Gói Premium</DialogTitle>
+          <DialogContent>
+            <Payment onPaymentSuccess={handlePaymentSuccess} onPaymentError={(msg) => setError(msg)} />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setPaymentOpen(false)}>Đóng</Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Snackbar thông báo chung */}
+        <Snackbar open={!!error || !!success} autoHideDuration={6000} onClose={handleCloseSnackbar}>
+          <Alert onClose={handleCloseSnackbar} severity={error ? "error" : "success"} sx={{ width: '100%' }}>
+            {error || success}
+          </Alert>
+        </Snackbar>
       </Container>
-
-      <Payment
-        open={paymentOpen}
-        onClose={() => setPaymentOpen(false)}
-        onSuccess={handlePaymentSuccess}
-      />
-
-      {/* Success/Error Messages */}
-      <Snackbar
-        open={!!error || !!success}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={error ? 'error' : 'success'}
-          sx={{ width: '100%' }}
-        >
-          {error || success}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };

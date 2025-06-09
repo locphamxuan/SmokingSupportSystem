@@ -1,34 +1,76 @@
 const jwt = require('jsonwebtoken');
 const { sql } = require('../db');
+const SECRET_KEY = process.env.JWT_SECRET || 'your-super-secret-key'; // Đặt khóa bí mật JWT của bạn ở đây
 
-// Middleware xác thực JWT
-exports.verifyToken = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ message: 'Không có token' });
-  const token = authHeader.split(' ')[1];
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    req.user = decoded; // phải là user, không phải guest
-    next();
-  } catch (err) {
-    return res.status(401).json({ message: 'Token không hợp lệ' });
-  }
+// Middleware xác thực JWT cho các yêu cầu
+const authenticateToken = async (req, res, next) => {
+    try {
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1];
+
+        if (!token) {
+            return res.status(401).json({ message: 'Authentication token required' });
+        }
+
+        const decoded = jwt.verify(token, SECRET_KEY);
+        
+        const userId = decoded.userId;
+
+        // Lấy dữ liệu người dùng từ cơ sở dữ liệu
+        const result = await sql.query`
+            SELECT Id, Username, Email, Role, IsMember, CoachId 
+            FROM Users 
+            WHERE Id = ${userId}
+        `;
+
+        if (result.recordset.length === 0) {
+            return res.status(401).json({ message: 'User not found' });
+        }
+
+        // Đính kèm dữ liệu người dùng vào đối tượng yêu cầu (req.user)
+        req.user = {
+            id: result.recordset[0].Id,
+            username: result.recordset[0].Username,
+            email: result.recordset[0].Email,
+            role: result.recordset[0].Role,
+            isMember: result.recordset[0].IsMember,
+            coachId: result.recordset[0].CoachId
+        };
+
+        next();
+    } catch (error) {
+        console.error('Auth error:', error);
+        return res.status(403).json({ message: 'Invalid or expired token' });
+    }
 };
 
-// Kiểm tra quyền premium
-exports.isPremium = (req, res, next) => {
-  if (req.user && req.user.IsPremium) {
-    next();
-  } else {
-    res.status(403).json({ message: 'Tính năng này chỉ dành cho tài khoản Premium' });
-  }
-};
-
+// Middleware kiểm tra quyền quản trị viên
 const isAdmin = (req, res, next) => {
-  if (req.user && (req.user.role === 'admin' || req.user.IsAdmin)) {
+    if (!req.user || req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin access required' });
+    }
     next();
-  } else {
-    res.status(403).json({ message: 'Bạn không có quyền truy cập tính năng này' });
-  }
 };
-exports.isAdmin = isAdmin;
+
+// Middleware kiểm tra quyền huấn luyện viên
+const isCoach = (req, res, next) => {
+    if (!req.user || req.user.role !== 'coach') {
+        return res.status(403).json({ message: 'Coach access required' });
+    }
+    next();
+};
+
+// Middleware kiểm tra quyền thành viên
+const isMember = (req, res, next) => {
+    if (!req.user || !req.user.isMember) {
+        return res.status(403).json({ message: 'Member access required' });
+    }
+    next();
+};
+
+module.exports = {
+    authenticateToken,
+    isAdmin,
+    isCoach,
+    isMember
+};
