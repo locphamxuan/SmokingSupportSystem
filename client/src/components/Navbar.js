@@ -104,15 +104,7 @@ const Navbar = () => {
               Gói Premium
             </Button>
           )}
-          {isLoggedIn && !isAdmin && !isCoach && (
-            <Button 
-              color="inherit" 
-              component={RouterLink} 
-              to="/consult-coach"
-            >
-              Tư vấn & Đặt lịch
-            </Button>
-          )}
+         
         </Box>
 
         {/* User menu bên phải */}
@@ -121,7 +113,7 @@ const Navbar = () => {
             <>
               <IconButton
                 size="large"
-                aria-label="account of current user"
+                aria-label="tài khoản người dùng hiện tại"
                 aria-controls="menu-appbar"
                 aria-haspopup="true"
                 onClick={handleMenu}
@@ -173,30 +165,10 @@ const Navbar = () => {
                   <MenuItem
                     onClick={() => {
                       handleClose();
-                      navigate('/coach-portal');
+                      navigate('/coach/dashboard');
                     }}
                   >
-                    Lịch tư vấn
-                  </MenuItem>
-                )}
-                {isCoach && (
-                  <MenuItem
-                    onClick={() => {
-                      handleClose();
-                      navigate('/coach-chat-members');
-                    }}
-                  >
-                    Trò chuyện với thành viên
-                  </MenuItem>
-                )}
-                {isCoach && (
-                  <MenuItem
-                    onClick={() => {
-                      handleClose();
-                      navigate('/coach-members');
-                    }}
-                  >
-                    Quản lý kế hoạch & tiến trình
+                    Lịch hẹn và tiến độ của member
                   </MenuItem>
                 )}
                 <MenuItem onClick={handleLogout}>Đăng xuất</MenuItem>

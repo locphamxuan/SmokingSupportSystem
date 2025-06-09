@@ -22,14 +22,20 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const LoginPage = () => {
+  // State quản lý tab đang hoạt động (Đăng nhập/Đăng ký)
   const [activeTab, setActiveTab] = useState(0);
+  // State quản lý trạng thái tải (loading)
   const [loading, setLoading] = useState(false);
+  // State quản lý thông báo lỗi
   const [error, setError] = useState('');
-  const [userType, setUserType] = useState('member'); // 'member' or 'coach'
+  // State quản lý loại người dùng (thành viên, huấn luyện viên, quản trị viên)
+  const [userType, setUserType] = useState('member'); 
   
+  // State và lỗi cho form đăng nhập
   const [loginData, setLoginData] = useState({ emailOrUsername: '', password: '' });
   const [loginErrors, setLoginErrors] = useState({ emailOrUsername: '', password: '' });
   
+  // State và lỗi cho form đăng ký
   const [registerData, setRegisterData] = useState({
     username: '',
     email: '',
@@ -49,16 +55,19 @@ const LoginPage = () => {
 
   const navigate = useNavigate();
 
+  // Hàm kiểm tra định dạng email
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
   };
 
+  // Hàm kiểm tra định dạng số điện thoại
   const validatePhoneNumber = (phone) => {
     const re = /^[0-9]{10}$/;
     return re.test(phone);
   };
 
+  // Hàm kiểm tra lỗi form đăng nhập
   const validateLoginForm = () => {
     const errors = {};
     if (!loginData.emailOrUsername) {
@@ -71,6 +80,7 @@ const LoginPage = () => {
     return Object.keys(errors).length === 0;
   };
 
+  // Hàm kiểm tra lỗi form đăng ký
   const validateRegisterForm = () => {
     const errors = {};
     if (!registerData.username) {
@@ -103,6 +113,7 @@ const LoginPage = () => {
     return Object.keys(errors).length === 0;
   };
 
+  // Xử lý thay đổi tab
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
     setError('');
@@ -110,26 +121,31 @@ const LoginPage = () => {
     setRegisterErrors({});
   };
 
+  // Xử lý thay đổi input form đăng nhập
   const handleLoginInputChange = (e) => {
     setLoginData({ ...loginData, [e.target.name]: e.target.value });
     setLoginErrors({ ...loginErrors, [e.target.name]: '' });
   };
 
+  // Xử lý thay đổi input form đăng ký
   const handleRegisterInputChange = (e) => {
     setRegisterData({ ...registerData, [e.target.name]: e.target.value });
     setRegisterErrors({ ...registerErrors, [e.target.name]: '' });
   };
 
+  // Xử lý submit form đăng nhập
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
+    // Kiểm tra hợp lệ form
     if (!validateLoginForm()) return;
 
     setLoading(true);
     setError('');
     try {
+      localStorage.clear(); // Xóa dữ liệu cũ trong localStorage
       const endpoint = 'http://localhost:5000/api/auth/login';
       const loginPayload = {
-        email: loginData.emailOrUsername,
+        emailOrUsername: loginData.emailOrUsername,
         password: loginData.password
       };
 
@@ -138,7 +154,7 @@ const LoginPage = () => {
 
       // Kiểm tra role với userType đã chọn
       if (
-        (userType === 'member' && user.role !== 'member' && user.role !== 'guest') ||
+        (userType === 'member' && user.role !== 'member' && user.role !== 'guest' && user.role !== 'user') ||
         (userType === 'coach' && user.role !== 'coach') ||
         (userType === 'admin' && user.role !== 'admin')
       ) {
@@ -147,10 +163,13 @@ const LoginPage = () => {
         return;
       }
 
+      // Lưu token và thông tin người dùng vào localStorage
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
+      // Thiết lập token cho các request axios tiếp theo
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
+      // Điều hướng người dùng đến trang phù hợp dựa trên vai trò
       if (user.role === 'coach') {
         navigate('/coach-portal');
       } else if (user.role === 'admin') {
@@ -159,19 +178,23 @@ const LoginPage = () => {
         navigate('/');
       }
     } catch (error) {
+      // Xử lý lỗi đăng nhập
       setError(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại!');
     } finally {
       setLoading(false);
     }
   };
 
+  // Xử lý submit form đăng ký
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
+    // Kiểm tra hợp lệ form
     if (!validateRegisterForm()) return;
     
     setLoading(true);
     setError('');
     try {
+      localStorage.clear(); // Xóa dữ liệu cũ trong localStorage
       const response = await axios.post('http://localhost:5000/api/auth/register', {
         username: registerData.username,
         email: registerData.email,
@@ -181,14 +204,18 @@ const LoginPage = () => {
       });
       
       const { token, user } = response.data;
+      // Lưu token và thông tin người dùng vào localStorage
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
       
+      // Thiết lập token cho các request axios tiếp theo
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       setError('');
+      // Điều hướng người dùng về trang chủ sau khi đăng ký thành công
       navigate('/');
     } catch (error) {
+      // Xử lý lỗi đăng ký
       console.error('Lỗi đăng ký:', error);
       setError(error.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại!');
     } finally {
@@ -233,8 +260,10 @@ const LoginPage = () => {
             </Alert>
           )}
 
+          {/* Form Đăng nhập */}
           {activeTab === 0 ? (
             <Box component="form" onSubmit={handleLoginSubmit} sx={{ mt: 3 }}>
+              {/* Chọn loại tài khoản */}
               <FormControl fullWidth margin="normal">
                 <InputLabel>Loại tài khoản</InputLabel>
                 <Select
@@ -247,132 +276,138 @@ const LoginPage = () => {
                   <MenuItem value="admin">Quản trị viên</MenuItem>
                 </Select>
               </FormControl>
-              
+              {/* Trường Email hoặc Tên đăng nhập */}
               <TextField
-                margin="normal"
-                required
+                label="Email hoặc Tên đăng nhập"
+                variant="outlined"
                 fullWidth
-                label={userType === 'coach' ? "Email" : "Email hoặc Tên đăng nhập"}
+                margin="normal"
                 name="emailOrUsername"
                 value={loginData.emailOrUsername}
                 onChange={handleLoginInputChange}
                 error={!!loginErrors.emailOrUsername}
                 helperText={loginErrors.emailOrUsername}
-                disabled={loading}
               />
+              {/* Trường Mật khẩu */}
               <TextField
-                margin="normal"
-                required
-                fullWidth
                 label="Mật khẩu"
-                name="password"
                 type="password"
+                variant="outlined"
+                fullWidth
+                margin="normal"
+                name="password"
                 value={loginData.password}
                 onChange={handleLoginInputChange}
                 error={!!loginErrors.password}
                 helperText={loginErrors.password}
-                disabled={loading}
               />
-              <Box sx={{ mt: 1, mb: 2, textAlign: 'right' }}>
-                <Link href="/forgot-password" variant="body2">
+              {/* Nút Đăng nhập */}
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                fullWidth
+                size="large"
+                sx={{ mt: 3, mb: 2, height: 50 }}
+                disabled={loading}
+              >
+                {loading ? <CircularProgress size={24} color="inherit" /> : 'Đăng nhập'}
+              </Button>
+              {/* Link quên mật khẩu */}
+              <Box sx={{ textAlign: 'center', mt: 2 }}>
+                <Link href="#" variant="body2" onClick={(e) => e.preventDefault()} sx={{ color: 'primary.main' }}>
                   Quên mật khẩu?
                 </Link>
               </Box>
-              <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                disabled={loading}
-                sx={{ mt: 3, mb: 2, py: 1.5 }}
-              >
-                {loading ? <CircularProgress size={24} /> : 'Đăng nhập'}
-              </Button>
             </Box>
           ) : (
+            /* Form Đăng ký */
             <Box component="form" onSubmit={handleRegisterSubmit} sx={{ mt: 3 }}>
+              {/* Trường Tên đăng nhập */}
               <TextField
-                margin="normal"
-                required
-                fullWidth
                 label="Tên đăng nhập"
+                variant="outlined"
+                fullWidth
+                margin="normal"
                 name="username"
                 value={registerData.username}
                 onChange={handleRegisterInputChange}
                 error={!!registerErrors.username}
                 helperText={registerErrors.username}
-                disabled={loading}
               />
+              {/* Trường Email */}
               <TextField
-                margin="normal"
-                required
+                label="Email"
+                variant="outlined"
                 fullWidth
+                margin="normal"
+                name="email"
+                value={registerData.email}
+                onChange={handleRegisterInputChange}
+                error={!!registerErrors.email}
+                helperText={registerErrors.email}
+              />
+              {/* Trường Số điện thoại */}
+              <TextField
                 label="Số điện thoại"
+                variant="outlined"
+                fullWidth
+                margin="normal"
                 name="phoneNumber"
                 value={registerData.phoneNumber}
                 onChange={handleRegisterInputChange}
                 error={!!registerErrors.phoneNumber}
                 helperText={registerErrors.phoneNumber}
-                disabled={loading}
               />
+              {/* Trường Địa chỉ */}
               <TextField
-                margin="normal"
-                required
-                fullWidth
                 label="Địa chỉ"
+                variant="outlined"
+                fullWidth
+                margin="normal"
                 name="address"
                 value={registerData.address}
                 onChange={handleRegisterInputChange}
                 error={!!registerErrors.address}
                 helperText={registerErrors.address}
-                disabled={loading}
               />
+              {/* Trường Mật khẩu */}
               <TextField
-                margin="normal"
-                required
-                fullWidth
-                label="Email"
-                name="email"
-                type="email"
-                value={registerData.email}
-                onChange={handleRegisterInputChange}
-                error={!!registerErrors.email}
-                helperText={registerErrors.email}
-                disabled={loading}
-              />
-              <TextField
-                margin="normal"
-                required
-                fullWidth
                 label="Mật khẩu"
-                name="password"
                 type="password"
+                variant="outlined"
+                fullWidth
+                margin="normal"
+                name="password"
                 value={registerData.password}
                 onChange={handleRegisterInputChange}
                 error={!!registerErrors.password}
                 helperText={registerErrors.password}
-                disabled={loading}
               />
+              {/* Trường Xác nhận mật khẩu */}
               <TextField
-                margin="normal"
-                required
-                fullWidth
                 label="Xác nhận mật khẩu"
-                name="confirmPassword"
                 type="password"
+                variant="outlined"
+                fullWidth
+                margin="normal"
+                name="confirmPassword"
                 value={registerData.confirmPassword}
                 onChange={handleRegisterInputChange}
                 error={!!registerErrors.confirmPassword}
                 helperText={registerErrors.confirmPassword}
-                disabled={loading}
               />
+              {/* Nút Đăng ký */}
               <Button
                 type="submit"
-                fullWidth
                 variant="contained"
+                color="secondary"
+                fullWidth
+                size="large"
+                sx={{ mt: 3, mb: 2, height: 50 }}
                 disabled={loading}
-                sx={{ mt: 3, mb: 2, py: 1.5 }}
               >
-                {loading ? <CircularProgress size={24} /> : 'Đăng ký'}
+                {loading ? <CircularProgress size={24} color="inherit" /> : 'Đăng ký'}
               </Button>
             </Box>
           )}

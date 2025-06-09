@@ -11,14 +11,12 @@ import ProfilePage from './pages/ProfilePage';
 import SubscriptionPlans from './pages/SubscriptionPlans';
 import MyProgressPage from './pages/MyProgressPage';
 import AchievementsPage from './pages/AchievementsPage';
-import ConsultCoachPage from './pages/ConsultCoachPage';
-import BookConsultationPage from './pages/BookConsultationPage';
 import ChatCoachPage from './pages/ChatCoachPage';
-import CoachPortalPage from './pages/CoachPortalPage';
-import CoachChatMembersPage from './pages/CoachChatMembersPage';
-import CoachMemberListPage from './pages/CoachMemberListPage';
-import CoachMemberDetailPage from './pages/CoachMemberDetailPage';
+import CoachChatPage from './pages/CoachChatPage';
+import CoachDashboardPage from './pages/CoachDashboardPage';
+import CoachMemberProgressPage from './pages/CoachMemberProgressPage';
 
+// Cấu hình theme cho Material-UI
 const theme = createTheme({
   palette: {
     primary: {
@@ -30,8 +28,8 @@ const theme = createTheme({
   },
 });
 
-// Protected Route Component
-const ProtectedRoute = ({ children, requireAdmin = false }) => {
+// Component bảo vệ route - kiểm tra quyền truy cập
+const ProtectedRoute = ({ children, requireAdmin = false, requireCoach = false }) => {
   const userStr = localStorage.getItem('user');
   let user = null;
   try {
@@ -50,6 +48,10 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
     return <Navigate to="/" replace />;
   }
 
+  if (requireCoach && user.role !== 'coach') {
+    return <Navigate to="/" replace />;
+  }
+
   return children;
 };
 
@@ -59,20 +61,15 @@ function App() {
       <Router future={{ v7_relativeSplatPath: true }}>
         <Navbar />
         <Routes>
-          <Route path="/my-progress" element={<MyProgressPage />} />
-          <Route path="/achievements" element={<AchievementsPage />} />
+          {/* Các route công khai */}
           <Route path="/" element={<HomePage />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
-          <Route 
-            path="/admin/users" 
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <AdminUserPage />
-              </ProtectedRoute>
-            } 
-          />
           <Route path="/login" element={<LoginPage />} />
+
+          {/* Các route yêu cầu đăng nhập */}
+          <Route path="/my-progress" element={<MyProgressPage />} />
+          <Route path="/achievements" element={<AchievementsPage />} />
           <Route 
             path="/profile" 
             element={
@@ -89,15 +86,46 @@ function App() {
               </ProtectedRoute>
             } 
           />
-          <Route path="/consult-coach" element={<ConsultCoachPage />} />
-          <Route path="/book-consultation" element={<BookConsultationPage />} />
           <Route path="/chat-coach/:coachId" element={<ChatCoachPage />} />
-          <Route path="/coach-portal" element={<CoachPortalPage />} />
-          <Route path="/coach-chat-members" element={<CoachChatMembersPage />} />
-          <Route path="/coach-members" element={<CoachMemberListPage />} />
-          <Route path="/coach-member/:memberId" element={<CoachMemberDetailPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
           
+          {/* Các route dành cho huấn luyện viên */}
+          <Route 
+            path="/coach/dashboard" 
+            element={
+              <ProtectedRoute requireCoach={true}>
+                <CoachDashboardPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/coach/chat/:memberId" 
+            element={
+              <ProtectedRoute requireCoach={true}>
+                <CoachChatPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/coach/member/:memberId/progress" 
+            element={
+              <ProtectedRoute requireCoach={true}>
+                <CoachMemberProgressPage />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Các route dành cho quản trị viên */}
+          <Route 
+            path="/admin/users" 
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminUserPage />
+              </ProtectedRoute>
+            } 
+          />
+            
+          {/* Route mặc định - chuyển hướng về trang chủ */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
     </ThemeProvider>

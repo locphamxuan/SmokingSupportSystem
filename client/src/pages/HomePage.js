@@ -18,6 +18,7 @@ import {
 } from '@mui/icons-material';
 
 const HomePage = () => {
+  // Danh sách các lợi ích khi cai thuốc lá
   const benefits = [
     {
       icon: <HealthIcon sx={{ fontSize: 50, color: '#e53e3e' }} />,
@@ -45,6 +46,7 @@ const HomePage = () => {
     }
   ];
 
+  // Lịch trình phục hồi sức khỏe sau khi bỏ thuốc
   const timeline = [
     { time: '20 phút', benefit: 'Nhịp tim và huyết áp trở về bình thường' },
     { time: '12 giờ', benefit: 'Lượng CO trong máu giảm xuống mức bình thường' },
@@ -54,6 +56,7 @@ const HomePage = () => {
     { time: '5 năm', benefit: 'Nguy cơ đột quỵ giảm như người không hút thuốc' }
   ];
 
+  // Các bước để bắt đầu hành trình cai thuốc
   const steps = [
     {
       title: 'Đăng ký tài khoản',
@@ -79,7 +82,7 @@ const HomePage = () => {
 
   return (
     <>
-      {/* Hero Section - Smoking Cessation Theme */}
+      {/* Phần Hero - Chủ đề Cai Thuốc Lá */}
       <Box
         sx={{
           background: 'linear-gradient(135deg, #2d3748 0%, #4a5568 50%, #718096 100%)',
@@ -168,7 +171,7 @@ const HomePage = () => {
       </Box>
 
       <Container maxWidth="lg">
-        {/* Benefits Section */}
+        {/* Phần Lợi ích */}
         <Box sx={{ my: 8 }}>
           <Typography 
             variant="h3" 
@@ -244,15 +247,15 @@ const HomePage = () => {
           </Grid>
         </Box>
 
-        {/* Timeline Section */}
+        {/* Phần Lịch trình phục hồi */}
         <Box sx={{ my: 8 }}>
           <Paper 
             elevation={0}
             sx={{ 
-              p: 6,
-              background: 'linear-gradient(145deg, #f0fff4 0%, #c6f6d5 100%)',
+              p: 4, 
               borderRadius: 4,
-              border: '2px solid #9ae6b4'
+              background: 'linear-gradient(145deg, #ffffff 0%, #f7fafc 100%)',
+              border: '2px solid #e2e8f0'
             }}
           >
             <Typography 
@@ -261,52 +264,40 @@ const HomePage = () => {
               sx={{ 
                 textAlign: 'center',
                 fontWeight: 'bold',
-                color: '#22543d',
+                color: '#2d3748',
                 mb: 4
               }}
             >
-              ⏰ Timeline phục hồi sức khỏe
+              ⏰ Lịch trình phục hồi sức khỏe
             </Typography>
-            
-            <Grid container spacing={3}>
+            <Box sx={{ maxWidth: 800, mx: 'auto' }}>
               {timeline.map((item, index) => (
-                <Grid item xs={12} sm={6} md={4} key={index}>
-                  <Box 
-                    sx={{ 
-                      p: 3,
-                      backgroundColor: 'rgba(255,255,255,0.8)',
-                      borderRadius: 3,
-                      border: '1px solid #9ae6b4',
-                      height: '100%'
-                    }}
-                  >
+                <Box key={index} sx={{ mb: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                     <Typography 
-                      variant="h5" 
+                      variant="h6" 
                       sx={{ 
                         fontWeight: 'bold',
-                        color: '#38a169',
-                        mb: 2
+                        color: '#3182ce',
+                        minWidth: 100
                       }}
                     >
                       {item.time}
                     </Typography>
-                    <Typography 
-                      variant="body1" 
-                      sx={{ 
-                        color: '#22543d',
-                        lineHeight: 1.6
-                      }}
-                    >
+                    <Typography variant="body1" sx={{ color: '#4a5568' }}>
                       {item.benefit}
                     </Typography>
                   </Box>
-                </Grid>
+                  {index < timeline.length - 1 && (
+                    <Divider sx={{ my: 2 }} />
+                  )}
+                </Box>
               ))}
-            </Grid>
+            </Box>
           </Paper>
         </Box>
 
-        {/* How it works Section */}
+        {/* Phần Các bước bắt đầu */}
         <Box sx={{ my: 8 }}>
           <Typography 
             variant="h3" 
@@ -315,173 +306,65 @@ const HomePage = () => {
               textAlign: 'center',
               fontWeight: 'bold',
               color: '#2d3748',
-              mb: 6
+              mb: 4
             }}
           >
-            🚀 Cách thức hoạt động
+            🎯 Bắt đầu hành trình cai thuốc
           </Typography>
-          
           <Grid container spacing={4}>
             {steps.map((step, index) => (
               <Grid item xs={12} sm={6} md={3} key={index}>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Box
-                    sx={{
-                      width: 80,
-                      height: 80,
-                      borderRadius: '50%',
-                      backgroundColor: '#4299e1',
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '2rem',
-                      mx: 'auto',
-                      mb: 3,
-                      position: 'relative',
-                      '&::after': {
-                        content: `"${index + 1}"`,
-                        position: 'absolute',
-                        bottom: -5,
-                        right: -5,
-                        width: 25,
-                        height: 25,
-                        borderRadius: '50%',
-                        backgroundColor: '#e53e3e',
-                        color: 'white',
-                        fontSize: '0.8rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 'bold'
-                      }
-                    }}
-                  >
-                    {step.icon}
-                  </Box>
-                  <Typography 
-                    variant="h5" 
-                    gutterBottom 
-                    sx={{ fontWeight: 'bold', color: '#2d3748' }}
-                  >
-                    {step.title}
-                  </Typography>
-                  <Typography 
-                    variant="body1" 
-                    sx={{ color: '#4a5568', lineHeight: 1.6 }}
-                  >
-                    {step.description}
-                  </Typography>
-                </Box>
+                <Card 
+                  sx={{ 
+                    height: '100%',
+                    textAlign: 'center',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-10px)',
+                      boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
+                    },
+                    borderRadius: 4,
+                    border: '2px solid #e2e8f0',
+                    background: 'linear-gradient(145deg, #ffffff 0%, #f7fafc 100%)'
+                  }}
+                >
+                  <CardContent sx={{ p: 4 }}>
+                    <Typography 
+                      variant="h1" 
+                      sx={{ 
+                        fontSize: '3rem',
+                        mb: 2
+                      }}
+                    >
+                      {step.icon}
+                    </Typography>
+                    <Typography 
+                      variant="h5" 
+                      gutterBottom 
+                      sx={{ 
+                        fontWeight: 'bold',
+                        color: '#2d3748',
+                        mb: 2
+                      }}
+                    >
+                      {step.title}
+                    </Typography>
+                    <Typography 
+                      variant="body1" 
+                      sx={{ 
+                        color: '#4a5568',
+                        lineHeight: 1.6
+                      }}
+                    >
+                      {step.description}
+                    </Typography>
+                  </CardContent>
+                </Card>
               </Grid>
             ))}
           </Grid>
         </Box>
-
-        {/* Motivation Section */}
-        <Box sx={{ my: 8 }}>
-          <Paper 
-            elevation={0}
-            sx={{ 
-              p: 6,
-              background: 'linear-gradient(145deg, #fef5e7 0%, #fed7aa 100%)',
-              borderRadius: 4,
-              border: '2px solid #f6ad55',
-              textAlign: 'center'
-            }}
-          >
-            <Typography 
-              variant="h3" 
-              gutterBottom 
-              sx={{ 
-                fontWeight: 'bold',
-                color: '#c05621',
-                mb: 3
-              }}
-            >
-              💪 Bạn có thể làm được!
-            </Typography>
-            <Typography 
-              variant="h5" 
-              sx={{ 
-                color: '#9c4221',
-                lineHeight: 1.6,
-                mb: 4,
-                fontStyle: 'italic'
-              }}
-            >
-              "Cai thuốc lá không phải là từ bỏ một thứ gì đó, mà là lấy lại cuộc sống của chính mình"
-            </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4, flexWrap: 'wrap' }}>
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#c05621' }}>
-                  85%
-                </Typography>
-                <Typography variant="body1" sx={{ color: '#9c4221' }}>
-                  Tỷ lệ thành công với hỗ trợ
-                </Typography>
-              </Box>
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#c05621' }}>
-                  10,000+
-                </Typography>
-                <Typography variant="body1" sx={{ color: '#9c4221' }}>
-                  Người đã cai thành công
-                </Typography>
-              </Box>
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#c05621' }}>
-                  24/7
-                </Typography>
-                <Typography variant="body1" sx={{ color: '#9c4221' }}>
-                  Hỗ trợ cộng đồng
-                </Typography>
-              </Box>
-            </Box>
-          </Paper>
-        </Box>
       </Container>
-
-      {/* Footer giữ nguyên */}
-      <Box 
-        component="footer" 
-        sx={{ 
-          mt: 6, 
-          py: 4, 
-          backgroundColor: '#1e3a8a', 
-          textAlign: 'center',
-          width: '100%',
-          left: 0,
-          right: 0,
-          borderTop: '1px solid #2563eb',
-          color: 'white',
-          boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.1)'
-        }}
-      >
-        <Container maxWidth="lg">
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: '#60a5fa' }}>
-            Nền tảng hỗ trợ cai nghiện thuốc lá
-          </Typography>
-          
-          <Divider sx={{ my: 2, mx: 'auto', width: '50%', borderColor: 'rgba(255,255,255,0.2)' }} />
-          
-          <Box sx={{ my: 2 }}>
-            <Typography variant="body1" gutterBottom sx={{ color: '#e5e7eb' }}>
-              <strong style={{ color: '#93c5fd' }}>Hotline:</strong> 1800-8888-77
-            </Typography>
-            <Typography variant="body1" gutterBottom sx={{ color: '#e5e7eb' }}>
-              <strong style={{ color: '#93c5fd' }}>Email:</strong> support@smokingsupport.com
-            </Typography>
-            <Typography variant="body1" gutterBottom sx={{ color: '#e5e7eb' }}>
-              <strong style={{ color: '#93c5fd' }}>Website:</strong> www.smokingsupport.com
-            </Typography>
-          </Box>
-          
-          <Typography variant="body2" color="#bfdbfe" sx={{ mt: 2 }}>
-            © 2025 Smoking Support Platform. Mọi quyền được bảo lưu.
-          </Typography>
-        </Container>
-      </Box>
     </>
   );
 };

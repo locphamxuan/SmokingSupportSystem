@@ -67,11 +67,6 @@ const ProfilePage = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      console.log('=== FETCH USER DATA RESPONSE ===');
-      console.log('Raw response data:');
-      console.dir(response.data);
-      
-      // Đảm bảo smokingStatus có cấu trúc đầy đủ
       const userData = {
         ...response.data,
         smokingStatus: {
@@ -88,14 +83,10 @@ const ProfilePage = () => {
         }
       };
       
-      console.log('=== PROCESSED USER DATA ===');
-      console.log('Processed smoking status:');
-      console.table(userData.smokingStatus);
-      console.dir(userData.smokingStatus);
-      
       setUserData(userData);
     } catch (error) {
-      setError('Unable to load user information. Please try again later.');
+      console.error("Lỗi khi tải thông tin người dùng:", error);
+      setError('Không thể tải thông tin người dùng. Vui lòng thử lại sau.');
     } finally {
       setLoading(false);
     }
@@ -113,6 +104,7 @@ const ProfilePage = () => {
         quitPlan: res.data.quitPlan || null
       }));
     } catch (error) {
+      console.error("Lỗi khi tải kế hoạch cai thuốc:", error);
       setUserData(prev => ({
         ...prev,
         quitPlan: null
@@ -133,7 +125,7 @@ const ProfilePage = () => {
 
   const handleTabChange = (event, newValue) => {
     if (userData.role === 'guest' && (newValue === 2 || newValue === 3)) {
-      setError('Please upgrade to Member account to use this feature');
+      setError('Vui lòng nâng cấp tài khoản thành viên để sử dụng tính năng này.');
       return;
     }
     setActiveTab(newValue);
@@ -149,7 +141,6 @@ const ProfilePage = () => {
         navigate('/login');
         return;
       }
-      // Validate input
       if (!userData.username || !userData.email) {
         setError('Vui lòng nhập đầy đủ tên đăng nhập và email.');
         setLoading(false);
@@ -163,10 +154,11 @@ const ProfilePage = () => {
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSuccess('Profile updated successfully!');
+      setSuccess('Hồ sơ đã được cập nhật thành công!');
       setError('');
     } catch (error) {
-      setError('Failed to update profile. Please try again later.');
+      console.error("Lỗi khi cập nhật hồ sơ:", error);
+      setError(error.response?.data?.message || 'Cập nhật hồ sơ thất bại. Vui lòng thử lại sau.');
     } finally {
       setLoading(false);
     }
@@ -218,7 +210,7 @@ const ProfilePage = () => {
                 variant="outlined"
                 size="medium"
               >
-                Back to Home
+                Quay lại trang chủ
               </Button>
             </Box>
             
@@ -228,7 +220,12 @@ const ProfilePage = () => {
 
             <Tabs value={activeTab} onChange={handleTabChange} sx={{ mb: 3 }}>
               <Tab label="Thông tin cá nhân" />
-             
+              {userData.role !== 'coach' && userData.role !== 'admin' && (
+                <>
+                  <Tab label="Kế hoạch Cai thuốc" />
+                  <Tab label="Thành tích" />
+                </>
+              )}
             </Tabs>
 
             <Snackbar
@@ -248,124 +245,157 @@ const ProfilePage = () => {
             {activeTab === 0 && (
               <Paper sx={{ p: 3 }}>
                 <Grid container spacing={3}>
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12} sm={6}>
                     <TextField
+                      label="Tên đăng nhập"
                       fullWidth
-                      label="Tên người dùng"
                       value={userData.username}
                       onChange={(e) => setUserData({ ...userData, username: e.target.value })}
                       margin="normal"
-                      disabled={loading}
                     />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
                     <TextField
-                      fullWidth
                       label="Email"
+                      fullWidth
                       value={userData.email}
                       onChange={(e) => setUserData({ ...userData, email: e.target.value })}
                       margin="normal"
-                      disabled={loading}
+                      disabled
                     />
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12} sm={6}>
                     <TextField
-                      fullWidth
                       label="Số điện thoại"
+                      fullWidth
                       value={userData.phoneNumber}
                       onChange={(e) => setUserData({ ...userData, phoneNumber: e.target.value })}
                       margin="normal"
-                      disabled={loading}
                     />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
                     <TextField
-                      fullWidth
                       label="Địa chỉ"
+                      fullWidth
                       value={userData.address}
                       onChange={(e) => setUserData({ ...userData, address: e.target.value })}
                       margin="normal"
-                      disabled={loading}
                     />
                   </Grid>
+                  <Grid item xs={12}>
+                    <Button variant="contained" color="primary" onClick={handleUpdateProfile} disabled={loading}>
+                      Cập nhật Profile
+                    </Button>
+                  </Grid>
                 </Grid>
-                <Button
-                  variant="contained"
-                  onClick={handleUpdateProfile}
-                  sx={{ mt: 3 }}
-                  disabled={loading}
-                >
-                  {loading ? 'Đang cập nhật...' : 'Cập nhật thông tin'}
-                </Button>
               </Paper>
             )}
 
+            {activeTab === 1 && userData.role !== 'coach' && userData.role !== 'admin' && (
+              <Paper sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom>Kế hoạch Cai thuốc của bạn</Typography>
+                {!userData.quitPlan ? (
+                  <Box sx={{ textAlign: 'center', mt: 3, p: 2, border: '1px dashed #ccc', borderRadius: 2 }}>
+                    <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                      Bạn chưa có kế hoạch cai thuốc. Hãy tạo một kế hoạch để bắt đầu hành trình của mình!
+                    </Typography>
+                    <Button variant="contained" color="primary" onClick={() => {
+                      setUserData(prev => ({ ...prev, quitPlan: { startDate: '', targetDate: '', milestones: [], currentProgress: 0 } }));
+                    }}>
+                      Tạo Kế hoạch Cai thuốc
+                    </Button>
+                  </Box>
+                ) : (
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        label="Ngày bắt đầu"
+                        type="date"
+                        fullWidth
+                        value={userData.quitPlan.startDate}
+                        onChange={(e) => setUserData(prev => ({
+                          ...prev,
+                          quitPlan: { ...prev.quitPlan, startDate: e.target.value }
+                        }))}
+                        margin="normal"
+                        InputLabelProps={{ shrink: true }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        label="Ngày mục tiêu"
+                        type="date"
+                        fullWidth
+                        value={userData.quitPlan.targetDate}
+                        onChange={(e) => setUserData(prev => ({
+                          ...prev,
+                          quitPlan: { ...prev.quitPlan, targetDate: e.target.value }
+                        }))}
+                        margin="normal"
+                        InputLabelProps={{ shrink: true }}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        label="Số điếu ban đầu"
+                        type="number"
+                        fullWidth
+                        value={userData.quitPlan.initialCigarettes}
+                        onChange={(e) => setUserData(prev => ({
+                          ...prev,
+                          quitPlan: { ...prev.quitPlan, initialCigarettes: Number(e.target.value) }
+                        }))}
+                        margin="normal"
+                        InputProps={{ inputProps: { min: 0 } }}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle1" sx={{ mt: 2, fontWeight: 'bold' }}>
+                        Tiến độ hiện tại: {userData.quitPlan.currentProgress.toFixed(2)}%
+                      </Typography>
+                      <LinearProgress variant="determinate" value={userData.quitPlan.currentProgress} sx={{ height: 10, borderRadius: 5, mt: 1 }} />
+                    </Grid>
 
-            
-
-            
-
-            {userData.role === 'guest' && !userData.isMember && (
-              <Paper sx={{ p: 3, mt: 3, bgcolor: 'warning.light' }}>
-                <Typography variant="h6" gutterBottom>
-                  Nâng cấp lên Member
-                </Typography>
-                <Typography variant="body1" paragraph>
-                  Nâng cấp lên tài khoản Premium để:
-                </Typography>
-                <List>
-                  <ListItem>
-                    <ListItemText
-                      primary="Tạo kế hoạch cai thuốc"
-                      secondary="Tạo và theo dõi kế hoạch cai thuốc cá nhân"
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText
-                      primary="Xem thành tích"
-                      secondary="Theo dõi tiến trình và nhận huy hiệu"
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText
-                      primary="Tư vấn từ huấn luyện viên"
-                      secondary="Đặt câu hỏi và nhận tư vấn trực tuyến"
-                    />
-                  </ListItem>
-                </List>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => navigate('/subscription')}
-                  sx={{ mt: 2 }}
-                >
-                  Nâng cấp ngay
-                </Button>
+                    <Grid item xs={12}>
+                      <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Các mốc quan trọng:</Typography>
+                      <List>
+                        {userData.quitPlan.milestones.length === 0 ? (
+                          <ListItem><ListItemText primary="Chưa có mốc quan trọng nào." /></ListItem>
+                        ) : (
+                          userData.quitPlan.milestones.map((milestone, index) => (
+                            <ListItem key={index} divider>
+                              <ListItemText primary={milestone.title} secondary={milestone.date} />
+                            </ListItem>
+                          ))
+                        )}
+                      </List>
+                      <Button variant="outlined" size="small" sx={{ mt: 2 }}>Thêm Mốc mới</Button>
+                    </Grid>
+                  </Grid>
+                )}
               </Paper>
             )}
 
-            {userData.isPremium && (
-              <Paper sx={{ p: 3, mt: 3, bgcolor: 'primary.light' }}>
-                <Typography variant="h6" gutterBottom>
-                  Tính năng Premium
-                </Typography>
-                <List>
-                  <ListItem>
-                    <ListItemText
-                      primary="Tư vấn từ huấn luyện viên"
-                      secondary="Đặt câu hỏi và nhận tư vấn trực tuyến"
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText
-                      primary="Báo cáo chi tiết"
-                      secondary="Xem các báo cáo nâng cao về quá trình cai thuốc"
-                    />
-                  </ListItem>
-                </List>
+            {activeTab === 2 && userData.role !== 'coach' && userData.role !== 'admin' && (
+              <Paper sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom>Thành tích của bạn</Typography>
+                {userData.achievements.length === 0 ? (
+                  <Typography>Bạn chưa có thành tích nào. Hãy tiếp tục cố gắng!</Typography>
+                ) : (
+                  <List>
+                    {userData.achievements.map((achievement, index) => (
+                      <ListItem key={index} divider>
+                        <ListItemText primary={achievement.title} secondary={achievement.date} />
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
               </Paper>
             )}
           </Box>
         </Container>
       </Box>
 
-      {/* Full-width Footer with contact information */}
       <Box 
         component="footer" 
         sx={{ 
@@ -404,8 +434,6 @@ const ProfilePage = () => {
           </Typography>
         </Container>
       </Box>
-
-     
     </Box>
   );
 };
