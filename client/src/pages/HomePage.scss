@@ -45,8 +45,247 @@ body {
 }
 
 .homepage {
-  min-height: 100vh;
-  background-color: $background-light;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+
+  // Phần giới thiệu
+  .intro-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 60px 40px;
+    border-radius: 12px;
+    margin-bottom: 40px;
+    text-align: center;
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+    }
+
+    p {
+      font-size: 1.2rem;
+      margin-bottom: 40px;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 30px;
+
+      .feature-item {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 24px;
+        border-radius: 12px;
+        backdrop-filter: blur(10px);
+
+        .feature-icon {
+          font-size: 2.5rem;
+          margin-bottom: 16px;
+          display: block;
+        }
+
+        h3 {
+          font-size: 1.2rem;
+          margin-bottom: 12px;
+        }
+
+        p {
+          font-size: 0.9rem;
+          margin: 0;
+          opacity: 0.9;
+        }
+      }
+    }
+  }
+
+  // Phần bảng xếp hạng
+  .rankings-section {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    margin-bottom: 40px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    h2 {
+      font-size: 1.8rem;
+      margin-bottom: 24px;
+      color: #333;
+    }
+
+    .user-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+
+      .user-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        transition: transform 0.3s ease;
+
+        &:hover {
+          transform: translateY(-2px);
+        }
+
+        .user-avatar {
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+        }
+
+        .user-info {
+          .user-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+          }
+
+          .user-time {
+            color: #666;
+            font-size: 0.9rem;
+          }
+        }
+      }
+    }
+  }
+
+  // Phần bài viết
+  .blog-section {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    h2 {
+      font-size: 1.8rem;
+      margin-bottom: 24px;
+      color: #333;
+    }
+
+    .posts-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+
+      .post-item {
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        transition: transform 0.3s ease;
+
+        &:hover {
+          transform: translateY(-2px);
+        }
+
+        .post-title {
+          font-size: 1.2rem;
+          margin-bottom: 12px;
+          color: #333;
+        }
+
+        .post-content {
+          color: #666;
+          margin-bottom: 16px;
+          line-height: 1.6;
+        }
+
+        .post-meta {
+          display: flex;
+          justify-content: space-between;
+          color: #666;
+          font-size: 0.9rem;
+
+          .post-author {
+            font-weight: 500;
+          }
+        }
+      }
+    }
+  }
+
+  // Header
+  .header {
+    background: $white;
+    border-bottom: 1px solid $border-color;
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 40px;
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: bold;
+        font-size: 18px;
+        color: $primary-color;
+
+        .logo-icon {
+          font-size: 24px;
+        }
+      }
+
+      .nav {
+        display: flex;
+        gap: 24px;
+
+        .nav-item {
+          text-decoration: none;
+          color: $text-color;
+          font-size: 14px;
+          padding: 8px 12px;
+          border-radius: 4px;
+          transition: all 0.3s ease;
+
+          &:hover {
+            background-color: #f0f0f0;
+          }
+
+          &.active {
+            background-color: $primary-color;
+            color: $white;
+          }
+        }
+      }
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+
+      .header-link {
+        color: $light-text;
+        font-size: 14px;
+        cursor: pointer;
+        
+        &:hover {
+          color: $primary-color;
+        }
+      }
+
+      .btn-primary {
+        @include button-base;
+        background-color: $primary-color;
+        color: $white;
+        
+        &:hover {
+          background-color: darken($primary-color, 10%);
+        }
+      }
+    }
+  }
 
   // Main content layout
   .main-content {
@@ -119,29 +358,118 @@ body {
     .section {
       @include card-shadow;
       background: $white;
-      padding: 20px;
-      border-radius: 8px;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 24px;
 
-      .section-title {
-        font-size: 18px;
-        font-weight: bold;
-        margin-bottom: 16px;
-        color: $text-color;
+      // Giới thiệu section
+      &.intro-block {
+        .section-title {
+          font-size: 24px;
+          color: $primary-color;
+          margin-bottom: 16px;
+        }
+
+        p {
+          font-size: 16px;
+          line-height: 1.6;
+          color: $light-text;
+        }
       }
 
-      .section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 16px;
+      // Các gói thành viên section
+      &.membership-block {
+        ul {
+          list-style: none;
+          margin: 20px 0;
 
-        .view-more {
+          li {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+            padding: 12px;
+            border-radius: 8px;
+            background: $background-light;
+            
+            strong {
+              color: $primary-color;
+              margin-right: 8px;
+            }
+          }
+        }
+      }
+
+      // Cộng đồng người dùng & Tư vấn section
+      &.community-block, 
+      &.coaching-block {
+        text-align: center;
+        
+        .section-title {
           color: $primary-color;
-          text-decoration: none;
-          font-size: 14px;
+          margin-bottom: 16px;
+        }
+
+        p {
+          color: $light-text;
+          margin-bottom: 20px;
+          line-height: 1.6;
+        }
+
+        .btn-start {
+          @include button-base;
+          background-color: $primary-color;
+          color: $white;
+          padding: 12px 24px;
+          font-size: 16px;
+          width: 100%;
+          max-width: 200px;
+          margin: 0 auto;
+
+          &:hover {
+            background-color: darken($primary-color, 10%);
+            transform: translateY(-2px);
+          }
+        }
+      }
+
+      // Huy hiệu thành tích section
+      &.badges-block {
+        .badges {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 16px;
+          margin: 20px 0;
+
+          .badge {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            background: $background-light;
+            border-radius: 8px;
+            font-size: 16px;
+            
+            &:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            }
+
+            // Emoji styling
+            span {
+              font-size: 24px;
+              margin-right: 12px;
+            }
+          }
+        }
+
+        .btn-start {
+          @include button-base;
+          background-color: $secondary-color;
+          color: $white;
+          width: 100%;
+          margin-top: 16px;
           
           &:hover {
-            text-decoration: underline;
+            background-color: darken($secondary-color, 10%);
           }
         }
       }
@@ -668,62 +996,86 @@ body {
       }
     }
   }
-}
 
-// Responsive Design
-@media (max-width: 1200px) {
-  .homepage .main-content {
-    grid-template-columns: 280px 1fr 260px;
-    gap: 16px;
-    padding: 16px;
-  }
-}
-
-@media (max-width: 992px) {
-  .homepage .main-content {
-    grid-template-columns: 1fr;
-    gap: 16px;
-
-    .sidebar,
-    .right-sidebar {
-      order: 2;
-    }
-
-    .content {
-      order: 1;
+  // Responsive Design
+  @media (max-width: 1200px) {
+    .homepage .main-content {
+      grid-template-columns: 280px 1fr 260px;
+      gap: 16px;
+      padding: 16px;
     }
   }
 
-  .homepage .header {
-    .header-left .nav {
-      display: none;
+  @media (max-width: 992px) {
+    .homepage .main-content {
+      grid-template-columns: 1fr;
+      gap: 16px;
+
+      .sidebar,
+      .right-sidebar {
+        order: 2;
+      }
+
+      .content {
+        order: 1;
+      }
+    }
+
+    .homepage .header {
+      .header-left .nav {
+        display: none;
+      }
     }
   }
-}
 
-@media (max-width: 768px) {
-  .homepage .header {
-    flex-direction: column;
-    gap: 12px;
-    padding: 12px;
+  @media (max-width: 768px) {
+    .homepage {
+      .intro-section {
+        padding: 40px 20px;
 
-    .header-left,
-    .header-right {
-      width: 100%;
-      justify-content: center;
+        h1 {
+          font-size: 2rem;
+        }
+
+        .features {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .rankings-section,
+      .blog-section {
+        padding: 20px;
+
+        .user-list,
+        .posts-list {
+          grid-template-columns: 1fr;
+        }
+      }
     }
 
-    .header-right {
+    .homepage .header {
+      flex-direction: column;
+      gap: 12px;
+      padding: 12px;
+
+      .header-left,
+      .header-right {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .header-right {
+        gap: 12px;
+      }
+    }
+
+    .homepage .main-content {
+      padding: 12px;
       gap: 12px;
     }
-  }
 
-  .homepage .main-content {
-    padding: 12px;
-    gap: 12px;
-  }
-
-  .homepage .content .progress-section {
-    flex-direction: column;
+    .homepage .content .progress-section {
+      flex-direction: column;
+    }
   }
 }

@@ -42,7 +42,7 @@ const Navbar = () => {
                 </Link>
 
                 <nav className="nav">
-                  <Link to="#" className="nav-item">Giới thiệu</Link>
+                  <Link to="" className="nav-item">Trang chủ</Link>
                   <Link to="/blog" className="nav-item">Blog</Link>
                   <Link to="/leaderboard" className="nav-item">Bảng xếp hạng</Link>
                   <Link to="/community" className="nav-item">Cộng đồng</Link>
