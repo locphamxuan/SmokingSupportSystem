@@ -17,6 +17,7 @@ import CoachMemberProgressPage from './pages/CoachMemberProgressPage.jsx';
 import ChatCoachPage from './pages/ChatCoachPage.jsx'; 
 import SubscriptionPlans from './pages/SubscriptionPlans.jsx';
 import AchievementsPage from './pages/AchievementsPage.jsx'; 
+import CoachChatPage from './pages/CoachChatPage.jsx';
 
 const theme = createTheme({
   palette: {
@@ -88,6 +89,14 @@ function App() {
             } 
           />
           <Route 
+            path="/chat-coach/:coachId" 
+            element={
+              <ProtectedRoute allowedRoles={['member']}> 
+                <ChatCoachPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
             path="/admin/users" 
             element={
               <ProtectedRoute allowedRoles={['admin']}>
@@ -104,18 +113,16 @@ function App() {
             } 
           />
           <Route 
+            path="/coach/chat/:memberId" 
+            element={
+              <CoachChatPage />
+            } 
+          />
+          <Route 
             path="/coach/member/:memberId/progress" 
             element={
               <ProtectedRoute allowedRoles={['coach']}>
                 <CoachMemberProgressPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/coach/chat/:memberId" 
-            element={
-              <ProtectedRoute allowedRoles={['coach']}>
-                <ChatCoachPage />
               </ProtectedRoute>
             } 
           />
