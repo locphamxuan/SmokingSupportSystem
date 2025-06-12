@@ -142,89 +142,81 @@ const Navbar = () => {
   );
 
   return (
-    <AppBar position="static" sx={{ background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)' }}>
-      <Toolbar>
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1, cursor: 'pointer' }} onClick={() => navigate('/')}>
-          Smoking Support
-        </Typography>
-        {isMobile ? (
-          <IconButton
-            size="large"
-            edge="start"
-            color="inherit"
-            aria-label="menu"
-            onClick={toggleDrawer(true)}
-            sx={{ mr: 2 }}
-          >
-            <MenuIcon />
-          </IconButton>
-        ) : (
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            {menuItems.map((item) => (
-              <Button key={item.text} color="inherit" onClick={() => navigate(item.path)}>
-                {item.text}
-              </Button>
-            ))}
-            {user ? (
-              <>
-                <IconButton
-                  size="large"
-                  edge="end"
-                  aria-label="tài khoản người dùng hiện tại"
-                  aria-controls="menu-appbar"
-                  aria-haspopup="true"
-                  onClick={handleMenu}
-                  color="inherit"
-                >
-                  <Avatar sx={{ bgcolor: '#e91e63' }}>
-                    {user.username ? user.username.charAt(0).toUpperCase() : 'U'}
-                  </Avatar>
-                </IconButton>
-                <Menu
-                  id="menu-appbar"
-                  anchorEl={anchorEl}
-                  anchorOrigin={{
-                    vertical: 'top',
-                    horizontal: 'right',
-                  }}
-                  keepMounted
-                  transformOrigin={{
-                    vertical: 'top',
-                    horizontal: 'right',
-                  }}
-                  open={Boolean(anchorEl)}
-                  onClose={handleMenuClose}
-                >
-                  <MenuItem onClick={handleProfileRedirect}>
-                    <MuiListItemIcon>
-                      <PersonIcon fontSize="small" />
-                    </MuiListItemIcon>
-                    <ListItemText>Hồ sơ của tôi</ListItemText>
-                  </MenuItem>
-                  <MenuItem onClick={handleLogout}>
-                    <MuiListItemIcon>
-                      <LogoutIcon fontSize="small" />
-                    </MuiListItemIcon>
-                    <ListItemText>Đăng xuất</ListItemText>
-                  </MenuItem>
-                </Menu>
-              </>
-            ) : (
-              <>
-                <Button color="inherit" onClick={() => navigate('/login')}>Đăng nhập</Button>
-              </>
-            )}
-          </Box>
-        )}
-      </Toolbar>
-      <Drawer
-        anchor="right"
-        open={drawerOpen}
-        onClose={toggleDrawer(false)}
-      >
-        {drawerList()}
-      </Drawer>
-    </AppBar>
+    <header className="header">
+        <div className="header-container">
+            <div className="header-left">
+                <Link to="/" className="logo">
+                  <img
+                    src={logo}
+                    alt="Logo"
+                    className="logo-img"
+                  />
+                </Link>
+
+                <nav className="nav">
+                  <Link to="" className="nav-item">Trang chủ</Link>
+                  <Link to="/blog" className="nav-item">Blog</Link>
+                  <Link to="/leaderboard" className="nav-item">Bảng xếp hạng</Link>
+                  <Link to="/community" className="nav-item">Cộng đồng</Link>
+                  {isLoggedIn && !isAdmin && !isCoach && (
+                    <Link to="/consult-coach" className="nav-item">Tư vấn trực tuyến</Link>
+                  )}
+                  {isLoggedIn && isCoach && (
+                    <Link to="/coach-chat-members" className="nav-item">Trả lời chat</Link>
+                  )}
+                </nav>
+              </div>
+
+              <div className="header-right">
+                {isLoggedIn ? (
+                  <div className="user-menu">
+                    <div
+                      className="avatar-container"
+                      onClick={() => setShowDropdown(!showDropdown)}
+                    >
+                      <img
+                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || 'default'}`}
+                        alt="User avatar"
+                        className="user-avatar"
+                      />
+                    </div>
+                    {showDropdown && (
+                      <div className="dropdown-menu">
+                        {!isAdmin && (
+                          <Link to="/profile" className="dropdown-item">
+                            Hồ sơ cá nhân
+                          </Link>
+                        )}
+                        {isAdmin && (
+                          <Link to="/admin/users" className="dropdown-item">
+                            Quản lý tài khoản
+                          </Link>
+                        )}
+                        {!isAdmin && !isCoach && (
+                          <Link to="/my-progress" className="dropdown-item">
+                            Theo dõi quá trình
+                          </Link>
+                        )}
+                        {isCoach && (
+                          <Link to="/coach-portal" className="dropdown-item">
+                            Lịch tư vấn
+                          </Link>
+                        )}
+                        <button onClick={handleLogout} className="dropdown-item">
+                          Đăng xuất
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="auth-buttons">
+                    <Link to="/register" className="nav-item">Đăng ký</Link>
+                    <Link to="/login" className="btn-primary">Đăng nhập</Link>
+                  </div>
+                )}
+              </div>
+        </div>
+    </header>
   );
 };
 
