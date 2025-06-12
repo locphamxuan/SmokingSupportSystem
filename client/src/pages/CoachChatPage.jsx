@@ -16,7 +16,17 @@ const CoachChatPage = () => {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [memberData, setMemberData] = useState(null);
-  const user = JSON.parse(localStorage.getItem('user'));
+  
+  let user = null;
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr && userStr !== 'undefined') {
+      user = JSON.parse(userStr);
+    }
+  } catch (e) {
+    console.error("Error parsing user from localStorage:", e);
+  }
+
   const token = localStorage.getItem('token');
   const messagesEndRef = useRef(null);
 
@@ -24,28 +34,43 @@ const CoachChatPage = () => {
     const checkAccessAndFetchData = async () => {
       try {
         setLoading(true);
+
+        if (!token || !user) {
+          navigate('/login');
+          return;
+        }
+
         const userProfileRes = await axios.get('http://localhost:5000/api/auth/profile', {
           headers: { Authorization: `Bearer ${token}` }
         });
+        console.log('User Profile Role:', userProfileRes.data.role);
 
-        const memberDetailRes = await axios.get(`http://localhost:5000/api/admin/users/${memberId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setMemberData(memberDetailRes.data);
-        
         if (userProfileRes.data.role !== 'coach') {
           setError('Bạn không có quyền truy cập trang này.');
           setLoading(false);
           return;
         }
 
-        if (memberDetailRes.data.CoachId && memberDetailRes.data.CoachId !== userProfileRes.data.id) {
-          setError('Bạn không có quyền chat với thành viên này.');
+        const assignedMembersRes = await axios.get('http://localhost:5000/api/hlv/members', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const assignedMembers = assignedMembersRes.data.members || [];
+        console.log('Assigned Members:', assignedMembers);
+        const currentMember = assignedMembers.find(member => member.Id === parseInt(memberId));
+        console.log('Current Member Found:', currentMember);
+
+        if (!currentMember) {
+          setError('Bạn không có quyền chat với thành viên này hoặc thành viên không tồn tại.');
           setLoading(false);
           return;
         }
         
+        setMemberData(currentMember);
+        console.log('memberData set to:', currentMember);
+        
         await fetchMessages();
+        setLoading(false); // Set loading to false after all data is fetched successfully
       } catch (error) {
         console.error('Lỗi kiểm tra quyền truy cập hoặc tải dữ liệu:', error);
         setError(error.response?.data?.message || 'Không thể tải dữ liệu.');
@@ -65,14 +90,30 @@ const CoachChatPage = () => {
 
   const fetchMessages = async () => {
     try {
+      console.log('Fetching messages for member:', memberId);
       const response = await axios.get(`http://localhost:5000/api/messages/member/${memberId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setMessages(response.data.messages || []);
-      setError('');
+      console.log('Messages response:', response.data);
+      if (response.data && Array.isArray(response.data.messages)) {
+        setMessages(response.data.messages);
+        setError('');
+      } else {
+        console.error('Invalid messages data format:', response.data);
+        setError('Định dạng dữ liệu tin nhắn không hợp lệ.');
+      }
     } catch (error) {
-      console.error('Lỗi khi tải tin nhắn:', error);
-      setError('Không thể tải tin nhắn.');
+      console.error('Chi tiết lỗi khi tải tin nhắn:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      if (error.response?.status === 401) {
+        setError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+        navigate('/login');
+      } else {
+        setError(error.response?.data?.message || 'Không thể tải tin nhắn. Vui lòng thử lại sau.');
+      }
     }
   };
 
@@ -117,7 +158,7 @@ const CoachChatPage = () => {
     <Container maxWidth="md" sx={{ mt: 4 }}>
       <Paper elevation={3} sx={{ p: 4, display: 'flex', flexDirection: 'column', height: '70vh' }}>
         <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, color: '#1976d2' }}>
-          Chat với thành viên: {memberData?.username || 'Đang tải...'}
+          Chat với thành viên: {memberData?.Username || 'Đang tải...'}
         </Typography>
         <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2, border: '1px solid #e0e0e0', borderRadius: 1, mb: 2 }}>
           <List>

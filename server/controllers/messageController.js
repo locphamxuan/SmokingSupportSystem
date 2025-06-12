@@ -144,12 +144,14 @@ const messageController = {
         try {
             const coachId = req.user.id; // The logged-in user is the coach
             const { memberId } = req.params;
+            console.log(`[Backend] getCoachMessagesWithMember - Coach ID: ${coachId}, Member ID: ${memberId}`);
 
             // Verify if the logged-in user is actually a coach
             const coachCheck = await sql.query`
                 SELECT Role FROM Users WHERE Id = ${coachId}
             `;
             const coachUser = coachCheck.recordset[0];
+            console.log(`[Backend] Coach User Check Result:`, coachUser);
             if (!coachUser || coachUser.Role !== 'coach') {
                 return res.status(403).json({ message: 'Bạn không có quyền truy cập này.' });
             }
@@ -159,6 +161,7 @@ const messageController = {
                 SELECT CoachId FROM Users WHERE Id = ${memberId}
             `;
             const member = memberCheck.recordset[0];
+            console.log(`[Backend] Member Check Result (for member ${memberId}):`, member);
             if (!member || member.CoachId !== coachId) {
                 return res.status(403).json({ message: 'Thành viên này không được chỉ định cho bạn.' });
             }
@@ -182,6 +185,7 @@ const messageController = {
                    OR (m.SenderId = ${memberId} AND m.ReceiverId = ${coachId})
                 ORDER BY m.SentAt ASC
             `;
+            console.log(`[Backend] Messages Query Result:`, messages.recordset);
 
             // Mark messages sent by the member to this coach as read
             await sql.query`

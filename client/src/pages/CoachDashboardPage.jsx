@@ -148,6 +148,7 @@ const CoachDashboardPage = () => {
                           variant="contained"
                           size="small"
                           onClick={() => navigate(`/coach/chat/${member.Id}`)}
+                          sx={{ minWidth: '80px' }}
                         >
                           Chat
                         </Button>
