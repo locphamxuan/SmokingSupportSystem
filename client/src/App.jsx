@@ -1,21 +1,23 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material';
-import Navbar from './components/Navbar';
-import HomePage from './pages/HomePage';
-import BlogPage from './pages/BlogPage';
-import LeaderboardPage from './pages/LeaderboardPage';
-import AdminUserPage from './pages/AdminUserPage';
-import LoginPage from './pages/LoginPage';
-import ProfilePage from './pages/ProfilePage';
-import SubscriptionPlans from './pages/SubscriptionPlans';
-import MyProgressPage from './pages/MyProgressPage';
-import AchievementsPage from './pages/AchievementsPage';
-import ConsultCoachPage from './pages/ConsultCoachPage';
-import BookConsultationPage from './pages/BookConsultationPage';
-import ChatCoachPage from './pages/ChatCoachPage';
-import CoachPortalPage from './pages/CoachPortalPage';
-import CoachChatMembersPage from './pages/CoachChatMembersPage';
+
+// Import components and pages (đảm bảo đuôi .jsx)
+import Navbar from './components/Navbar.jsx'; 
+import HomePage from './pages/HomePage.jsx';
+import BlogPage from './pages/BlogPage.jsx'; 
+import LeaderboardPage from './pages/LeaderboardPage.jsx'; 
+import AdminUserPage from './pages/AdminUserPage.jsx';
+import LoginPage from './pages/LoginPage.jsx';
+import Register from './pages/Register.jsx'; 
+import ProfilePage from './pages/ProfilePage.jsx';
+import MyProgressPage from './pages/MyProgressPage.jsx'; 
+import CoachDashboardPage from './pages/CoachDashboardPage.jsx'; 
+import CoachMemberProgressPage from './pages/CoachMemberProgressPage.jsx'; 
+import ChatCoachPage from './pages/ChatCoachPage.jsx'; 
+import SubscriptionPlans from './pages/SubscriptionPlans.jsx';
+import AchievementsPage from './pages/AchievementsPage.jsx'; 
+import CoachChatPage from './pages/CoachChatPage.jsx';
 
 const theme = createTheme({
   palette: {
@@ -28,8 +30,8 @@ const theme = createTheme({
   },
 });
 
-// Protected Route Component
-const ProtectedRoute = ({ children, requireAdmin = false }) => {
+// Component bảo vệ route
+const ProtectedRoute = ({ children, allowedRoles }) => {
   const userStr = localStorage.getItem('user');
   let user = null;
   try {
@@ -40,11 +42,13 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
     user = null;
   }
 
-  if (!user) {
+  const token = localStorage.getItem('token'); 
+
+  if (!token || !user) { 
     return <Navigate to="/login" replace />;
   }
 
-  if (requireAdmin && user.role !== 'admin') {
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
   }
 
@@ -52,46 +56,94 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
 };
 
 function App() {
+  const token = localStorage.getItem('token'); 
+
   return (
     <ThemeProvider theme={theme}>
       <Router future={{ v7_relativeSplatPath: true }}>
         <Navbar />
         <Routes>
-          <Route path="/my-progress" element={<MyProgressPage />} />
-          <Route path="/achievements" element={<AchievementsPage />} />
           <Route path="/" element={<HomePage />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
+
+          {/* Các route công khai cho đăng nhập/đăng ký - chuyển hướng nếu đã đăng nhập */}
+          <Route path="/login" element={!token ? <LoginPage /> : <Navigate to="/" />} />
+          <Route path="/register" element={!token ? <Register /> : <Navigate to="/" />} />
+          
+          {/* Các route được bảo vệ */}
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute allowedRoles={['member', 'coach', 'admin', 'guest']}>
+                <ProfilePage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/my-progress" 
+            element={
+              <ProtectedRoute allowedRoles={['member', 'guest']}> 
+                <MyProgressPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/chat-coach/:coachId" 
+            element={
+              <ProtectedRoute allowedRoles={['member']}> 
+                <ChatCoachPage />
+              </ProtectedRoute>
+            } 
+          />
           <Route 
             path="/admin/users" 
             element={
-              <ProtectedRoute requireAdmin={true}>
+              <ProtectedRoute allowedRoles={['admin']}>
                 <AdminUserPage />
               </ProtectedRoute>
             } 
           />
-          <Route path="/login" element={<LoginPage />} />
           <Route 
-            path="/profile" 
+            path="/coach/dashboard" 
             element={
-              <ProtectedRoute>
-                <ProfilePage />
+              <ProtectedRoute allowedRoles={['coach']}>
+                <CoachDashboardPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/coach/chat/:memberId" 
+            element={
+              <CoachChatPage />
+            } 
+          />
+          <Route 
+            path="/coach/member/:memberId/progress" 
+            element={
+              <ProtectedRoute allowedRoles={['coach']}>
+                <CoachMemberProgressPage />
               </ProtectedRoute>
             } 
           />
           <Route 
             path="/subscription" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['member', 'guest']}> 
                 <SubscriptionPlans />
               </ProtectedRoute>
             } 
           />
-          <Route path="/consult-coach" element={<ConsultCoachPage />} />
-          <Route path="/book-consultation" element={<BookConsultationPage />} />
-          <Route path="/chat-coach/:coachId" element={<ChatCoachPage />} />
-          <Route path="/coach-portal" element={<CoachPortalPage />} />
-          <Route path="/coach-chat-members" element={<CoachChatMembersPage />} />
+          <Route 
+            path="/achievements" 
+            element={
+              <ProtectedRoute allowedRoles={['member', 'coach', 'admin', 'guest']}> 
+                <AchievementsPage />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Route dự phòng cho các đường dẫn không khớp */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>

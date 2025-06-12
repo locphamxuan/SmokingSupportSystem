@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import './HomePage.scss';
+import '../style/HomePage.scss';
 
 const HomePage = () => {
   const [activeTab, setActiveTab] = useState('posts');
@@ -26,21 +26,21 @@ const HomePage = () => {
       id: 1,
       name: "Vinh N Thiện",
       timeQuit: "5 tháng",
-      daysCount: "1 ngày chín",
+      daysCount: "1 ngày 9",
       avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=vinh"
     },
     {
       id: 2,
       name: "Uhin Nguyen Mặn",
       timeQuit: "6 tháng 3 ngày",
-      daysCount: "2 đêm gần",
+      daysCount: "2 ngày",
       avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=uhin"
     },
     {
       id: 3,
-      name: "2: Ngành sau Trường",
+      name: "Ngành Sau Trường",
       timeQuit: "6 tháng",
-      daysCount: "2 đêm gần",
+      daysCount: "2 ngày",
       avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=nganh"
     }
   ];
@@ -84,7 +84,7 @@ const HomePage = () => {
           <div className="stats-section">
             <div className="stat-item large">
               <div className="stat-number">1,500</div>
-              <div className="stat-label">Người cùng thuốc thảm cùng</div>
+              <div className="stat-label">Người cùng cai thuốc</div>
             </div>
             <div className="stat-item">
               <div className="stat-number">3</div>
@@ -96,30 +96,30 @@ const HomePage = () => {
           <div className="section">
             <div className="section-header">
               <h2 className="section-title">Bảng xếp thưởng</h2>
-              <a href="#" className="view-more">Xem tìm hiểu »</a>
+              <a href="#" className="view-more">Tìm hiểu thêm »</a>
             </div>
             <div className="rewards">
               <div className="reward-item">
                 <span className="reward-icon">💰</span>
                 <div className="reward-info">
-                  <div className="reward-amount">N hàng</div>
-                  <div className="reward-desc">trong một thuốc</div>
+                  <div className="reward-amount">Số tiền tiết kiệm được</div>
+                  {/* <div className="reward-desc">trong một thuốc</div> */}
                 </div>
-                <div className="reward-value">60 Triệu<br />đồng để hiện được</div>
+                <div className="reward-value">60 Triệu<br />đồng đã tiết kiệm</div>
               </div>
             </div>
             <div className="additional-stats">
               <div className="stat">
                 <span className="stat-num">1,500</span>
-                <span className="stat-desc">biểu tỷ thuốc</span>
+                <span className="stat-desc">điếu thuốc đã bỏ</span>
               </div>
               <div className="stat">
                 <span className="stat-num">3 năm</span>
-                <span className="stat-desc">tự để được</span>
+                <span className="stat-desc">thời gian không hút thuốc</span>
               </div>
               <div className="stat">
                 <span className="stat-num">600</span>
-                <span className="stat-desc">Sức khỏe</span>
+                <span className="stat-desc">Cải thiện sức khỏe</span>
               </div>
             </div>
           </div>
@@ -131,7 +131,7 @@ const HomePage = () => {
           <div className="posts-section">
             <div className="section-header">
               <h2 className="section-title">Bài Viết mới nhất</h2>
-              <a href="#" className="view-more">Lấy nhóm một mọi trúc »</a>
+              <a href="#" className="view-more">Xem tất cả bài viết »</a>
             </div>
             
             <div className="posts-list">
@@ -154,14 +154,14 @@ const HomePage = () => {
           <div className="progress-section">
             <div className="progress-item">
               <div className="progress-number">1,500</div>
-              <div className="progress-label">hợm để hưng trình</div>
-              <div className="progress-desc">Số ngày không hút thuốc cùng</div>
+              <div className="progress-label">Tổng số ngày</div>
+              <div className="progress-desc">Số ngày không hút thuốc</div>
             </div>
             
             <div className="progress-item">
               <div className="progress-number">3 Năm</div>
-              <div className="progress-label">không hút hút thuốc</div>
-              <div className="progress-desc">Cai leit Cáng để thuốc khơ độc được, parvicơn từy cơ trinh hơn</div>
+              <div className="progress-label">Tổng thời gian không hút thuốc</div>
+              <div className="progress-desc">Tiến trình cai thuốc của bạn</div>
             </div>
           </div>
 
@@ -174,13 +174,13 @@ const HomePage = () => {
             </div>
             <div className="calendar">
               <div className="calendar-days">
-                <div className="calendar-day-header">Su</div>
-                <div className="calendar-day-header">Mo</div>
-                <div className="calendar-day-header">Tu</div>
-                <div className="calendar-day-header">We</div>
-                <div className="calendar-day-header">Th</div>
-                <div className="calendar-day-header">Fr</div>
-                <div className="calendar-day-header">Sa</div>
+                <div className="calendar-day-header">CN</div>
+                <div className="calendar-day-header">T2</div>
+                <div className="calendar-day-header">T3</div>
+                <div className="calendar-day-header">T4</div>
+                <div className="calendar-day-header">T5</div>
+                <div className="calendar-day-header">T6</div>
+                <div className="calendar-day-header">T7</div>
               </div>
               <div className="calendar-dates">
                 {Array.from({length: 30}, (_, i) => (
@@ -197,13 +197,13 @@ const HomePage = () => {
         <aside className="right-sidebar">
           <div className="plan-section">
             <div className="plan-header">
-              <h3>🎯 Thưa bạn coi thuốc</h3>
+              <h3>🎯 Kế hoạch cai thuốc của bạn</h3>
             </div>
             <div className="plan-tabs">
-              <button className="plan-tab">Kệ hoạch cùa[elf]</button>
-              <button className="plan-tab">Hụp hớu</button>
-              <button className="plan-tab">Qui thâm tru:mưyền</button>
-              <button className="plan-tab">Đi thương viên</button>
+              <button className="plan-tab">Kế hoạch của tôi</button>
+              <button className="plan-tab">Lịch hẹn</button>
+              <button className="plan-tab">Nhật ký</button>
+              <button className="plan-tab">Tư vấn</button>
               <button className="plan-tab">Thông tin chính</button>
             </div>
           </div>
@@ -237,7 +237,7 @@ const HomePage = () => {
                 </div>
               </div>
               <div className="goal-other">
-                <span>Lý - do khác</span>
+                <span>Lý do khác</span>
               </div>
               <button className="btn-continue">Tiếp theo</button>
             </div>
@@ -245,13 +245,12 @@ const HomePage = () => {
 
           <div className="bottom-section">
             <div className="plan-create">
-              <h3>🎯 Lập th hoạch</h3>
+              <h3>🎯 Lập kế hoạch</h3>
               <div className="plan-create-tabs">
-                <button className="plan-create-tab">Lý hoen</button>
-                <button className="plan-create-tab">Phú</button>
+                <button className="plan-create-tab">Lý do</button>
                 <button className="plan-create-tab">Phương pháp</button>
                 <button className="plan-create-tab">Thời gian</button>
-                <button className="plan-create-tab active">Telo voc</button>
+                {/* <button className="plan-create-tab active">Telo voc</button> */}
               </div>
               
               <h3>Lập Kế hoạch</h3>
@@ -264,6 +263,9 @@ const HomePage = () => {
           </div>
         </aside>
       </div>
+      <footer className="footer">
+        {/* Footer content */}
+      </footer>
     </div>
   );
 };
