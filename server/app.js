@@ -1,12 +1,16 @@
 const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
+const bookingRoutes = require('./routes/bookingRoutes');
+const messageRoutes = require('./routes/messageRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 require('dotenv').config();
 const { connectDB } = require('./db');
-const consultationRoutes = require('./routes/consultationRoutes');
-const messageRoutes = require('./routes/messageRoutes');
 const coachRoutes = require('./routes/coachRoutes');
+const bookingController = require('./controllers/bookingController');
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs');
+const swaggerDocument = YAML.load('./swagger.yaml');
 
 const app = express();
 
@@ -19,11 +23,13 @@ connectDB();
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/admin', require('./routes/adminRoutes'));
-app.use('/api/consultations', consultationRoutes);
+console.log('Setting up /api/bookings route...');
+app.use('/api/bookings', bookingRoutes);
 app.use('/api/messages', messageRoutes);
-app.use('/api/messages', require('./routes/messageRoutes'));
-app.use('/api/coaches', coachRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/hlv', coachRoutes);
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.get('/api/test', (req, res) => {
   res.json({ message: 'API is working!', timestamp: new Date().toISOString() });
@@ -54,7 +60,7 @@ app.get('/api/test-user/:id', async (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ message: 'Có lỗi xảy ra!', error: err.message });
+  res.status(500).json({ message: 'Something went wrong!' });
 });
 
 const PORT = process.env.PORT || 5000;

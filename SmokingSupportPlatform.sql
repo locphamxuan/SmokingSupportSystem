@@ -4,16 +4,6 @@ GO
 USE SmokingSupportPlatform;
 GO
 
-
--- Tìm constraint
-  --SELECT OBJECT_NAME(object_id) AS ConstraintName, name AS ColumnName
-  --FROM sys.default_constraints
-  --WHERE parent_object_id = OBJECT_ID('Users');
-  -- Xóa constraint
-  --ALTER TABLE Users DROP CONSTRAINT DF__Users__costPerPa__29572725;
-
---WHERE parent_object_id = OBJECT_ID('Users');
-
 CREATE TABLE Users (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     Username NVARCHAR(100) NOT NULL,
@@ -21,12 +11,10 @@ CREATE TABLE Users (
     Email NVARCHAR(255) NOT NULL,
     PhoneNumber NVARCHAR(20),
     Address NVARCHAR(255),
-    Role NVARCHAR(50) NOT NULL DEFAULT 'guest',
+    Role NVARCHAR(50) NOT NULL DEFAULT 'user',
     IsMember BIT NOT NULL DEFAULT 0,
     CreatedAt DATETIME NOT NULL DEFAULT GETDATE()
-   
 );
-
 GO
 
 CREATE TABLE Badges (
@@ -52,15 +40,20 @@ GO
 CREATE TABLE QuitPlans (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     UserId INT NOT NULL,
+    CoachId INT,
     PlanType NVARCHAR(50), -- 'suggested' hoặc 'custom'
     StartDate DATE NOT NULL,
     TargetDate DATE,
     PlanDetail NVARCHAR(MAX),
     Status NVARCHAR(20) DEFAULT 'active', -- 'active', 'completed', 'cancelled'
     CreatedAt DATETIME DEFAULT GETDATE(),
-    FOREIGN KEY (UserId) REFERENCES Users(Id)
+    CurrentProgress INT DEFAULT 0,
+    Milestones NVARCHAR(MAX) NULL,
+    InitialCigarettes INT NULL,
+    DailyReduction INT NULL,
+    FOREIGN KEY (UserId) REFERENCES Users(Id),
+    FOREIGN KEY (CoachId) REFERENCES Users(Id)
 );
-GO
 
 CREATE TABLE SmokingProfiles (
     Id INT IDENTITY(1,1) PRIMARY KEY,
@@ -130,7 +123,7 @@ CREATE TABLE Notifications (
 );
 GO
 
-CREATE TABLE Feedbacks (
+CREATE TABLE Reports (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     UserId INT NOT NULL,
     Content NVARCHAR(1000) NOT NULL,
@@ -150,39 +143,44 @@ CREATE TABLE Rankings (
 );
 GO
 
---lưu nhật ký nhiều ngày
 CREATE TABLE SmokingDailyLog (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     UserId INT,
+    ProgressId INT,
     LogDate DATE DEFAULT GETDATE(),
     Cigarettes INT DEFAULT 0,
     Feeling NVARCHAR(255) DEFAULT '',
-    FOREIGN KEY (UserId) REFERENCES Users(Id)
+    FOREIGN KEY (UserId) REFERENCES Users(Id),
+    FOREIGN KEY (ProgressId) REFERENCES Progress(Id)
 );
 GO
 
-    CREATE TABLE ConsultationSchedules (
-      Id INT PRIMARY KEY IDENTITY(1,1),
-      MemberId INT NOT NULL,
-      CoachId INT NULL,
-      ScheduledTime DATETIME NOT NULL,
-      Status NVARCHAR(50) DEFAULT 'chua tu van', -- 'chua tu van', 'da tu van', 'can theo doi'
-      Note NVARCHAR(MAX) NULL,
-      CreatedAt DATETIME DEFAULT GETDATE(),
-      FOREIGN KEY (MemberId) REFERENCES Users(Id),
-      FOREIGN KEY (CoachId) REFERENCES Users(Id)
-    );
+CREATE TABLE Booking (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    MemberId INT NOT NULL,
+    CoachId INT NULL,
+    ScheduledTime DATETIME NOT NULL,
+    Status NVARCHAR(50) DEFAULT N'đang chờ xác nhận', -- 'đang chờ xác nhận', 'đã xác nhận', 'đã hủy'
+    Note NVARCHAR(MAX) NULL,
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (MemberId) REFERENCES Users(Id),
+    FOREIGN KEY (CoachId) REFERENCES Users(Id)
+);
+GO
 
-	    CREATE TABLE Messages (
-      Id INT PRIMARY KEY IDENTITY(1,1),
-      SenderId INT NOT NULL,
-      ReceiverId INT NOT NULL,
-      Content NVARCHAR(MAX) NOT NULL,
-      SentAt DATETIME DEFAULT GETDATE(),
-      IsRead BIT DEFAULT 0,
-      FOREIGN KEY (SenderId) REFERENCES Users(Id),
-      FOREIGN KEY (ReceiverId) REFERENCES Users(Id)
-    );
+CREATE TABLE Messages (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    SenderId INT NOT NULL,
+    ReceiverId INT NOT NULL,
+    ProgressId INT,
+    Content NVARCHAR(MAX) NOT NULL,
+    SentAt DATETIME DEFAULT GETDATE(),
+    IsRead BIT DEFAULT 0,
+    FOREIGN KEY (SenderId) REFERENCES Users(Id),
+    FOREIGN KEY (ReceiverId) REFERENCES Users(Id),
+    FOREIGN KEY (ProgressId) REFERENCES Progress(Id)
+);
+GO
 
 -- Dữ liệu mẫu cho Users
 INSERT INTO Users (Username, Password, Email, Role)
@@ -195,7 +193,10 @@ GO
 
 INSERT INTO Users (Username, Password, Email, Role)
 VALUES (N'coach1', N'coach123', N'coach1@gmail.com', 'coach');
+VALUES (N'coach2', N'coach123', N'coach2@gmail.com', 'coach');
+
 GO
+
 
 -- Dữ liệu mẫu cho SmokingProfiles
 INSERT INTO SmokingProfiles (UserId, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, QuitReason)
@@ -225,8 +226,8 @@ INSERT INTO Notifications (UserId, Message, Type)
 VALUES (2, N'Chúc mừng bạn đã không hút thuốc hôm nay!', 'milestone');
 GO
 
--- Dữ liệu mẫu cho Feedbacks
-INSERT INTO Feedbacks (UserId, Content, Rating)
+-- Dữ liệu mẫu cho Reports (formerly Feedbacks)
+INSERT INTO Reports (UserId, Content, Rating)
 VALUES (2, N'Hệ thống rất hữu ích, cảm ơn admin!', 5);
 GO
 
@@ -234,15 +235,32 @@ GO
 INSERT INTO Rankings (UserId, TotalDaysWithoutSmoking, TotalMoneySaved)
 VALUES (2, 5, 125000);
 GO
-
-
--- Cập nhật role coach cho user bất kỳ (ví dụ user có Id = 3)
-UPDATE Users
-SET Role = 'coach'
-WHERE Id = 3;
+INSERT INTO QuitPlans (UserId, PlanType, StartDate, TargetDate, PlanDetail)
+VALUES (2, N'suggested', '2024-06-01', '2024-07-01', N'Kế hoạch mặc định do hệ thống gợi ý');
 GO
 
--- Kiểm tra các user có role coach
-SELECT Id, Username, Role FROM Users WHERE Role = 'coach';
+INSERT INTO Progress (UserId, PlanId, Date, Cigarettes, MoneySpent, Note)
+VALUES (2, 1, '2024-06-04', 5, 20000, N'Cảm nhận hôm nay');
 GO
+
+ALTER TABLE SmokingProfiles
+ADD cigaretteType NVARCHAR(100) NULL;
+GO
+
+
+
+
+
+
+ALTER TABLE Users
+ADD CoachId INT NULL;
+
+-- Thêm lịch hẹn cho Quynh (MemberId = 2, CoachId = 3)
+INSERT INTO Booking (MemberId, CoachId, ScheduledTime, Status, Note, CreatedAt)
+VALUES (2, 3, '2025-07-10 10:00:00', N'đang chờ xác nhận', N'Lịch hẹn đầu tiên với Quynh', GETDATE());
+
+-- Thêm lịch hẹn cho Xung (MemberId = 2, CoachId = 3)
+INSERT INTO Booking (MemberId, CoachId, ScheduledTime, Status, Note, CreatedAt)
+VALUES (2, 3, '2025-07-12 14:30:00', N'đang chờ xác nhận', N'Lịch hẹn tư vấn với Xung', GETDATE());
+
 
