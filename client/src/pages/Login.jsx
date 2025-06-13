@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios'; // ✅ Thêm axios
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,18 +10,37 @@ function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const existingUsers = ['abc@gmail.com', 'test@example.com'];
-    const accountExists = existingUsers.includes(email.toLowerCase());
 
-    if (!accountExists) {
-      setShowModal(true);
-    } else {
-      alert('Đăng nhập thành công!');
-      // navigate('/home'); // nếu cần chuyển hướng sau khi login
+    try {
+      const res = await axios.post('http://localhost:5000/api/auth/login', {
+        email,
+        password,
+      });
+
+      const { token, user } = res.data;
+
+      // ✅ Lưu token và user
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+      // ✅ Chuyển trang tùy role
+      if (user.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
+    } catch (err) {
+      if (err.response && err.response.status === 404) {
+        setShowModal(true); // Hiện modal nếu tài khoản chưa tồn tại
+      } else {
+        setErrorMsg(err.response?.data?.message || 'Lỗi đăng nhập');
+      }
     }
   };
 
@@ -33,6 +53,9 @@ function Login() {
     <div className="login-wrapper">
       <div className="login-container">
         <h2 className="login-title">Đăng nhập</h2>
+
+        {errorMsg && <p className="text-danger mb-3">{errorMsg}</p>}
+
         <Form onSubmit={handleSubmit}>
           <Form.Group className="mb-3">
             <Form.Label>Địa chỉ Email</Form.Label>
