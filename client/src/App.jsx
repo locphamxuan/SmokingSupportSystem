@@ -1,11 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme, CircularProgress, Box } from '@mui/material';
-
-// Import AuthContext
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
-
-// Import components and pages (đảm bảo đuôi .jsx)
 import Navbar from './components/Navbar.jsx'; 
 import HomePage from './pages/HomePage.jsx';
 import BlogPage from './pages/BlogPage.jsx'; 
@@ -38,13 +34,14 @@ const theme = createTheme({
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, user, loading } = useAuth();
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
-        <CircularProgress />
-      </Box>
-    );
-  }
+  // Temporarily remove loading overlay for debugging
+  // if (loading) {
+  //   return (
+  //     <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+  //       <CircularProgress />
+  //     </Box>
+  //   );
+  // }
 
   if (!isAuthenticated) { 
     return <Navigate to="/login" replace />;
@@ -60,14 +57,6 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 // App Routes Component
 const AppRoutes = () => {
   const { isAuthenticated, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <CircularProgress />
-      </Box>
-    );
-  }
 
   return (
     <>
@@ -138,7 +127,7 @@ const AppRoutes = () => {
             } 
           />
           <Route 
-            path="/subscription" 
+            path="/subscribe" 
             element={
               <ProtectedRoute allowedRoles={['member', 'guest']}> 
                 <SubscriptionPlans />
