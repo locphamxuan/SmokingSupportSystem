@@ -42,12 +42,10 @@ const Navbar = () => {
           </Link>
 
           <nav className="nav">
-            <Link to="#" className="nav-item">Giới thiệu</Link>
-            <Link to="" className="nav-item">Trang chủ</Link>
+            <Link to="/" className="nav-item">Trang chủ</Link>
+            <Link to="/about" className="nav-item">Thông tin về thuốc lá </Link>
             <Link to="/blog" className="nav-item">Blog</Link>
             <Link to="/leaderboard" className="nav-item">Bảng xếp hạng</Link>
-            <Link to="/community" className="nav-item">Cộng đồng</Link>
-           
           </nav>
         </div>
 
@@ -94,7 +92,6 @@ const Navbar = () => {
             </div>
           ) : (
             <div className="auth-buttons">
-              
               <Link to="/login" className="btn-primary">Đăng nhập</Link>
             </div>
           )}

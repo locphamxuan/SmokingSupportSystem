@@ -88,6 +88,102 @@ const Payment = ({ open, onClose, onSuccess }) => {
     }
   };
 
+  const renderPaymentMethodFields = () => {
+    switch (paymentInfo.paymentMethod) {
+      case 'credit':
+        return (
+          <>
+            <TextField
+              fullWidth
+              label="Số thẻ"
+              name="cardNumber"
+              value={paymentInfo.cardNumber}
+              onChange={handlePaymentInfoChange}
+              sx={{ mb: 2 }}
+              placeholder="XXXX XXXX XXXX XXXX"
+              autoFocus
+              inputProps={{ maxLength: 19 }}
+              error={!!error && error.includes('Số thẻ')}
+              helperText={error && error.includes('Số thẻ') ? error : ''}
+            />
+            <TextField
+              fullWidth
+              label="Tên chủ thẻ"
+              name="cardHolder"
+              value={paymentInfo.cardHolder}
+              onChange={handlePaymentInfoChange}
+              sx={{ mb: 2 }}
+              error={!!error && error.includes('tên chủ thẻ')}
+              helperText={error && error.includes('tên chủ thẻ') ? error : ''}
+            />
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <TextField
+                  fullWidth
+                  label="Ngày hết hạn"
+                  name="expiryDate"
+                  value={paymentInfo.expiryDate}
+                  onChange={handlePaymentInfoChange}
+                  placeholder="MM/YY"
+                  error={!!error && error.includes('Ngày hết hạn')}
+                  helperText={error && error.includes('Ngày hết hạn') ? error : ''}
+                />
+              </Grid>
+              <Grid item xs={6}>
+                <TextField
+                  fullWidth
+                  label="CVV"
+                  name="cvv"
+                  value={paymentInfo.cvv}
+                  onChange={handlePaymentInfoChange}
+                  type="password"
+                  inputProps={{ maxLength: 4 }}
+                  error={!!error && error.includes('CVV')}
+                  helperText={error && error.includes('CVV') ? error : ''}
+                />
+              </Grid>
+            </Grid>
+          </>
+        );
+      case 'momo':
+        return (
+          <TextField
+            fullWidth
+            label="Số điện thoại MoMo"
+            name="phoneNumber"
+            value={paymentInfo.phoneNumber || ''}
+            onChange={handlePaymentInfoChange}
+            sx={{ mt: 2 }}
+            error={!!error && error.includes('MoMo')}
+            helperText={error && error.includes('MoMo') ? error : ''}
+          />
+        );
+      case 'vnpay':
+        return (
+          <FormControl fullWidth sx={{ mt: 2 }}>
+            <InputLabel>Chọn ngân hàng</InputLabel>
+            <Select
+              name="bankCode"
+              value={paymentInfo.bankCode || ''}
+              onChange={handlePaymentInfoChange}
+              label="Chọn ngân hàng"
+              error={!!error && error.includes('ngân hàng')}
+            >
+              <MenuItem value="VCB">Vietcombank</MenuItem>
+              <MenuItem value="TCB">Techcombank</MenuItem>
+              <MenuItem value="MB">MB Bank</MenuItem>
+              <MenuItem value="ACB">ACB</MenuItem>
+            </Select>
+            {error && error.includes('ngân hàng') && (
+              <Typography color="error" variant="caption">{error}</Typography>
+            )}
+          </FormControl>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <Dialog 
       open={open} 
@@ -112,90 +208,7 @@ const Payment = ({ open, onClose, onSuccess }) => {
             </Select>
           </FormControl>
 
-          {paymentInfo.paymentMethod === 'credit' ? (
-            <>
-              <TextField
-                fullWidth
-                label="Số thẻ"
-                name="cardNumber"
-                value={paymentInfo.cardNumber}
-                onChange={handlePaymentInfoChange}
-                sx={{ mb: 2 }}
-                placeholder="XXXX XXXX XXXX XXXX"
-                autoFocus
-                inputProps={{ maxLength: 19 }}
-                error={!!error && error.includes('Số thẻ')}
-                helperText={error && error.includes('Số thẻ') ? error : ''}
-              />
-              <TextField
-                fullWidth
-                label="Tên chủ thẻ"
-                name="cardHolder"
-                value={paymentInfo.cardHolder}
-                onChange={handlePaymentInfoChange}
-                sx={{ mb: 2 }}
-                error={!!error && error.includes('tên chủ thẻ')}
-                helperText={error && error.includes('tên chủ thẻ') ? error : ''}
-              />
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="Ngày hết hạn"
-                    name="expiryDate"
-                    value={paymentInfo.expiryDate}
-                    onChange={handlePaymentInfoChange}
-                    placeholder="MM/YY"
-                    error={!!error && error.includes('Ngày hết hạn')}
-                    helperText={error && error.includes('Ngày hết hạn') ? error : ''}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="CVV"
-                    name="cvv"
-                    value={paymentInfo.cvv}
-                    onChange={handlePaymentInfoChange}
-                    type="password"
-                    inputProps={{ maxLength: 4 }}
-                    error={!!error && error.includes('CVV')}
-                    helperText={error && error.includes('CVV') ? error : ''}
-                  />
-                </Grid>
-              </Grid>
-            </>
-          ) : paymentInfo.paymentMethod === 'momo' ? (
-            <TextField
-              fullWidth
-              label="Số điện thoại MoMo"
-              name="phoneNumber"
-              value={paymentInfo.phoneNumber || ''}
-              onChange={handlePaymentInfoChange}
-              sx={{ mt: 2 }}
-              error={!!error && error.includes('MoMo')}
-              helperText={error && error.includes('MoMo') ? error : ''}
-            />
-          ) : paymentInfo.paymentMethod === 'vnpay' ? (
-            <FormControl fullWidth sx={{ mt: 2 }}>
-              <InputLabel>Chọn ngân hàng</InputLabel>
-              <Select
-                name="bankCode"
-                value={paymentInfo.bankCode || ''}
-                onChange={handlePaymentInfoChange}
-                label="Chọn ngân hàng"
-                error={!!error && error.includes('ngân hàng')}
-              >
-                <MenuItem value="VCB">Vietcombank</MenuItem>
-                <MenuItem value="TCB">Techcombank</MenuItem>
-                <MenuItem value="MB">MB Bank</MenuItem>
-                <MenuItem value="ACB">ACB</MenuItem>
-              </Select>
-              {error && error.includes('ngân hàng') && (
-                <Typography color="error" variant="caption">{error}</Typography>
-              )}
-            </FormControl>
-          ) : null}
+          {renderPaymentMethodFields()}
 
           {error && !error.includes('Số thẻ') && !error.includes('tên chủ thẻ') && 
            !error.includes('Ngày hết hạn') && !error.includes('CVV') && 
