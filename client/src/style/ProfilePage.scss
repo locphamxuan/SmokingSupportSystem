@@ -1,0 +1,40 @@
+$primary-green: #4CAF50; // A strong green color
+$light-green: #8BC34A; // A lighter green shade
+$dark-green: #2E7D32; // A darker green shade
+$text-color: #333; // Dark grey for text
+$light-text: #666; // Lighter grey for secondary text
+$white: #ffffff; // White color
+$border-color: #e0e0e0; // Light grey border
+
+.footer {
+  background-color: $white; /* Changed to white background as per HomePage */
+  padding: 4rem 0; /* Standard vertical padding */
+
+  .container {
+    max-width: 900px; /* Consistent container width */
+    padding: 0 2rem; /* Keep horizontal padding */
+    text-align: center; /* Center all content within the container */
+  }
+
+  .social-icons {
+    margin-bottom: 2rem; /* Space below icons */
+
+    a {
+      display: inline-block;
+      margin: 0 1rem; /* Space between icons */
+      color: $text-color; /* Dark grey color for icons */
+      font-size: 2rem; /* Size for Font Awesome icons */
+
+      img {
+        width: 36px; /* Specific width for image-based icons */
+        height: 36px; /* Specific height for image-based icons */
+        vertical-align: middle; /* Align images with icons */
+      }
+    }
+  }
+
+  .copyright {
+    color: $light-text; /* Slightly lighter grey for copyright text */
+    font-size: 0.9rem; /* Smaller font size */
+  }
+} 

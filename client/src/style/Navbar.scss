@@ -96,6 +96,11 @@
 
 .avatar-container {
     cursor: pointer;
+    transition: opacity 0.2s ease;
+
+    &:hover {
+        opacity: 0.8;
+    }
     
     .user-avatar {
         width: 40px;
@@ -110,12 +115,15 @@
     top: 100%;
     right: 0;
     margin-top: 0.5rem;
-    background-color: white;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
     border-radius: 0.375rem;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     min-width: 200px;
     padding: 0.5rem 0;
-    z-index: 1000;
+    z-index: 10000 !important;
+    flex-direction: column;
+    min-height: 50px;
 
     .dropdown-item {
         display: block;
