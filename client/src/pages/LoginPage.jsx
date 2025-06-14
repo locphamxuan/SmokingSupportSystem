@@ -20,8 +20,11 @@ import {
 import { Home as HomeIcon } from '@mui/icons-material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
 const LoginPage = () => {
+  const { login } = useAuth();
+  
   // State quản lý tab đang hoạt động (Đăng nhập/Đăng ký)
   const [activeTab, setActiveTab] = useState(0);
   // State quản lý trạng thái tải (loading)
@@ -163,9 +166,9 @@ const LoginPage = () => {
         return;
       }
 
-      // Lưu token và thông tin người dùng vào localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      // Sử dụng AuthContext để login
+      login(user, token);
+      
       // Thiết lập token cho các request axios tiếp theo
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
@@ -204,9 +207,8 @@ const LoginPage = () => {
       });
       
       const { token, user } = response.data;
-      // Lưu token và thông tin người dùng vào localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      // Sử dụng AuthContext để login sau khi đăng ký thành công
+      login(user, token);
       
       // Thiết lập token cho các request axios tiếp theo
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
