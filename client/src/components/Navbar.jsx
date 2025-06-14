@@ -1,30 +1,19 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from '../contexts/AuthContext.jsx';
 import '../style/Navbar.scss';
 import logo from "../assets/images/logo.png";
 
 const Navbar = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const navigate = useNavigate();
-  const token = localStorage.getItem('token');
-  const isLoggedIn = !!token;
-  const userStr = localStorage.getItem('user');
-  let user = null;
-
-  try {
-    if (userStr && userStr !== 'undefined') {
-      user = JSON.parse(userStr);
-    }
-  } catch (e) {
-    user = null;
-  }
+  const { user, isAuthenticated, logout } = useAuth();
 
   const isAdmin = user && user.role === 'admin';
   const isCoach = user && user.role === 'coach';
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    logout();
     setShowDropdown(false);
     navigate('/login');
   };
@@ -50,7 +39,7 @@ const Navbar = () => {
         </div>
 
         <div className="header-right">
-          {isLoggedIn ? (
+          {isAuthenticated ? (
             <div className="user-menu">
               <div
                 className="avatar-container"
