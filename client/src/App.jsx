@@ -70,6 +70,9 @@ const AppRoutes = () => {
         {/* Các route công khai cho đăng nhập/đăng ký - chuyển hướng nếu đã đăng nhập */}
         <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} />
         <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
+        {/* Các route công khai cho đăng nhập/đăng ký - chuyển hướng nếu đã đăng nhập */}
+        <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} />
+        <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
           
           {/* Các route được bảo vệ */}
           <Route 
@@ -143,6 +146,21 @@ const AppRoutes = () => {
             } 
           />
 
+        {/* Route dự phòng cho các đường dẫn không khớp */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
+  );
+};
+
+function App() {
+  return (
+    <ThemeProvider theme={theme}>
+      <AuthProvider>
+        <Router future={{ v7_relativeSplatPath: true }}>
+          <AppRoutes />
+        </Router>
+      </AuthProvider>
         {/* Route dự phòng cho các đường dẫn không khớp */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
