@@ -1,270 +1,205 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import '../style/HomePage.scss';
+import heroImage from '../assets/images/ảnh1.jpg';
+import solutionsRightImage from '../assets/images/anh3.jpg';
+import stepsLeftImage from '../assets/images/anh4.jpg';
+import expertImage1 from '../assets/images/anh5.jpg';
+import expertImage2 from '../assets/images/anh6.jpg';
+import expertImage3 from '../assets/images/anh7.jpg';
+import testimonialImage1 from '../assets/images/anh8.jpg';
+import testimonialImage2 from '../assets/images/anh9.jpg';
+import testimonialImage3 from '../assets/images/anh10.jpg';
+import facebookImage from '../assets/images/facebook.jpg';
+import instagramImage from '../assets/images/instragram.jpg';
 
 const HomePage = () => {
-  const [activeTab, setActiveTab] = useState('posts');
-
-  const recentPosts = [
+  const testimonials = [
     {
       id: 1,
-      title: "Lợi ích sức khỏe khi bỏ thuốc lá",
-      author: "dulcinea",
-      timeAgo: "2h trước",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=dulcinea"
+      text: "Tôi đã cai nghiện thành công nhờ sự hỗ trợ từ cộng đồng và các chuyên gia tại đây. Cảm ơn rất nhiều!",
+      author: "Nguyễn Văn A",
+      location: "Hà Nội",
+      image: testimonialImage1,
     },
     {
       id: 2,
-      title: "Lời khuyên để vượt qua cơn thèm thuốc",
-      author: "nga kim dung",
-      timeAgo: "2 tiếng trước",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=nga"
-    }
-  ];
-
-  const userRankings = [
-    {
-      id: 1,
-      name: "Vinh N Thiện",
-      timeQuit: "5 tháng",
-      daysCount: "1 ngày 9",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=vinh"
-    },
-    {
-      id: 2,
-      name: "Uhin Nguyen Mặn",
-      timeQuit: "6 tháng 3 ngày",
-      daysCount: "2 ngày",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=uhin"
+      text: "Chương trình cai nghiện này đã giúp tôi tìm lại sức khỏe và sự tự tin. Tôi rất hạnh phúc!",
+      author: "Trần Thị B",
+      location: "TP.HCM",
+      image: testimonialImage2,
     },
     {
       id: 3,
-      name: "Ngành Sau Trường",
-      timeQuit: "6 tháng",
-      daysCount: "2 ngày",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=nganh"
-    }
+      text: "Tôi không thể tin được mình đã cai nghiện thành công sau nhiều năm. Đây là một phép màu!",
+      author: "Lê Văn C",
+      location: "Đà Nẵng",
+      image: testimonialImage3,
+    },
   ];
+
+  const [currentTestimonial, setCurrentTestimonial] = useState(testimonials[0]);
+
+  const handleTestimonialChange = (testimonial) => {
+    setCurrentTestimonial(testimonial);
+  };
 
   return (
     <div className="homepage">
-      <div className="main-content">
-        {/* Left Sidebar */}
-        <aside className="sidebar">
-          {/* Hero Section */}
-          <div className="hero-section">
-            <div className="hero-content">
-              <h1 className="hero-title">
-                Bắt đầu hành trình cai thuốc ngay hôm nay!
-              </h1>
-              <button className="btn-start">Bắt đầu</button>
-            </div>
-            <div className="hero-image">
-              <img src="https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=300&h=200&fit=crop&crop=faces" alt="Mother and child" />
-            </div>
-          </div>
-
-          {/* User Rankings */}
-          <div className="section">
-            <h2 className="section-title">Bảng xếp hạng<br />Người dùng xuất sắc</h2>
-            <div className="user-list">
-              {userRankings.map((user) => (
-                <div key={user.id} className="user-item">
-                  <img src={user.avatar} alt={user.name} className="user-avatar" />
-                  <div className="user-info">
-                    <div className="user-name">{user.name}</div>
-                    <div className="user-time">{user.timeQuit}</div>
-                  </div>
-                  <div className="user-days">{user.daysCount}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Statistics */}
-          <div className="stats-section">
-            <div className="stat-item large">
-              <div className="stat-number">1,500</div>
-              <div className="stat-label">Người cùng cai thuốc</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-number">3</div>
-              <div className="stat-label">Năm không hút thuốc</div>
-            </div>
-          </div>
-
-          {/* Rewards Section */}
-          <div className="section">
-            <div className="section-header">
-              <h2 className="section-title">Bảng xếp thưởng</h2>
-              <a href="#" className="view-more">Tìm hiểu thêm »</a>
-            </div>
-            <div className="rewards">
-              <div className="reward-item">
-                <span className="reward-icon">💰</span>
-                <div className="reward-info">
-                  <div className="reward-amount">Số tiền tiết kiệm được</div>
-                  {/* <div className="reward-desc">trong một thuốc</div> */}
-                </div>
-                <div className="reward-value">60 Triệu<br />đồng đã tiết kiệm</div>
-              </div>
-            </div>
-            <div className="additional-stats">
-              <div className="stat">
-                <span className="stat-num">1,500</span>
-                <span className="stat-desc">điếu thuốc đã bỏ</span>
-              </div>
-              <div className="stat">
-                <span className="stat-num">3 năm</span>
-                <span className="stat-desc">thời gian không hút thuốc</span>
-              </div>
-              <div className="stat">
-                <span className="stat-num">600</span>
-                <span className="stat-desc">Cải thiện sức khỏe</span>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        {/* Main Content */}
-        <main className="content">
-          {/* Recent Posts Section */}
-          <div className="posts-section">
-            <div className="section-header">
-              <h2 className="section-title">Bài Viết mới nhất</h2>
-              <a href="#" className="view-more">Xem tất cả bài viết »</a>
-            </div>
+      {/* Hero Section */}
+      <section className="hero-section">
+        <div className="hero-left-content" style={{ backgroundImage: `url(${heroImage})` }}>
+          <div className="container">
             
-            <div className="posts-list">
-              {recentPosts.map((post) => (
-                <div key={post.id} className="post-item">
-                  <img src={post.avatar} alt={post.author} className="post-avatar" />
-                  <div className="post-content">
-                    <h3 className="post-title">{post.title}</h3>
-                    <div className="post-meta">
-                      <span className="post-author">{post.author}</span>
-                      <span className="post-time">{post.timeAgo}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <h1>Chào mừng bạn đến với hành trình cai nghiện thuốc lá</h1>
+            <p className="subtitle">
+              Tìm lại cuộc sống không khói thuốc với sự hỗ trợ từ cộng đồng và các chuyên gia hàng đầu.
+            </p>
+            <div className="features">
+              <div className="feature">
+                <span>Lộ trình cá nhân hóa</span>
+              </div>
+              <div className="feature">
+                <span>Hỗ trợ 24/7</span>
+              </div>
+              <div className="feature">
+                <span>Kết nối toàn cầu</span>
+              </div>
+            </div>
+            <div className="cta-buttons">
+              <Link to="/about" className="btn btn-primary">Tìm hiểu thêm <span className="arrow">→</span></Link>
+              <Link to="/community" className="btn btn-secondary">Tham gia cộng đồng</Link>
             </div>
           </div>
+        </div>
+        <div className="hero-right-image">
+          <img src={heroImage} alt="Stop smoking sign and person breaking cigarette" />
+        </div>
+      </section>
 
-          {/* Progress Stats */}
-          <div className="progress-section">
-            <div className="progress-item">
-              <div className="progress-number">1,500</div>
-              <div className="progress-label">Tổng số ngày</div>
-              <div className="progress-desc">Số ngày không hút thuốc</div>
-            </div>
+      
+
+      {/* Solutions Section */}
+      <section className="solutions-section">
+        <div className="solutions-content-wrapper">
+          <div className="solutions-left-content">
+            <h2>Đánh bại thuốc lá</h2>
+            <h3>Giải pháp cai nghiện toàn diện</h3>
+            <p className="section-description">
+              Chương trình cai nghiện thuốc lá trực tuyến, cung cấp kiến thức, công cụ và sự hỗ trợ cần thiết để bạn từ bỏ thuốc lá vĩnh viễn.
+            </p>
             
-            <div className="progress-item">
-              <div className="progress-number">3 Năm</div>
-              <div className="progress-label">Tổng thời gian không hút thuốc</div>
-              <div className="progress-desc">Tiến trình cai thuốc của bạn</div>
+            <div className="solutions-grid">
+              <div className="solution-card">
+                <h4>Tư vấn trực tuyến</h4>
+                <p>Nhận tư vấn từ các chuyên gia cai nghiện hàng đầu, giúp bạn vượt qua khó khăn và duy trì động lực.</p>
+              </div>
+              <div className="solution-card">
+                <h4>Liệu pháp tâm lý</h4>
+                <p>Tham gia các buổi trị liệu tâm lý nhóm và cá nhân, giải quyết các vấn đề tâm lý liên quan đến nghiện thuốc lá.</p>
+              </div>
+              <div className="solution-card">
+                <h4>Công cụ hỗ trợ</h4>
+                <p>Sử dụng các ứng dụng và công cụ theo dõi tiến trình cai nghiện, đặt mục tiêu và nhận thông báo nhắc nhở.</p>
+              </div>
             </div>
           </div>
+          <div className="solutions-right-image">
+            <img src={solutionsRightImage} alt="People running on a cigarette" />
+          </div>
+        </div>
+      </section>
 
-          {/* Calendar */}
-          <div className="calendar-section">
-            <div className="calendar-header">
-              <button className="calendar-nav">‹</button>
-              <span className="calendar-title">April 2004</span>
-              <button className="calendar-nav">›</button>
-            </div>
-            <div className="calendar">
-              <div className="calendar-days">
-                <div className="calendar-day-header">CN</div>
-                <div className="calendar-day-header">T2</div>
-                <div className="calendar-day-header">T3</div>
-                <div className="calendar-day-header">T4</div>
-                <div className="calendar-day-header">T5</div>
-                <div className="calendar-day-header">T6</div>
-                <div className="calendar-day-header">T7</div>
+      {/* Steps Section */}
+      <section className="steps-section">
+        <div className="steps-content-wrapper">
+          <div className="steps-left-image">
+            <img src={stepsLeftImage} alt="Cứu trái đất khỏi thuốc lá " />
+          </div>
+          <div className="steps-right-content">
+            <h2>Các bước để cai nghiện thành công</h2>
+            <div className="steps-grid">
+              <div className="step-card">
+                <div className="step-number">01</div>
+                <p>Đăng ký tài khoản và tham gia cộng đồng hỗ trợ trực tuyến của chúng tôi.</p>
               </div>
-              <div className="calendar-dates">
-                {Array.from({length: 30}, (_, i) => (
-                  <div key={i} className={`calendar-date ${i === 15 ? 'active' : ''}`}>
-                    {i + 1}
-                  </div>
-                ))}
+              <div className="step-card">
+                <div className="step-number">02</div>
+                <p>Đánh giá mức độ nghiện thuốc lá và xác định mục tiêu cai nghiện của bạn.</p>
+              </div>
+              <div className="step-card">
+                <div className="step-number">03</div>
+                <p>Xây dựng kế hoạch cai nghiện cá nhân hóa với sự hướng dẫn của chuyên gia.</p>
               </div>
             </div>
           </div>
-        </main>
+        </div>
+      </section>
 
-        {/* Right Sidebar */}
-        <aside className="right-sidebar">
-          <div className="plan-section">
-            <div className="plan-header">
-              <h3>🎯 Kế hoạch cai thuốc của bạn</h3>
-            </div>
-            <div className="plan-tabs">
-              <button className="plan-tab">Kế hoạch của tôi</button>
-              <button className="plan-tab">Lịch hẹn</button>
-              <button className="plan-tab">Nhật ký</button>
-              <button className="plan-tab">Tư vấn</button>
-              <button className="plan-tab">Thông tin chính</button>
-            </div>
+      {/* Testimonials Section */}
+      <section className="testimonials-section">
+        <div className="container">
+          <div className="testimonial-display">
+            <img src={currentTestimonial.image} alt={currentTestimonial.author} className="testimonial-avatar" />
+            <p className="testimonial-text">
+              {currentTestimonial.text}
+            </p>
           </div>
+          <div className="testimonial-authors">
+            {testimonials.map((testimonial) => (
+              <button
+                key={testimonial.id}
+                className={`author-button ${currentTestimonial.id === testimonial.id ? 'active' : ''}`}
+                onClick={() => handleTestimonialChange(testimonial)}
+              >
+                {testimonial.author} - {testimonial.location}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
 
-          <div className="goal-section">
-            <h3>Lập Kế hoạch cai Thuốc</h3>
-            <div className="goal-tabs">
-              <button className="goal-tab active">Lý do bỏ thuốc</button>
-              <button className="goal-tab">Phương pháp</button>
-              <button className="goal-tab">Thời gian</button>
+      {/* Experts Section */}
+      <section className="experts-section">
+        <div className="container">
+          <h2>Đội ngũ chuyên gia của chúng tôi</h2>
+          <p className="section-description">
+            Chúng tôi có đội ngũ chuyên gia và tư vấn viên giàu kinh nghiệm, sẵn sàng hỗ trợ bạn trên con đường cai nghiện.
+          </p>
+          
+          <div className="experts-grid">
+            <div className="expert-card">
+              <img src={expertImage1} alt="Phạm Thị Hương" />
+              <h3>Phạm Thị Hương</h3>
+              <p>Chuyên gia tư vấn cai nghiện</p>
             </div>
-            
-            <div className="goal-content">
-              <h4>Lý do bỏ thuốc của bạn là gì?</h4>
-              <div className="goal-options">
-                <div className="goal-option">
-                  <span className="goal-icon">⚕️</span>
-                  <span>Sức khỏe</span>
-                </div>
-                <div className="goal-option">
-                  <span className="goal-icon">👨‍👩‍👧‍👦</span>
-                  <span>Gia đình</span>
-                </div>
-                <div className="goal-option">
-                  <span className="goal-icon">💰</span>
-                  <span>Tài chính</span>
-                </div>
-                <div className="goal-option">
-                  <span className="goal-icon">💼</span>
-                  <span>Công việc</span>
-                </div>
-              </div>
-              <div className="goal-other">
-                <span>Lý do khác</span>
-              </div>
-              <button className="btn-continue">Tiếp theo</button>
+            <div className="expert-card">
+              <img src={expertImage2} alt="Nguyễn Văn Nam" />
+              <h3>Nguyễn Văn Nam</h3>
+              <p>Bác sĩ tâm lý</p>
+            </div>
+            <div className="expert-card">
+              <img src={expertImage3} alt="Trần Thị Mai" />
+              <h3>Trần Thị Mai</h3>
+              <p>Điều phối viên cộng đồng</p>
             </div>
           </div>
+        </div>
+      </section>
 
-          <div className="bottom-section">
-            <div className="plan-create">
-              <h3>🎯 Lập kế hoạch</h3>
-              <div className="plan-create-tabs">
-                <button className="plan-create-tab">Lý do</button>
-                <button className="plan-create-tab">Phương pháp</button>
-                <button className="plan-create-tab">Thời gian</button>
-                {/* <button className="plan-create-tab active">Telo voc</button> */}
-              </div>
-              
-              <h3>Lập Kế hoạch</h3>
-              <div className="final-tabs">
-                <button className="final-tab active">Lý do bỏ thuốc</button>
-                <button className="final-tab">Phương pháp</button>
-                <button className="final-tab">Thời gian</button>
-              </div>
-            </div>
-          </div>
-        </aside>
-      </div>
+      {/* Contact Section */}
       <footer className="footer">
-        {/* Footer content */}
+        <div className="container">
+          <div className="social-icons">
+            <a href="#" aria-label="Twitter"><i className="fab fa-twitter" style={{ fontSize: '36px' }}></i></a>
+            <a href="#" aria-label="Facebook"><img src={facebookImage} alt="Facebook" style={{ width: '36px', height: '36px' }} /></a>
+            <a href="#" aria-label="Instagram"><img src={instagramImage} alt="Instagram" style={{ width: '36px', height: '36px' }} /></a>
+            <a href="#" aria-label="YouTube"><i className="fab fa-youtube" style={{ fontSize: '36px' }}></i></a>
+          </div>
+          <p className="copyright">
+            &copy; 2024 Hỗ trợ cai nghiện. Đã đăng ký bản quyền.
+          </p>
+        </div>
       </footer>
     </div>
   );
