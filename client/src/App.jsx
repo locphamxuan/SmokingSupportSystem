@@ -1,6 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material';
+import { ThemeProvider, createTheme, CircularProgress, Box } from '@mui/material';
+
+// Import AuthContext
+import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
 
 // Import components and pages (đảm bảo đuôi .jsx)
 import Navbar from './components/Navbar.jsx'; 
@@ -18,6 +21,7 @@ import ChatCoachPage from './pages/ChatCoachPage.jsx';
 import SubscriptionPlans from './pages/SubscriptionPlans.jsx';
 import AchievementsPage from './pages/AchievementsPage.jsx'; 
 import CoachChatPage from './pages/CoachChatPage.jsx';
+import AboutPage from './pages/AboutPage.jsx';
 
 const theme = createTheme({
   palette: {
@@ -32,19 +36,17 @@ const theme = createTheme({
 
 // Component bảo vệ route
 const ProtectedRoute = ({ children, allowedRoles }) => {
-  const userStr = localStorage.getItem('user');
-  let user = null;
-  try {
-    if (userStr && userStr !== 'undefined') {
-      user = JSON.parse(userStr);
-    }
-  } catch (e) {
-    user = null;
+  const { isAuthenticated, user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+        <CircularProgress />
+      </Box>
+    );
   }
 
-  const token = localStorage.getItem('token'); 
-
-  if (!token || !user) { 
+  if (!isAuthenticated) { 
     return <Navigate to="/login" replace />;
   }
 
@@ -55,21 +57,30 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   return children;
 };
 
-function App() {
-  const token = localStorage.getItem('token'); 
+// App Routes Component
+const AppRoutes = () => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
-    <ThemeProvider theme={theme}>
-      <Router future={{ v7_relativeSplatPath: true }}>
-        <Navbar />
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/blog" element={<BlogPage />} />
-          <Route path="/leaderboard" element={<LeaderboardPage />} />
+    <>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/blog" element={<BlogPage />} />
+        <Route path="/leaderboard" element={<LeaderboardPage />} />
+        <Route path="/about" element={<AboutPage />} />
 
-          {/* Các route công khai cho đăng nhập/đăng ký - chuyển hướng nếu đã đăng nhập */}
-          <Route path="/login" element={!token ? <LoginPage /> : <Navigate to="/" />} />
-          <Route path="/register" element={!token ? <Register /> : <Navigate to="/" />} />
+        {/* Các route công khai cho đăng nhập/đăng ký - chuyển hướng nếu đã đăng nhập */}
+        <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} />
+        <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
           
           {/* Các route được bảo vệ */}
           <Route 
@@ -143,10 +154,21 @@ function App() {
             } 
           />
 
-          {/* Route dự phòng cho các đường dẫn không khớp */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
+        {/* Route dự phòng cho các đường dẫn không khớp */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
+  );
+};
+
+function App() {
+  return (
+    <ThemeProvider theme={theme}>
+      <AuthProvider>
+        <Router future={{ v7_relativeSplatPath: true }}>
+          <AppRoutes />
+        </Router>
+      </AuthProvider>
     </ThemeProvider>
   );
 }
