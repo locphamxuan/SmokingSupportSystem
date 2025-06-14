@@ -1,44 +1,22 @@
 import React, { useState } from 'react';
-import {
-  Container,
-  Box,
-  TextField,
-  Button,
-  Paper,
-  Tabs,
-  Tab,
-  CircularProgress,
-  Alert,
-  Link,
-  IconButton,
-  Tooltip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
-} from '@mui/material';
-import { Home as HomeIcon } from '@mui/icons-material';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
-
+import 'bootstrap/dist/css/bootstrap.min.css';
+import '../style/LoginPage.scss';
 
 const LoginPage = () => {
   const { login } = useAuth();
-  // State quản lý tab đang hoạt động (Đăng nhập/Đăng ký)
-  const [activeTab, setActiveTab] = useState(0);
-  // State quản lý trạng thái tải (loading)
+  const [activeTab, setActiveTab] = useState(0); // 0 for Login, 1 for Register
   const [loading, setLoading] = useState(false);
-  // State quản lý thông báo lỗi
   const [error, setError] = useState('');
-  // State quản lý loại người dùng (thành viên, huấn luyện viên, quản trị viên)
-  const [userType, setUserType] = useState('member'); 
-  
-  // State và lỗi cho form đăng nhập
+  const [userType, setUserType] = useState('member');
+
+  // State and errors for login form
   const [loginData, setLoginData] = useState({ emailOrUsername: '', password: '' });
   const [loginErrors, setLoginErrors] = useState({ emailOrUsername: '', password: '' });
-  
-  // State và lỗi cho form đăng ký
+
+  // State and errors for register form (kept for consistency, though Register.jsx will handle actual registration)
   const [registerData, setRegisterData] = useState({
     username: '',
     email: '',
@@ -58,19 +36,19 @@ const LoginPage = () => {
 
   const navigate = useNavigate();
 
-  // Hàm kiểm tra định dạng email
+  // Email validation regex
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
   };
 
-  // Hàm kiểm tra định dạng số điện thoại
+  // Phone number validation regex
   const validatePhoneNumber = (phone) => {
     const re = /^[0-9]{10}$/;
     return re.test(phone);
   };
 
-  // Hàm kiểm tra lỗi form đăng nhập
+  // Login form validation
   const validateLoginForm = () => {
     const errors = {};
     if (!loginData.emailOrUsername) {
@@ -83,7 +61,7 @@ const LoginPage = () => {
     return Object.keys(errors).length === 0;
   };
 
-  // Hàm kiểm tra lỗi form đăng ký
+  // Register form validation (for client-side check, actual registration handled by Register.jsx)
   const validateRegisterForm = () => {
     const errors = {};
     if (!registerData.username) {
@@ -116,36 +94,35 @@ const LoginPage = () => {
     return Object.keys(errors).length === 0;
   };
 
-  // Xử lý thay đổi tab
-  const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
+  // Handle tab change
+  const handleTabChange = (index) => {
+    setActiveTab(index);
     setError('');
     setLoginErrors({});
     setRegisterErrors({});
   };
 
-  // Xử lý thay đổi input form đăng nhập
+  // Handle login input change
   const handleLoginInputChange = (e) => {
     setLoginData({ ...loginData, [e.target.name]: e.target.value });
     setLoginErrors({ ...loginErrors, [e.target.name]: '' });
   };
 
-  // Xử lý thay đổi input form đăng ký
+  // Handle register input change
   const handleRegisterInputChange = (e) => {
     setRegisterData({ ...registerData, [e.target.name]: e.target.value });
     setRegisterErrors({ ...registerErrors, [e.target.name]: '' });
   };
 
-  // Xử lý submit form đăng nhập
+  // Handle login form submission
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    // Kiểm tra hợp lệ form
     if (!validateLoginForm()) return;
 
     setLoading(true);
     setError('');
     try {
-      localStorage.clear(); // Xóa dữ liệu cũ trong localStorage
+      localStorage.clear();
       const endpoint = 'http://localhost:5000/api/auth/login';
       const loginPayload = {
         emailOrUsername: loginData.emailOrUsername,
@@ -155,7 +132,6 @@ const LoginPage = () => {
       const response = await axios.post(endpoint, loginPayload);
       const { token, user } = response.data;
 
-      // Kiểm tra role với userType đã chọn
       if (
         (userType === 'member' && user.role !== 'member' && user.role !== 'guest' && user.role !== 'user') ||
         (userType === 'coach' && user.role !== 'coach') ||
@@ -166,14 +142,9 @@ const LoginPage = () => {
         return;
       }
 
-      // Sử dụng AuthContext để loginAdd commentMore actions
       login(user, token);
-
-    
-      // Thiết lập token cho các request axios tiếp theo
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-      // Điều hướng người dùng đến trang phù hợp dựa trên vai trò
       if (user.role === 'coach') {
         navigate('/coach-portal');
       } else if (user.role === 'admin') {
@@ -182,242 +153,142 @@ const LoginPage = () => {
         navigate('/');
       }
     } catch (error) {
-      // Xử lý lỗi đăng nhập
       setError(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại!');
     } finally {
       setLoading(false);
     }
   };
 
-  // Xử lý submit form đăng ký
+  // handleRegisterSubmit function in LoginPage is primarily for validation, actual registration handled by Register.jsx
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
-    // Kiểm tra hợp lệ form
     if (!validateRegisterForm()) return;
-    
+
     setLoading(true);
     setError('');
     try {
-      localStorage.clear(); // Xóa dữ liệu cũ trong localStorage
-      const response = await axios.post('http://localhost:5000/api/auth/register', {
-        username: registerData.username,
-        email: registerData.email,
-        password: registerData.password,
-        phoneNumber: registerData.phoneNumber,
-        address: registerData.address
-      });
-
-      
-      const { token, user } = response.data;
-       // Sử dụng AuthContext để login sau khi đăng ký thành côngAdd commentMore actions
-       login(user, token);
-      
-      // Thiết lập token cho các request axios tiếp theo
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
-      setError('');
-      // Điều hướng người dùng về trang chủ sau khi đăng ký thành công
-      navigate('/');
-    } catch (error) {
-      // Xử lý lỗi đăng ký
-      console.error('Lỗi đăng ký:', error);
-      setError(error.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại!');
+      // For actual registration, user is redirected to Register.jsx
+      // This part here is mainly for showing loading/error states in LoginPage's register tab
+      // In a real scenario, you'd make an API call from Register.jsx
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      setError('Đăng ký không được thực hiện từ trang này. Vui lòng sử dụng trang Đăng ký riêng.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Container maxWidth="sm">
-      <Box sx={{ my: 4 }}>
-        <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-          {/* Nút quay về trang chủ */}
-          <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
-            <Tooltip title="Quay về trang chủ">
-              <IconButton 
-                onClick={() => navigate('/')}
-                sx={{ 
-                  color: 'primary.main',
-                  '&:hover': {
-                    backgroundColor: 'primary.light',
-                    color: 'white'
-                  }
-                }}
-              >
-                <HomeIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
-          
-          <Box sx={{ mb: 3, textAlign: 'center' }}>
-            <h2>{activeTab === 0 ? 'Đăng nhập' : 'Đăng ký'}</h2>
-          </Box>
-          
-          <Tabs value={activeTab} onChange={handleTabChange} centered sx={{ mb: 3 }}>
-            <Tab label="Đăng nhập" />
-            <Tab label="Đăng ký" />
-          </Tabs>
+    <div className="auth-page-wrapper d-flex align-items-center justify-content-center min-vh-100">
+      <div className="auth-container card shadow-lg rounded-lg overflow-hidden row no-gutters">
+        <div className="auth-image-half d-none d-md-block col-md-6">
+          <div className="image-overlay d-flex flex-column justify-content-center align-items-center text-white p-4">
+            <h2 className="mb-3 text-center">Chào mừng đến với hệ thống hỗ trợ cai thuốc</h2>
+            <p className="text-center">Hãy cùng chúng tôi bắt đầu hành trình sống khỏe mạnh!</p>
+          </div>
+        </div>
+        <div className="auth-form-half col-md-6 p-4 d-flex flex-column justify-content-center">
+          <div className="d-flex justify-content-between mb-4">
+            <button
+              className={`btn btn-lg w-50 ${activeTab === 0 ? 'btn-success' : 'btn-outline-success'}`}
+              onClick={() => handleTabChange(0)}
+            >
+              Đăng nhập
+            </button>
+            <button
+              className={`btn btn-lg w-50 ${activeTab === 1 ? 'btn-success' : 'btn-outline-success'}`}
+              onClick={() => navigate('/register')} // Redirect to dedicated Register page
+            >
+              Đăng ký
+            </button>
+          </div>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <div className="alert alert-danger mb-3" role="alert">
               {error}
-            </Alert>
+            </div>
           )}
 
-          {/* Form Đăng nhập */}
-          {activeTab === 0 ? (
-            <Box component="form" onSubmit={handleLoginSubmit} sx={{ mt: 3 }}>
-              {/* Chọn loại tài khoản */}
-              <FormControl fullWidth margin="normal">
-                <InputLabel>Loại tài khoản</InputLabel>
-                <Select
+          {/* Login Form */}
+          {activeTab === 0 && (
+            <form onSubmit={handleLoginSubmit}>
+              <div className="mb-3">
+                <label htmlFor="userType" className="form-label">Loại tài khoản</label>
+                <select
+                  className="form-select"
+                  id="userType"
+                  name="userType"
                   value={userType}
                   onChange={(e) => setUserType(e.target.value)}
-                  label="Loại tài khoản"
                 >
-                  <MenuItem value="member">Thành viên</MenuItem>
-                  <MenuItem value="coach">Huấn luyện viên</MenuItem>
-                  <MenuItem value="admin">Quản trị viên</MenuItem>
-                </Select>
-              </FormControl>
-              {/* Trường Email hoặc Tên đăng nhập */}
-              <TextField
-                label="Email hoặc Tên đăng nhập"
-                variant="outlined"
-                fullWidth
-                margin="normal"
-                name="emailOrUsername"
-                value={loginData.emailOrUsername}
-                onChange={handleLoginInputChange}
-                error={!!loginErrors.emailOrUsername}
-                helperText={loginErrors.emailOrUsername}
-              />
-              {/* Trường Mật khẩu */}
-              <TextField
-                label="Mật khẩu"
-                type="password"
-                variant="outlined"
-                fullWidth
-                margin="normal"
-                name="password"
-                value={loginData.password}
-                onChange={handleLoginInputChange}
-                error={!!loginErrors.password}
-                helperText={loginErrors.password}
-              />
-              {/* Nút Đăng nhập */}
-              <Button
+                  <option value="member">Thành viên</option>
+                  <option value="coach">Huấn luyện viên</option>
+                  <option value="admin">Quản trị viên</option>
+                </select>
+              </div>
+
+              <div className="mb-3">
+                <label htmlFor="loginEmailOrUsername" className="form-label">Email hoặc Tên đăng nhập</label>
+                <input
+                  type="text"
+                  className={`form-control ${loginErrors.emailOrUsername ? 'is-invalid' : ''}`}
+                  id="loginEmailOrUsername"
+                  name="emailOrUsername"
+                  placeholder="Nhập email hoặc tên đăng nhập"
+                  value={loginData.emailOrUsername}
+                  onChange={handleLoginInputChange}
+                  required
+                />
+                {loginErrors.emailOrUsername && <div className="invalid-feedback">{loginErrors.emailOrUsername}</div>}
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="loginPassword" className="form-label">Mật khẩu</label>
+                <input
+                  type="password"
+                  className={`form-control ${loginErrors.password ? 'is-invalid' : ''}`}
+                  id="loginPassword"
+                  name="password"
+                  placeholder="Nhập mật khẩu"
+                  value={loginData.password}
+                  onChange={handleLoginInputChange}
+                  required
+                />
+                {loginErrors.password && <div className="invalid-feedback">{loginErrors.password}</div>}
+              </div>
+
+              <button
                 type="submit"
-                variant="contained"
-                color="primary"
-                fullWidth
-                size="large"
-                sx={{ mt: 3, mb: 2, height: 50 }}
+                className="btn btn-success w-100 py-2"
                 disabled={loading}
               >
-                {loading ? <CircularProgress size={24} color="inherit" /> : 'Đăng nhập'}
-              </Button>
-              {/* Link quên mật khẩu */}
-              <Box sx={{ textAlign: 'center', mt: 2 }}>
-                <Link href="#" variant="body2" onClick={(e) => e.preventDefault()} sx={{ color: 'primary.main' }}>
-                  Quên mật khẩu?
-                </Link>
-              </Box>
-            </Box>
-          ) : (
-            /* Form Đăng ký */
-            <Box component="form" onSubmit={handleRegisterSubmit} sx={{ mt: 3 }}>
-              {/* Trường Tên đăng nhập */}
-              <TextField
-                label="Tên đăng nhập"
-                variant="outlined"
-                fullWidth
-                margin="normal"
-                name="username"
-                value={registerData.username}
-                onChange={handleRegisterInputChange}
-                error={!!registerErrors.username}
-                helperText={registerErrors.username}
-              />
-              {/* Trường Email */}
-              <TextField
-                label="Email"
-                variant="outlined"
-                fullWidth
-                margin="normal"
-                name="email"
-                value={registerData.email}
-                onChange={handleRegisterInputChange}
-                error={!!registerErrors.email}
-                helperText={registerErrors.email}
-              />
-              {/* Trường Số điện thoại */}
-              <TextField
-                label="Số điện thoại"
-                variant="outlined"
-                fullWidth
-                margin="normal"
-                name="phoneNumber"
-                value={registerData.phoneNumber}
-                onChange={handleRegisterInputChange}
-                error={!!registerErrors.phoneNumber}
-                helperText={registerErrors.phoneNumber}
-              />
-              {/* Trường Địa chỉ */}
-              <TextField
-                label="Địa chỉ"
-                variant="outlined"
-                fullWidth
-                margin="normal"
-                name="address"
-                value={registerData.address}
-                onChange={handleRegisterInputChange}
-                error={!!registerErrors.address}
-                helperText={registerErrors.address}
-              />
-              {/* Trường Mật khẩu */}
-              <TextField
-                label="Mật khẩu"
-                type="password"
-                variant="outlined"
-                fullWidth
-                margin="normal"
-                name="password"
-                value={registerData.password}
-                onChange={handleRegisterInputChange}
-                error={!!registerErrors.password}
-                helperText={registerErrors.password}
-              />
-              {/* Trường Xác nhận mật khẩu */}
-              <TextField
-                label="Xác nhận mật khẩu"
-                type="password"
-                variant="outlined"
-                fullWidth
-                margin="normal"
-                name="confirmPassword"
-                value={registerData.confirmPassword}
-                onChange={handleRegisterInputChange}
-                error={!!registerErrors.confirmPassword}
-                helperText={registerErrors.confirmPassword}
-              />
-              {/* Nút Đăng ký */}
-              <Button
-                type="submit"
-                variant="contained"
-                color="secondary"
-                fullWidth
-                size="large"
-                sx={{ mt: 3, mb: 2, height: 50 }}
-                disabled={loading}
-              >
-                {loading ? <CircularProgress size={24} color="inherit" /> : 'Đăng ký'}
-              </Button>
-            </Box>
+                {loading ? (
+                  <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                ) : (
+                  'Đăng nhập'
+                )}
+              </button>
+
+              <div className="text-center mt-3">
+                <Link to="#" className="text-success text-decoration-none">Quên mật khẩu?</Link>
+              </div>
+            </form>
           )}
-        </Paper>
-      </Box>
-    </Container>
+
+          {/* Register Form (Placeholder, actual registration handled by Register.jsx) */}
+          {activeTab === 1 && (
+            <div className="text-center">
+              <p>Vui lòng chuyển đến trang Đăng ký để tạo tài khoản mới.</p>
+              <button
+                className="btn btn-success mt-3"
+                onClick={() => navigate('/register')}
+              >
+                Đi đến trang Đăng ký
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 

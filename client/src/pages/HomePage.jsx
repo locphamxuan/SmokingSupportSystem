@@ -192,8 +192,8 @@ const HomePage = () => {
         <div className="container">
           <div className="social-icons">
             <a href="#" aria-label="Twitter"><i className="fab fa-twitter" style={{ fontSize: '36px' }}></i></a>
-            <a href="#" aria-label="Facebook"><img src={facebookImage} alt="Facebook" style={{ width: '36px', height: '36px' }} /></a>
-            <a href="#" aria-label="Instagram"><img src={instagramImage} alt="Instagram" style={{ width: '36px', height: '36px' }} /></a>
+            <a href="https://www.facebook.com/loccphamxuan?locale=vi_VN" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><img src={facebookImage} alt="Facebook" style={{ width: '36px', height: '36px' }} /></a>
+            <a href="https://www.instagram.com/xlocpham/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><img src={instagramImage} alt="Instagram" style={{ width: '36px', height: '36px' }} /></a>
             <a href="#" aria-label="YouTube"><i className="fab fa-youtube" style={{ fontSize: '36px' }}></i></a>
           </div>
           <p className="copyright">

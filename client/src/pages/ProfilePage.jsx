@@ -1,25 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Container,
-  Box,
-  Paper,
-  Typography,
-  Grid,
-  TextField,
-  Button,
-  Tabs,
-  Tab,
-  LinearProgress,
-  List,
-  ListItem,
-  ListItemText,
-  Alert,
-  Snackbar,
-  Divider,
-} from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import facebookImage from '../assets/images/facebook.jpg';
+import instagramImage from '../assets/images/instragram.jpg';
+import '../style/ProfilePage.scss';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -40,13 +25,6 @@ const ProfilePage = () => {
         feeling: ''
       }
     },
-    quitPlan: {
-      startDate: '',
-      targetDate: '',
-      milestones: [],
-      currentProgress: 0
-    },
-    achievements: [],
     role: 'guest'
   });
   const [loading, setLoading] = useState(true);
@@ -92,29 +70,8 @@ const ProfilePage = () => {
     }
   }, [navigate]);
 
-  const fetchQuitPlan = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-      const res = await axios.get('http://localhost:5000/api/auth/quit-plan', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setUserData(prev => ({
-        ...prev,
-        quitPlan: res.data.quitPlan || null
-      }));
-    } catch (error) {
-      console.error("Lỗi khi tải kế hoạch cai thuốc:", error);
-      setUserData(prev => ({
-        ...prev,
-        quitPlan: null
-      }));
-    }
-  };
-
   useEffect(() => {
     fetchUserData();
-    fetchQuitPlan();
   }, [fetchUserData]);
 
   useEffect(() => {
@@ -124,10 +81,6 @@ const ProfilePage = () => {
   }, [user, navigate]);
 
   const handleTabChange = (event, newValue) => {
-    if (userData.role === 'guest' && (newValue === 2 || newValue === 3)) {
-      setError('Vui lòng nâng cấp tài khoản thành viên để sử dụng tính năng này.');
-      return;
-    }
     setActiveTab(newValue);
     setError('');
     setSuccess('');
@@ -171,270 +124,192 @@ const ProfilePage = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ my: 4 }}>
-          <LinearProgress />
-        </Box>
-      </Container>
+      <div className="d-flex flex-column min-vh-100 bg-light">
+        <div className="flex-grow-1">
+          <div className="container py-4">
+            <div className="d-flex align-items-center mb-3">
+              <button
+                onClick={() => navigate('/')}
+                className="btn btn-outline-primary me-2"
+              >
+                <i className="fas fa-arrow-left me-2"></i>Quay lại trang chủ
+              </button>
+            </div>
+            
+            <h4 className="mb-3 fw-bold text-success">Hồ sơ cá nhân</h4>
+
+            {/* Snackbar equivalent for Bootstrap alerts */}
+            {error && <div className="alert alert-danger" role="alert">{error}</div>}
+            {success && <div className="alert alert-success" role="alert">{success}</div>}
+
+            {activeTab === 0 && (
+              <div className="card shadow-sm p-3">
+                <div className="card-body">
+                  <div className="row">
+                    <div className="col-12 col-sm-6 mb-3">
+                      <label htmlFor="username" className="form-label">Tên đăng nhập</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="username"
+                        value={userData.username}
+                        onChange={(e) => setUserData({ ...userData, username: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-12 col-sm-6 mb-3">
+                      <label htmlFor="email" className="form-label">Email</label>
+                      <input
+                        type="email"
+                        className="form-control"
+                        id="email"
+                        value={userData.email}
+                        onChange={(e) => setUserData({ ...userData, email: e.target.value })}
+                        disabled
+                      />
+                    </div>
+                    <div className="col-12 col-sm-6 mb-3">
+                      <label htmlFor="phoneNumber" className="form-label">Số điện thoại</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="phoneNumber"
+                        value={userData.phoneNumber}
+                        onChange={(e) => setUserData({ ...userData, phoneNumber: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-12 col-sm-6 mb-3">
+                      <label htmlFor="address" className="form-label">Địa chỉ</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="address"
+                        value={userData.address}
+                        onChange={(e) => setUserData({ ...userData, address: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-12">
+                      <button className="btn btn-success" onClick={handleUpdateProfile} disabled={loading}>
+                        Cập nhật Profile
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div 
+          className="footer bg-light text-dark py-4"
+        >
+          <div className="container">
+            <div className="social-icons">
+              <a href="#" aria-label="Twitter" target="_blank" rel="noopener noreferrer"><i className="fab fa-twitter" style={{ fontSize: '36px' }}></i></a>
+              <a href="https://www.facebook.com/loccphamxuan?locale=vi_VN" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><img src={facebookImage} alt="Facebook" style={{ width: '36px', height: '36px' }} /></a>
+              <a href="https://www.instagram.com/xlocpham/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><img src={instagramImage} alt="Instagram" style={{ width: '36px', height: '36px' }} /></a>
+              <a href="#" aria-label="YouTube" target="_blank" rel="noopener noreferrer"><i className="fab fa-youtube" style={{ fontSize: '36px' }}></i></a>
+            </div>
+            <p className="copyright">
+              &copy; 2024 Hỗ trợ cai nghiện. Đã đăng ký bản quyền.
+            </p>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      minHeight: '100vh'
-    }}>
-      <Box sx={{ flexGrow: 1 }}>
-        <Container maxWidth="lg">
-          <Box sx={{ my: 4 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-              <Button 
-                onClick={() => navigate('/')} 
-                startIcon={<ArrowBackIcon />}
-                sx={{ 
-                  mr: 2,
-                  color: '#1976d2',
-                  borderColor: '#1976d2',
-                  fontWeight: 500,
-                  padding: '8px 16px',
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  '&:hover': {
-                    backgroundColor: '#1976d2',
-                    color: 'white',
-                    transform: 'translateX(-2px)',
-                    transition: 'all 0.2s ease'
-                  }
-                }}
-                variant="outlined"
-                size="medium"
-              >
-                Quay lại trang chủ
-              </Button>
-            </Box>
-            
-            <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: '#1976d2' }}>
-              Hồ sơ cá nhân
-            </Typography>
-
-            <Tabs value={activeTab} onChange={handleTabChange} sx={{ mb: 3 }}>
-              <Tab label="Thông tin cá nhân" />
-              {userData.role !== 'coach' && userData.role !== 'admin' && (
-                <>
-                  <Tab label="Kế hoạch Cai thuốc" />
-                  <Tab label="Thành tích" />
-                </>
-              )}
-            </Tabs>
-
-            <Snackbar
-              open={!!error || !!success}
-              autoHideDuration={6000}
-              onClose={handleCloseSnackbar}
+    <div className="d-flex flex-column min-vh-100 bg-light">
+      <div className="flex-grow-1">
+        <div className="container py-4">
+          <div className="d-flex align-items-center mb-3">
+            <button
+              onClick={() => navigate('/')}
+              className="btn btn-outline-primary me-2"
             >
-              <Alert
-                onClose={handleCloseSnackbar}
-                severity={error ? 'error' : 'success'}
-                sx={{ width: '100%' }}
-              >
-                {error || success}
-              </Alert>
-            </Snackbar>
+              <i className="fas fa-arrow-left me-2"></i>Quay lại trang chủ
+            </button>
+          </div>
+          
+          <h4 className="mb-3 fw-bold text-success">Hồ sơ cá nhân</h4>
 
-            {activeTab === 0 && (
-              <Paper sx={{ p: 3 }}>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      label="Tên đăng nhập"
-                      fullWidth
+          {/* Snackbar equivalent for Bootstrap alerts */}
+          {error && <div className="alert alert-danger" role="alert">{error}</div>}
+          {success && <div className="alert alert-success" role="alert">{success}</div>}
+
+          {activeTab === 0 && (
+            <div className="card shadow-sm p-3">
+              <div className="card-body">
+                <div className="row">
+                  <div className="col-12 col-sm-6 mb-3">
+                    <label htmlFor="username" className="form-label">Tên đăng nhập</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="username"
                       value={userData.username}
                       onChange={(e) => setUserData({ ...userData, username: e.target.value })}
-                      margin="normal"
                     />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      label="Email"
-                      fullWidth
+                  </div>
+                  <div className="col-12 col-sm-6 mb-3">
+                    <label htmlFor="email" className="form-label">Email</label>
+                    <input
+                      type="email"
+                      className="form-control"
+                      id="email"
                       value={userData.email}
                       onChange={(e) => setUserData({ ...userData, email: e.target.value })}
-                      margin="normal"
                       disabled
                     />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      label="Số điện thoại"
-                      fullWidth
+                  </div>
+                  <div className="col-12 col-sm-6 mb-3">
+                    <label htmlFor="phoneNumber" className="form-label">Số điện thoại</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="phoneNumber"
                       value={userData.phoneNumber}
                       onChange={(e) => setUserData({ ...userData, phoneNumber: e.target.value })}
-                      margin="normal"
                     />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      label="Địa chỉ"
-                      fullWidth
+                  </div>
+                  <div className="col-12 col-sm-6 mb-3">
+                    <label htmlFor="address" className="form-label">Địa chỉ</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="address"
                       value={userData.address}
                       onChange={(e) => setUserData({ ...userData, address: e.target.value })}
-                      margin="normal"
                     />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Button variant="contained" color="primary" onClick={handleUpdateProfile} disabled={loading}>
+                  </div>
+                  <div className="col-12">
+                    <button className="btn btn-success" onClick={handleUpdateProfile} disabled={loading}>
                       Cập nhật Profile
-                    </Button>
-                  </Grid>
-                </Grid>
-              </Paper>
-            )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
-            {activeTab === 1 && userData.role !== 'coach' && userData.role !== 'admin' && (
-              <Paper sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom>Kế hoạch Cai thuốc của bạn</Typography>
-                {!userData.quitPlan ? (
-                  <Box sx={{ textAlign: 'center', mt: 3, p: 2, border: '1px dashed #ccc', borderRadius: 2 }}>
-                    <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-                      Bạn chưa có kế hoạch cai thuốc. Hãy tạo một kế hoạch để bắt đầu hành trình của mình!
-                    </Typography>
-                    <Button variant="contained" color="primary" onClick={() => {
-                      setUserData(prev => ({ ...prev, quitPlan: { startDate: '', targetDate: '', milestones: [], currentProgress: 0 } }));
-                    }}>
-                      Tạo Kế hoạch Cai thuốc
-                    </Button>
-                  </Box>
-                ) : (
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        label="Ngày bắt đầu"
-                        type="date"
-                        fullWidth
-                        value={userData.quitPlan.startDate}
-                        onChange={(e) => setUserData(prev => ({
-                          ...prev,
-                          quitPlan: { ...prev.quitPlan, startDate: e.target.value }
-                        }))}
-                        margin="normal"
-                        InputLabelProps={{ shrink: true }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        label="Ngày mục tiêu"
-                        type="date"
-                        fullWidth
-                        value={userData.quitPlan.targetDate}
-                        onChange={(e) => setUserData(prev => ({
-                          ...prev,
-                          quitPlan: { ...prev.quitPlan, targetDate: e.target.value }
-                        }))}
-                        margin="normal"
-                        InputLabelProps={{ shrink: true }}
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        label="Số điếu ban đầu"
-                        type="number"
-                        fullWidth
-                        value={userData.quitPlan.initialCigarettes}
-                        onChange={(e) => setUserData(prev => ({
-                          ...prev,
-                          quitPlan: { ...prev.quitPlan, initialCigarettes: Number(e.target.value) }
-                        }))}
-                        margin="normal"
-                        InputProps={{ inputProps: { min: 0 } }}
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle1" sx={{ mt: 2, fontWeight: 'bold' }}>
-                        Tiến độ hiện tại: {userData.quitPlan.currentProgress.toFixed(2)}%
-                      </Typography>
-                      <LinearProgress variant="determinate" value={userData.quitPlan.currentProgress} sx={{ height: 10, borderRadius: 5, mt: 1 }} />
-                    </Grid>
-
-                    <Grid item xs={12}>
-                      <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Các mốc quan trọng:</Typography>
-                      <List>
-                        {userData.quitPlan.milestones.length === 0 ? (
-                          <ListItem><ListItemText primary="Chưa có mốc quan trọng nào." /></ListItem>
-                        ) : (
-                          userData.quitPlan.milestones.map((milestone, index) => (
-                            <ListItem key={index} divider>
-                              <ListItemText primary={milestone.title} secondary={milestone.date} />
-                            </ListItem>
-                          ))
-                        )}
-                      </List>
-                      <Button variant="outlined" size="small" sx={{ mt: 2 }}>Thêm Mốc mới</Button>
-                    </Grid>
-                  </Grid>
-                )}
-              </Paper>
-            )}
-
-            {activeTab === 2 && userData.role !== 'coach' && userData.role !== 'admin' && (
-              <Paper sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom>Thành tích của bạn</Typography>
-                {userData.achievements.length === 0 ? (
-                  <Typography>Bạn chưa có thành tích nào. Hãy tiếp tục cố gắng!</Typography>
-                ) : (
-                  <List>
-                    {userData.achievements.map((achievement, index) => (
-                      <ListItem key={index} divider>
-                        <ListItemText primary={achievement.title} secondary={achievement.date} />
-                      </ListItem>
-                    ))}
-                  </List>
-                )}
-              </Paper>
-            )}
-          </Box>
-        </Container>
-      </Box>
-
-      <Box 
-        component="footer" 
-        sx={{ 
-          py: 4, 
-          backgroundColor: '#1e3a8a', 
-          textAlign: 'center',
-          width: '100%',
-          left: 0,
-          right: 0,
-          borderTop: '1px solid #2563eb',
-          color: 'white',
-          boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.1)'
-        }}
+      <div 
+        className="footer bg-light text-dark py-4"
       >
-        <Container maxWidth="lg">
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: '#60a5fa' }}>
-            Nền tảng hỗ trợ cai nghiện thuốc lá
-          </Typography>
-          
-          <Divider sx={{ my: 2, mx: 'auto', width: '50%', borderColor: 'rgba(255,255,255,0.2)' }} />
-          
-          <Box sx={{ my: 2 }}>
-            <Typography variant="body1" gutterBottom sx={{ color: '#e5e7eb' }}>
-              <strong style={{ color: '#93c5fd' }}>Hotline:</strong> 1800-8888-77
-            </Typography>
-            <Typography variant="body1" gutterBottom sx={{ color: '#e5e7eb' }}>
-              <strong style={{ color: '#93c5fd' }}>Email:</strong> support@smokingsupport.com
-            </Typography>
-            <Typography variant="body1" gutterBottom sx={{ color: '#e5e7eb' }}>
-              <strong style={{ color: '#93c5fd' }}>Website:</strong> www.smokingsupport.com
-            </Typography>
-          </Box>
-          
-          <Typography variant="body2" color="#bfdbfe" sx={{ mt: 2 }}>
-            © 2025 Smoking Support Platform. Mọi quyền được bảo lưu.
-          </Typography>
-        </Container>
-      </Box>
-    </Box>
+        <div className="container">
+          <div className="social-icons">
+            <a href="#" aria-label="Twitter" target="_blank" rel="noopener noreferrer"><i className="fab fa-twitter" style={{ fontSize: '36px' }}></i></a>
+            <a href="https://www.facebook.com/loccphamxuan?locale=vi_VN" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><img src={facebookImage} alt="Facebook" style={{ width: '36px', height: '36px' }} /></a>
+            <a href="https://www.instagram.com/xlocpham/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><img src={instagramImage} alt="Instagram" style={{ width: '36px', height: '36px' }} /></a>
+            <a href="#" aria-label="YouTube" target="_blank" rel="noopener noreferrer"><i className="fab fa-youtube" style={{ fontSize: '36px' }}></i></a>
+          </div>
+          <p className="copyright">
+            &copy; 2024 Hỗ trợ cai nghiện. Đã đăng ký bản quyền.
+          </p>
+        </div>
+      </div>
+    </div>
   );
 };
 
