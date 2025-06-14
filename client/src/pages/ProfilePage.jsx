@@ -9,21 +9,13 @@ import {
   Button,
   Tabs,
   Tab,
-  Card,
-  CardContent,
-  CardActions,
   LinearProgress,
   List,
   ListItem,
   ListItemText,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Alert,
   Snackbar,
   Divider,
-  MenuItem,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useNavigate } from 'react-router-dom';
@@ -60,7 +52,6 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [openDialog, setOpenDialog] = useState(false);
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user"));
 
@@ -75,16 +66,55 @@ const ProfilePage = () => {
       const response = await axios.get('http://localhost:5000/api/auth/profile', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setUserData(response.data);
+      
+      const userData = {
+        ...response.data,
+        smokingStatus: {
+          cigarettesPerDay: response.data.smokingStatus?.cigarettesPerDay || 0,
+          costPerPack: response.data.smokingStatus?.costPerPack || 0,
+          smokingFrequency: response.data.smokingStatus?.smokingFrequency || '',
+          healthStatus: response.data.smokingStatus?.healthStatus || '',
+          cigaretteType: response.data.smokingStatus?.cigaretteType || '',
+          quitReason: response.data.smokingStatus?.quitReason || '',
+          dailyLog: {
+            cigarettes: response.data.smokingStatus?.dailyLog?.cigarettes || 0,
+            feeling: response.data.smokingStatus?.dailyLog?.feeling || ''
+          }
+        }
+      };
+      
+      setUserData(userData);
     } catch (error) {
-      setError('Unable to load user information. Please try again later.');
+      console.error("Lỗi khi tải thông tin người dùng:", error);
+      setError('Không thể tải thông tin người dùng. Vui lòng thử lại sau.');
     } finally {
       setLoading(false);
     }
   }, [navigate]);
 
+  const fetchQuitPlan = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const res = await axios.get('http://localhost:5000/api/auth/quit-plan', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUserData(prev => ({
+        ...prev,
+        quitPlan: res.data.quitPlan || null
+      }));
+    } catch (error) {
+      console.error("Lỗi khi tải kế hoạch cai thuốc:", error);
+      setUserData(prev => ({
+        ...prev,
+        quitPlan: null
+      }));
+    }
+  };
+
   useEffect(() => {
     fetchUserData();
+    fetchQuitPlan();
   }, [fetchUserData]);
 
   useEffect(() => {
@@ -95,7 +125,7 @@ const ProfilePage = () => {
 
   const handleTabChange = (event, newValue) => {
     if (userData.role === 'guest' && (newValue === 2 || newValue === 3)) {
-      setError('Please upgrade to Member account to use this feature');
+      setError('Vui lòng nâng cấp tài khoản thành viên để sử dụng tính năng này.');
       return;
     }
     setActiveTab(newValue);
@@ -111,7 +141,6 @@ const ProfilePage = () => {
         navigate('/login');
         return;
       }
-      // Validate input
       if (!userData.username || !userData.email) {
         setError('Vui lòng nhập đầy đủ tên đăng nhập và email.');
         setLoading(false);
@@ -125,97 +154,11 @@ const ProfilePage = () => {
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSuccess('Profile updated successfully!');
+      setSuccess('Hồ sơ đã được cập nhật thành công!');
       setError('');
     } catch (error) {
-      setError('Failed to update profile. Please try again later.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUpdateSmokingStatus = async () => {
-    // Validate input
-    const { cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, dailyLog } = userData.smokingStatus;
-    if (
-      cigarettesPerDay === undefined ||
-      costPerPack === undefined ||
-      smokingFrequency === undefined ||
-      healthStatus === undefined ||
-      cigaretteType === undefined ||
-      dailyLog === undefined ||
-      cigarettesPerDay === '' ||
-      costPerPack === '' ||
-      smokingFrequency === '' ||
-      healthStatus === '' ||
-      cigaretteType === ''
-    ) {
-      setError('Vui lòng nhập đầy đủ thông tin tình trạng hút thuốc.');
-      return;
-    }
-    if (isNaN(Number(cigarettesPerDay)) || isNaN(Number(costPerPack))) {
-      setError('Số điếu thuốc mỗi ngày và giá mỗi bao phải là số.');
-      return;
-    }
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-      console.log({
-        cigarettesPerDay,
-        costPerPack,
-        smokingFrequency,
-        healthStatus,
-        cigaretteType,
-        dailyCigarettes: dailyLog.cigarettes,
-        dailyFeeling: dailyLog.feeling
-      });
-      await axios.put('http://localhost:5000/api/auth/smoking-status', {
-        cigarettesPerDay: Number(cigarettesPerDay),
-        costPerPack: Number(costPerPack),
-        smokingFrequency: String(smokingFrequency),
-        healthStatus: String(healthStatus),
-        cigaretteType: String(cigaretteType || ''),
-        dailyCigarettes: Number(dailyLog.cigarettes || 0),
-        dailyFeeling: String(dailyLog.feeling || '')
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setSuccess('Cập nhật tình trạng hút thuốc thành công!');
-      setError('');
-      fetchUserData();
-    } catch (error) {
-      setError('Failed to update smoking status. Please try again later.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreateQuitPlan = () => {
-    setOpenDialog(true);
-  };
-
-  const handleSaveQuitPlan = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-
-      await axios.post('http://localhost:5000/api/auth/quit-plan', userData.quitPlan, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setOpenDialog(false);
-      setSuccess('Tạo kế hoạch cai thuốc thành công!');
-      setError('');
-      fetchUserData();
-    } catch (error) {
-      setError('Failed to create quit plan. Please try again later.');
+      console.error("Lỗi khi cập nhật hồ sơ:", error);
+      setError(error.response?.data?.message || 'Cập nhật hồ sơ thất bại. Vui lòng thử lại sau.');
     } finally {
       setLoading(false);
     }
@@ -267,7 +210,7 @@ const ProfilePage = () => {
                 variant="outlined"
                 size="medium"
               >
-                Back to Home
+                Quay lại trang chủ
               </Button>
             </Box>
             
@@ -277,15 +220,12 @@ const ProfilePage = () => {
 
             <Tabs value={activeTab} onChange={handleTabChange} sx={{ mb: 3 }}>
               <Tab label="Thông tin cá nhân" />
-              <Tab label="Tình trạng hút thuốc" />
-              <Tab 
-                label="Kế hoạch cai thuốc" 
-                disabled={userData.role !== 'member'}
-              />
-              <Tab 
-                label="Thành tích" 
-                disabled={userData.role !== 'member'}
-              />
+              {userData.role !== 'coach' && userData.role !== 'admin' && (
+                <>
+                  <Tab label="Kế hoạch Cai thuốc" />
+                  <Tab label="Thành tích" />
+                </>
+              )}
             </Tabs>
 
             <Snackbar
@@ -305,354 +245,157 @@ const ProfilePage = () => {
             {activeTab === 0 && (
               <Paper sx={{ p: 3 }}>
                 <Grid container spacing={3}>
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12} sm={6}>
                     <TextField
+                      label="Tên đăng nhập"
                       fullWidth
-                      label="Tên người dùng"
                       value={userData.username}
                       onChange={(e) => setUserData({ ...userData, username: e.target.value })}
                       margin="normal"
-                      disabled={loading}
                     />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
                     <TextField
-                      fullWidth
                       label="Email"
+                      fullWidth
                       value={userData.email}
                       onChange={(e) => setUserData({ ...userData, email: e.target.value })}
                       margin="normal"
-                      disabled={loading}
+                      disabled
                     />
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12} sm={6}>
                     <TextField
-                      fullWidth
                       label="Số điện thoại"
+                      fullWidth
                       value={userData.phoneNumber}
                       onChange={(e) => setUserData({ ...userData, phoneNumber: e.target.value })}
                       margin="normal"
-                      disabled={loading}
                     />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
                     <TextField
-                      fullWidth
                       label="Địa chỉ"
+                      fullWidth
                       value={userData.address}
                       onChange={(e) => setUserData({ ...userData, address: e.target.value })}
                       margin="normal"
-                      disabled={loading}
                     />
                   </Grid>
+                  <Grid item xs={12}>
+                    <Button variant="contained" color="primary" onClick={handleUpdateProfile} disabled={loading}>
+                      Cập nhật Profile
+                    </Button>
+                  </Grid>
                 </Grid>
-                <Button
-                  variant="contained"
-                  onClick={handleUpdateProfile}
-                  sx={{ mt: 3 }}
-                  disabled={loading}
-                >
-                  {loading ? 'Đang cập nhật...' : 'Cập nhật thông tin'}
-                </Button>
               </Paper>
             )}
 
-            {activeTab === 1 && (
+            {activeTab === 1 && userData.role !== 'coach' && userData.role !== 'admin' && (
               <Paper sx={{ p: 3 }}>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      label="Số điếu thuốc/ngày"
-                      value={userData.smokingStatus.cigarettesPerDay}
-                      onChange={(e) => setUserData({
-                        ...userData,
-                        smokingStatus: {
-                          ...userData.smokingStatus,
-                          cigarettesPerDay: e.target.value
-                        }
-                      })}
-                      margin="normal"
-                      disabled={loading}
-                    />
-                    <TextField
-                      fullWidth
-                      type="number"
-                      label="Chi phí/gói (VNĐ)"
-                      value={userData.smokingStatus.costPerPack}
-                      onChange={(e) => setUserData({
-                        ...userData,
-                        smokingStatus: {
-                          ...userData.smokingStatus,
-                          costPerPack: e.target.value
-                        }
-                      })}
-                      margin="normal"
-                      disabled={loading}
-                    />
-                    <TextField
-                      fullWidth
-                      label="Loại thuốc lá"
-                      value={userData.smokingStatus.cigaretteType || ''}
-                      onChange={(e) => setUserData({
-                        ...userData,
-                        smokingStatus: {
-                          ...userData.smokingStatus,
-                          cigaretteType: e.target.value
-                        }
-                      })}
-                      margin="normal"
-                      disabled={loading}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Tần suất hút thuốc"
-                      value={userData.smokingStatus.smokingFrequency}
-                      onChange={(e) => setUserData({
-                        ...userData,
-                        smokingStatus: {
-                          ...userData.smokingStatus,
-                          smokingFrequency: e.target.value
-                        }
-                      })}
-                      margin="normal"
-                      disabled={loading}
-                    />
-                    <TextField
-                      fullWidth
-                      label="Tình trạng sức khỏe"
-                      value={userData.smokingStatus.healthStatus}
-                      onChange={(e) => setUserData({
-                        ...userData,
-                        smokingStatus: {
-                          ...userData.smokingStatus,
-                          healthStatus: e.target.value
-                        }
-                      })}
-                      margin="normal"
-                      disabled={loading}
-                    />
-                    <TextField
-                      fullWidth
-                      label="Lý do muốn cai thuốc"
-                      value={userData.smokingStatus.quitReason || ''}
-                      onChange={(e) => setUserData({
-                        ...userData,
-                        smokingStatus: {
-                          ...userData.smokingStatus,
-                          quitReason: e.target.value
-                        }
-                      })}
-                      margin="normal"
-                      multiline
-                      rows={3}
-                      disabled={loading}
-                    />
-                  </Grid>
-                </Grid>
-                <Box sx={{ mt: 3 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Nhật ký hút thuốc hôm nay
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        type="number"
-                        label="Số điếu đã hút hôm nay"
-                        value={userData.smokingStatus.dailyLog?.cigarettes || 0}
-                        onChange={(e) => setUserData({
-                          ...userData,
-                          smokingStatus: {
-                            ...userData.smokingStatus,
-                            dailyLog: {
-                              ...userData.smokingStatus.dailyLog,
-                              cigarettes: e.target.value
-                            }
-                          }
-                        })}
-                        margin="normal"
-                        disabled={loading}
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Cảm nhận"
-                        value={userData.smokingStatus.dailyLog?.feeling || ''}
-                        onChange={(e) => setUserData({
-                          ...userData,
-                          smokingStatus: {
-                            ...userData.smokingStatus,
-                            dailyLog: {
-                              ...userData.smokingStatus.dailyLog,
-                              feeling: e.target.value
-                            }
-                          }
-                        })}
-                        margin="normal"
-                        multiline
-                        rows={2}
-                        disabled={loading}
-                      />
-                    </Grid>
-                  </Grid>
-                </Box>
-                <Button
-                  variant="contained"
-                  onClick={handleUpdateSmokingStatus}
-                  sx={{ mt: 3 }}
-                  disabled={loading}
-                >
-                  {loading ? 'Đang cập nhật...' : 'Cập nhật tình trạng'}
-                </Button>
-              </Paper>
-            )}
-
-            {activeTab === 2 && userData.role === 'member' && (
-              <Paper sx={{ p: 3 }}>
-                {userData.quitPlan.startDate ? (
-                  <>
-                    <Typography variant="h6" gutterBottom>
-                      Kế hoạch cai thuốc hiện tại
+                <Typography variant="h6" gutterBottom>Kế hoạch Cai thuốc của bạn</Typography>
+                {!userData.quitPlan ? (
+                  <Box sx={{ textAlign: 'center', mt: 3, p: 2, border: '1px dashed #ccc', borderRadius: 2 }}>
+                    <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                      Bạn chưa có kế hoạch cai thuốc. Hãy tạo một kế hoạch để bắt đầu hành trình của mình!
                     </Typography>
-                    <Grid container spacing={3}>
-                      <Grid item xs={12} md={6}>
-                        <Typography>
-                          Ngày bắt đầu: {new Date(userData.quitPlan.startDate).toLocaleDateString()}
-                        </Typography>
-                        <Typography>
-                          Mục tiêu: {new Date(userData.quitPlan.targetDate).toLocaleDateString()}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <Typography variant="subtitle1">Tiến độ</Typography>
-                        <LinearProgress
-                          variant="determinate"
-                          value={userData.quitPlan.currentProgress}
-                          sx={{ height: 10, borderRadius: 5 }}
-                        />
-                        <Typography variant="body2" sx={{ mt: 1 }}>
-                          {userData.quitPlan.currentProgress}%
-                        </Typography>
-                      </Grid>
-                    </Grid>
-                    <List>
-                      {userData.quitPlan.milestones.map((milestone, index) => (
-                        <ListItem key={index}>
-                          <ListItemText
-                            primary={milestone.title}
-                            secondary={milestone.date}
-                          />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </>
+                    <Button variant="contained" color="primary" onClick={() => {
+                      setUserData(prev => ({ ...prev, quitPlan: { startDate: '', targetDate: '', milestones: [], currentProgress: 0 } }));
+                    }}>
+                      Tạo Kế hoạch Cai thuốc
+                    </Button>
+                  </Box>
                 ) : (
-                  <Button
-                    variant="contained"
-                    onClick={handleCreateQuitPlan}
-                    sx={{ mt: 2 }}
-                    disabled={loading}
-                  >
-                    Tạo kế hoạch cai thuốc mới
-                  </Button>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        label="Ngày bắt đầu"
+                        type="date"
+                        fullWidth
+                        value={userData.quitPlan.startDate}
+                        onChange={(e) => setUserData(prev => ({
+                          ...prev,
+                          quitPlan: { ...prev.quitPlan, startDate: e.target.value }
+                        }))}
+                        margin="normal"
+                        InputLabelProps={{ shrink: true }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        label="Ngày mục tiêu"
+                        type="date"
+                        fullWidth
+                        value={userData.quitPlan.targetDate}
+                        onChange={(e) => setUserData(prev => ({
+                          ...prev,
+                          quitPlan: { ...prev.quitPlan, targetDate: e.target.value }
+                        }))}
+                        margin="normal"
+                        InputLabelProps={{ shrink: true }}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        label="Số điếu ban đầu"
+                        type="number"
+                        fullWidth
+                        value={userData.quitPlan.initialCigarettes}
+                        onChange={(e) => setUserData(prev => ({
+                          ...prev,
+                          quitPlan: { ...prev.quitPlan, initialCigarettes: Number(e.target.value) }
+                        }))}
+                        margin="normal"
+                        InputProps={{ inputProps: { min: 0 } }}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle1" sx={{ mt: 2, fontWeight: 'bold' }}>
+                        Tiến độ hiện tại: {userData.quitPlan.currentProgress.toFixed(2)}%
+                      </Typography>
+                      <LinearProgress variant="determinate" value={userData.quitPlan.currentProgress} sx={{ height: 10, borderRadius: 5, mt: 1 }} />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Các mốc quan trọng:</Typography>
+                      <List>
+                        {userData.quitPlan.milestones.length === 0 ? (
+                          <ListItem><ListItemText primary="Chưa có mốc quan trọng nào." /></ListItem>
+                        ) : (
+                          userData.quitPlan.milestones.map((milestone, index) => (
+                            <ListItem key={index} divider>
+                              <ListItemText primary={milestone.title} secondary={milestone.date} />
+                            </ListItem>
+                          ))
+                        )}
+                      </List>
+                      <Button variant="outlined" size="small" sx={{ mt: 2 }}>Thêm Mốc mới</Button>
+                    </Grid>
+                  </Grid>
                 )}
               </Paper>
             )}
 
-            {activeTab === 3 && userData.role === 'member' && (
+            {activeTab === 2 && userData.role !== 'coach' && userData.role !== 'admin' && (
               <Paper sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Huy hiệu và thành tích
-                </Typography>
-                <Grid container spacing={2}>
-                  {userData.achievements.map((achievement, index) => (
-                    <Grid item xs={12} sm={6} md={4} key={index}>
-                      <Card>
-                        <CardContent>
-                          <Typography variant="h6">{achievement.title}</Typography>
-                          <Typography color="textSecondary">
-                            {achievement.description}
-                          </Typography>
-                          <Typography variant="body2" sx={{ mt: 1 }}>
-                            Đạt được: {new Date(achievement.date).toLocaleDateString()}
-                          </Typography>
-                        </CardContent>
-                        <CardActions>
-                          <Button size="small">Chia sẻ</Button>
-                        </CardActions>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Paper>
-            )}
-
-            {userData.role === 'guest' && !userData.isMember && (
-              <Paper sx={{ p: 3, mt: 3, bgcolor: 'warning.light' }}>
-                <Typography variant="h6" gutterBottom>
-                  Nâng cấp lên Member
-                </Typography>
-                <Typography variant="body1" paragraph>
-                  Nâng cấp lên tài khoản Premium để:
-                </Typography>
-                <List>
-                  <ListItem>
-                    <ListItemText
-                      primary="Tạo kế hoạch cai thuốc"
-                      secondary="Tạo và theo dõi kế hoạch cai thuốc cá nhân"
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText
-                      primary="Xem thành tích"
-                      secondary="Theo dõi tiến trình và nhận huy hiệu"
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText
-                      primary="Tư vấn từ huấn luyện viên"
-                      secondary="Đặt câu hỏi và nhận tư vấn trực tuyến"
-                    />
-                  </ListItem>
-                </List>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => navigate('/subscription')}
-                  sx={{ mt: 2 }}
-                >
-                  Nâng cấp ngay
-                </Button>
-              </Paper>
-            )}
-
-            {userData.isPremium && (
-              <Paper sx={{ p: 3, mt: 3, bgcolor: 'primary.light' }}>
-                <Typography variant="h6" gutterBottom>
-                  Tính năng Premium
-                </Typography>
-                <List>
-                  <ListItem>
-                    <ListItemText
-                      primary="Tư vấn từ huấn luyện viên"
-                      secondary="Đặt câu hỏi và nhận tư vấn trực tuyến"
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText
-                      primary="Báo cáo chi tiết"
-                      secondary="Xem các báo cáo nâng cao về quá trình cai thuốc"
-                    />
-                  </ListItem>
-                </List>
+                <Typography variant="h6" gutterBottom>Thành tích của bạn</Typography>
+                {userData.achievements.length === 0 ? (
+                  <Typography>Bạn chưa có thành tích nào. Hãy tiếp tục cố gắng!</Typography>
+                ) : (
+                  <List>
+                    {userData.achievements.map((achievement, index) => (
+                      <ListItem key={index} divider>
+                        <ListItemText primary={achievement.title} secondary={achievement.date} />
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
               </Paper>
             )}
           </Box>
         </Container>
       </Box>
 
-      {/* Full-width Footer with contact information */}
       <Box 
         component="footer" 
         sx={{ 
@@ -691,193 +434,6 @@ const ProfilePage = () => {
           </Typography>
         </Container>
       </Box>
-
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-        <DialogTitle>Tạo kế hoạch cai thuốc mới</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle1" gutterBottom>
-              Chọn kế hoạch cai thuốc
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={4}>
-                <Card 
-                  sx={{ 
-                    cursor: 'pointer',
-                    border: userData.quitPlan.planType === 'gradual' ? '2px solid #4caf50' : '1px solid #ddd'
-                  }}
-                  onClick={() => setUserData({
-                    ...userData,
-                    quitPlan: {
-                      ...userData.quitPlan,
-                      planType: 'gradual'
-                    }
-                  })}
-                >
-                  <CardContent>
-                    <Typography variant="h6">Giảm dần</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Giảm số lượng điếu thuốc mỗi ngày trong 2 tuần
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <Card 
-                  sx={{ 
-                    cursor: 'pointer',
-                    border: userData.quitPlan.planType === 'cold-turkey' ? '2px solid #4caf50' : '1px solid #ddd'
-                  }}
-                  onClick={() => setUserData({
-                    ...userData,
-                    quitPlan: {
-                      ...userData.quitPlan,
-                      planType: 'cold-turkey'
-                    }
-                  })}
-                >
-                  <CardContent>
-                    <Typography variant="h6">Bỏ ngay</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Ngừng hút thuốc ngay lập tức
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <Card 
-                  sx={{ 
-                    cursor: 'pointer',
-                    border: userData.quitPlan.planType === 'custom' ? '2px solid #4caf50' : '1px solid #ddd'
-                  }}
-                  onClick={() => setUserData({
-                    ...userData,
-                    quitPlan: {
-                      ...userData.quitPlan,
-                      planType: 'custom'
-                    }
-                  })}
-                >
-                  <CardContent>
-                    <Typography variant="h6">Tùy chỉnh</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Tạo kế hoạch riêng phù hợp với bạn
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
-          </Box>
-
-          <TextField
-            fullWidth
-            type="date"
-            label="Ngày bắt đầu"
-            value={userData.quitPlan.startDate}
-            onChange={(e) => setUserData({
-              ...userData,
-              quitPlan: {
-                ...userData.quitPlan,
-                startDate: e.target.value
-              }
-            })}
-            margin="normal"
-            InputLabelProps={{ shrink: true }}
-            disabled={loading}
-          />
-          <TextField
-            fullWidth
-            type="date"
-            label="Ngày mục tiêu"
-            value={userData.quitPlan.targetDate}
-            onChange={(e) => setUserData({
-              ...userData,
-              quitPlan: {
-                ...userData.quitPlan,
-                targetDate: e.target.value
-              }
-            })}
-            margin="normal"
-            InputLabelProps={{ shrink: true }}
-            disabled={loading}
-          />
-
-          {userData.quitPlan.planType === 'gradual' && (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="subtitle1" gutterBottom>
-                Kế hoạch giảm dần
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Số điếu ban đầu mỗi ngày"
-                    value={userData.quitPlan.initialCigarettes || userData.smokingStatus.cigarettesPerDay}
-                    onChange={(e) => setUserData({
-                      ...userData,
-                      quitPlan: {
-                        ...userData.quitPlan,
-                        initialCigarettes: e.target.value
-                      }
-                    })}
-                    margin="normal"
-                    disabled={loading}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Số điếu giảm mỗi ngày"
-                    value={userData.quitPlan.dailyReduction || 1}
-                    onChange={(e) => setUserData({
-                      ...userData,
-                      quitPlan: {
-                        ...userData.quitPlan,
-                        dailyReduction: e.target.value
-                      }
-                    })}
-                    margin="normal"
-                    disabled={loading}
-                  />
-                </Grid>
-              </Grid>
-            </Box>
-          )}
-
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="subtitle1" gutterBottom>
-              Mốc quan trọng
-            </Typography>
-            <List>
-              {[
-                { title: '1 ngày không hút thuốc', days: 1 },
-                { title: '1 tuần không hút thuốc', days: 7 },
-                { title: '1 tháng không hút thuốc', days: 30 },
-                { title: '3 tháng không hút thuốc', days: 90 },
-                { title: '6 tháng không hút thuốc', days: 180 },
-                { title: '1 năm không hút thuốc', days: 365 }
-              ].map((milestone, index) => (
-                <ListItem key={index}>
-                  <ListItemText
-                    primary={milestone.title}
-                    secondary={`Tiết kiệm được ${(milestone.days * userData.smokingStatus.cigarettesPerDay * userData.smokingStatus.costPerPack / 20).toLocaleString()} VNĐ`}
-                  />
-                </ListItem>
-              ))}
-            </List>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)} disabled={loading}>
-            Hủy
-          </Button>
-          <Button onClick={handleSaveQuitPlan} variant="contained" disabled={loading}>
-            {loading ? 'Đang tạo...' : 'Tạo kế hoạch'}
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };

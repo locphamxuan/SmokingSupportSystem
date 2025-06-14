@@ -25,25 +25,30 @@ import {
   FormControl,
   InputLabel,
   Grid,
-  Chip,
   Card,
-  CardContent
+  CardContent,
+  Avatar,
+  Chip,
+  Tooltip
 } from "@mui/material";
 import { 
   Edit as EditIcon, 
   Delete as DeleteIcon,
   People as PeopleIcon,
   WorkspacePremium as PremiumIcon,
-  AdminPanelSettings as AdminIcon,
-  SupportAgent as CoachIcon
+  SupportAgent as CoachIcon,
+  Search as SearchIcon,
+  Dashboard as DashboardIcon
 } from "@mui/icons-material";
-import { getUsers, updateUser, deleteUser } from "../services/adminService";
+import { getUsers, getUserDetail, updateUser, deleteUser } from "../services/adminService";
 
 const AdminUserPage = () => {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [open, setOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedUserDetail, setSelectedUserDetail] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [formData, setFormData] = useState({
@@ -53,15 +58,7 @@ const AdminUserPage = () => {
     phoneNumber: "",
     address: "",
     role: "",
-    isMember: false,
-    createdAt: "",
-    cigarettesPerDay: "",
-    costPerPack: "",
-    smokingFrequency: "",
-    healthStatus: "",
-    cigaretteType: "",
-    dailyCigarettes: "",
-    dailyFeeling: "",
+    isMember: false
   });
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -70,24 +67,48 @@ const AdminUserPage = () => {
   });
 
   const getUserRole = (user) => {
-    // Sử dụng role từ database, nếu không có thì fallback
+    // Kiểm tra nếu user có IsMember = 1 thì coi là member (thành viên premium)
+    if (user.isMember === 1 || user.isMember === true) {
+      return "member";
+    }
+    
+    // Ưu tiên role từ database nếu có
     if (user.role) {
       return user.role.toLowerCase();
     }
     
-    // Fallback cho dữ liệu cũ
-    if (user.isAdmin === 1) return "admin";
-    if (user.isMember === 1) return "member";
-    return "guest";
+    // Logic dự phòng cho các trường hợp dữ liệu cũ hoặc không xác định
+    if (user.isAdmin === 1) return "admin"; // Nếu là admin
+    return "guest"; // Mặc định là khách hàng
+  };
+
+  const getRoleColor = (role) => {
+    switch (role) {
+      case "admin": return "#f44336"; // Màu đỏ cho Quản trị viên
+      case "coach": return "#2196f3"; // Màu xanh dương cho Huấn luyện viên
+      case "member": return "#ff9800"; // Màu cam cho Thành viên
+      case "guest": return "#9e9e9e"; // Màu xám cho Khách hàng
+      default: return "#9e9e9e";
+    }
+  };
+
+  const getRoleLabel = (role) => {
+    switch (role) {
+      case "admin": return "Quản trị viên";
+      case "coach": return "Huấn luyện viên";
+      case "member": return "Thành viên";
+      case "guest": return "Khách hàng";
+      default: return "Khách hàng";
+    }
   };
 
   const filterUsers = useCallback(() => {
     let filtered = users;
 
-    // Bỏ user admin khỏi danh sách
+    // Bỏ user admin khỏi danh sách hiển thị cho admin
     filtered = filtered.filter(user => user.role !== 'admin');
 
-    // Filter by search term
+    // Lọc theo từ khóa tìm kiếm (username hoặc email)
     if (searchTerm) {
       filtered = filtered.filter(user => 
         user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -95,11 +116,17 @@ const AdminUserPage = () => {
       );
     }
 
-    // Filter by role
+    // Lọc theo vai trò
     if (roleFilter === "member") {
-      filtered = filtered.filter(user => user.isMember === true);
+      filtered = filtered.filter(user => {
+        const role = getUserRole(user);
+        return role === "member" || user.isMember === true || user.isMember === 1;
+      });
     } else if (roleFilter === "guest") {
-      filtered = filtered.filter(user => getUserRole(user) === "guest" && user.isMember !== true);
+      filtered = filtered.filter(user => {
+        const role = getUserRole(user);
+        return role === "guest" && !user.isMember;
+      });
     } else if (roleFilter === "coach") {
       filtered = filtered.filter(user => getUserRole(user) === "coach");
     } else if (roleFilter !== "all") {
@@ -109,7 +136,9 @@ const AdminUserPage = () => {
       });
     }
 
-    setFilteredUsers(filtered);
+    // Sắp xếp danh sách đã lọc theo ID tăng dần
+    const sortedFiltered = filtered.sort((a, b) => a.id - b.id);
+    setFilteredUsers(sortedFiltered);
   }, [users, searchTerm, roleFilter]);
 
   useEffect(() => {
@@ -122,59 +151,96 @@ const AdminUserPage = () => {
 
   const fetchUsers = async () => {
     try {
+      console.log('Đang tải người dùng...');
       const data = await getUsers();
-      setUsers(data);
+      console.log('Dữ liệu người dùng nhận được:', data);
+      
+      // Kiểm tra định dạng dữ liệu nhận được
+      if (!data || !Array.isArray(data)) {
+        console.error('Định dạng dữ liệu không hợp lệ:', data);
+        setSnackbar({
+          open: true,
+          message: "Dữ liệu người dùng không hợp lệ",
+          severity: "error",
+        });
+        return;
+      }
+
+      // Chuyển đổi các thuộc tính từ PascalCase sang camelCase để dễ xử lý trong React
+      const formattedData = data.map(user => ({
+        id: user.Id,
+        username: user.Username,
+        email: user.Email,
+        phoneNumber: user.PhoneNumber,
+        address: user.Address,
+        role: user.Role,
+        isMember: user.IsMember,
+        createdAt: user.CreatedAt
+      }));
+
+      // Sắp xếp danh sách đã định dạng theo ID tăng dần
+      const sortedData = formattedData.sort((a, b) => a.id - b.id);
+      console.log('Dữ liệu người dùng đã sắp xếp:', sortedData);
+      setUsers(sortedData);
     } catch (error) {
       console.error("Lỗi khi tải danh sách người dùng:", error);
+      console.error("Chi tiết lỗi:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      let errorMessage = "Lỗi khi tải danh sách người dùng";
+      
+      // Xử lý các loại lỗi cụ thể
+      if (error.response) {
+        if (error.response.status === 401) {
+          errorMessage = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
+        } else if (error.response.status === 403) {
+          errorMessage = "Bạn không có quyền truy cập trang này.";
+        } else if (error.response.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error.request) {
+        errorMessage = "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.";
+      }
+      
       setSnackbar({
         open: true,
-        message: "Lỗi khi tải danh sách người dùng",
+        message: errorMessage,
         severity: "error",
       });
     }
   };
 
-  const getRoleDisplay = (role) => {
-    switch (role) {
-      case "coach": 
-        return { label: "Coaching", color: "info", icon: <CoachIcon /> };
-      case "member": 
-        return { label: "Khách hàng Premium", color: "warning", icon: <PremiumIcon /> };
-      case "guest": 
-        return { label: "Khách hàng", color: "default", icon: <PeopleIcon /> };
-      default: 
-        return { label: "Khách hàng", color: "default", icon: <PeopleIcon /> };
-    }
-  };
-
   const getStatistics = () => {
+    // Lọc bỏ admin khỏi thống kê
     const filteredUsers = users.filter(user => user.role !== 'admin');
     const coachCount = filteredUsers.filter(user => getUserRole(user) === "coach").length;
-    const memberCount = filteredUsers.filter(user => getUserRole(user) === "member").length;
-    const guestCount = filteredUsers.filter(user => getUserRole(user) === "guest").length;
-    return { coachCount, memberCount, guestCount };
+    const memberCount = filteredUsers.filter(user => {
+      const role = getUserRole(user);
+      return role === "member" || user.isMember === true || user.isMember === 1;
+    }).length;
+    const guestCount = filteredUsers.filter(user => {
+      const role = getUserRole(user);
+      return role === "guest" && !user.isMember;
+    }).length;
+    const totalUsers = filteredUsers.length;
+    return { coachCount, memberCount, guestCount, totalUsers };
   };
 
   const handleEdit = (user) => {
     setSelectedUser(user);
     setFormData({
       id: user.id,
-      username: user.username,
-      email: user.email,
+      username: user.username || "",
+      email: user.email || "",
       phoneNumber: user.phoneNumber || "",
       address: user.address || "",
-      role: user.role,
-      isMember: user.isMember,
-      createdAt: user.createdAt,
-      cigarettesPerDay: user.cigarettesPerDay,
-      costPerPack: user.costPerPack,
-      smokingFrequency: user.smokingFrequency,
-      healthStatus: user.healthStatus,
-      cigaretteType: user.cigaretteType,
-      dailyCigarettes: user.dailyCigarettes,
-      dailyFeeling: user.dailyFeeling
+      role: user.role || "guest", // Đặt vai trò mặc định là 'guest' nếu không có
+      isMember: user.isMember || false // Đặt mặc định là false nếu không có
     });
-    setOpen(true);
+    setOpen(true); // Mở dialog chỉnh sửa
   };
 
   const handleClose = () => {
@@ -187,53 +253,54 @@ const AdminUserPage = () => {
       phoneNumber: "",
       address: "",
       role: "",
-      isMember: false,
-      createdAt: "",
-      cigarettesPerDay: "",
-      costPerPack: "",
-      smokingFrequency: "",
-      healthStatus: "",
-      cigaretteType: "",
-      dailyCigarettes: "",
-      dailyFeeling: "",
+      isMember: false
     });
   };
 
   const handleSave = async () => {
     try {
-      await updateUser(selectedUser.userID, formData);
+      const updatedUser = await updateUser(formData.id, formData);
+      // Cập nhật người dùng trong danh sách hiển thị
+      setUsers(users.map(user => user.id === updatedUser.id ? updatedUser : user));
       setSnackbar({
         open: true,
         message: "Cập nhật người dùng thành công!",
         severity: "success",
       });
-      fetchUsers();
-      handleClose();
+      handleClose(); // Đóng dialog sau khi lưu
     } catch (error) {
       console.error("Lỗi khi cập nhật người dùng:", error);
+      let errorMessage = "Cập nhật người dùng thất bại.";
+      if (error.response && error.response.data && error.response.data.message) {
+        errorMessage = error.response.data.message;
+      }
       setSnackbar({
         open: true,
-        message: "Lỗi khi cập nhật người dùng",
+        message: errorMessage,
         severity: "error",
       });
     }
   };
 
   const handleDelete = async (userId) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa người dùng này?")) {
+    if (window.confirm("Bạn có chắc chắn muốn xóa người dùng này không?")) {
       try {
         await deleteUser(userId);
+        setUsers(users.filter(user => user.id !== userId)); // Xóa người dùng khỏi danh sách
         setSnackbar({
           open: true,
           message: "Xóa người dùng thành công!",
           severity: "success",
         });
-        fetchUsers();
       } catch (error) {
         console.error("Lỗi khi xóa người dùng:", error);
+        let errorMessage = "Xóa người dùng thất bại.";
+        if (error.response && error.response.data && error.response.data.message) {
+          errorMessage = error.response.data.message;
+        }
         setSnackbar({
           open: true,
-          message: "Lỗi khi xóa người dùng",
+          message: errorMessage,
           severity: "error",
         });
       }
@@ -242,230 +309,324 @@ const AdminUserPage = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData({ ...formData, [name]: value });
   };
 
-  const stats = getStatistics();
+  const handleViewUserDetail = async (userId) => {
+    try {
+      const data = await getUserDetail(userId);
+      setSelectedUserDetail(data);
+      setDetailOpen(true); // Mở dialog chi tiết
+    } catch (error) {
+      console.error("Lỗi khi tải chi tiết người dùng:", error);
+      let errorMessage = "Không thể tải chi tiết người dùng.";
+      if (error.response && error.response.data && error.response.data.message) {
+        errorMessage = error.response.data.message;
+      }
+      setSnackbar({
+        open: true,
+        message: errorMessage,
+        severity: "error",
+      });
+    }
+  };
+
+  const handleCloseDetail = () => {
+    setDetailOpen(false);
+    setSelectedUserDetail(null);
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  const { coachCount, memberCount, guestCount, totalUsers } = getStatistics();
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: '#1976d2' }}>
-        Quản lý người dùng
+      <Typography variant="h4" component="h1" gutterBottom sx={{ color: '#333', fontWeight: 'bold' }}>
+        <DashboardIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> Quản Lý Người Dùng
       </Typography>
 
-      {/* Statistics Cards */}
+      {/* Thẻ thống kê người dùng */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #2196f3 0%, #64b5f6 100%)', color: 'white' }}>
+          <Card elevation={3} sx={{ borderRadius: 2, background: 'linear-gradient(45deg, #2196f3 30%, #21cbff 90%)', color: 'white' }}>
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{stats.coachCount}</Typography>
-                  <Typography variant="body2">Huấn luyện viên</Typography>
-                </Box>
-                <CoachIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <PeopleIcon sx={{ fontSize: 40, mr: 2 }} />
+                <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
+                  Tổng số Người dùng
+                </Typography>
               </Box>
+              <Typography variant="h3" sx={{ fontWeight: 'bold', textAlign: 'right' }}>{totalUsers}</Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #ff9800 0%, #ffb74d 100%)', color: 'white' }}>
+          <Card elevation={3} sx={{ borderRadius: 2, background: 'linear-gradient(45deg, #ff9800 30%, #ffc107 90%)', color: 'white' }}>
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{stats.memberCount}</Typography>
-                  <Typography variant="body2">Thành viên</Typography>
-                </Box>
-                <PremiumIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <PremiumIcon sx={{ fontSize: 40, mr: 2 }} />
+                <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
+                  Thành viên Premium
+                </Typography>
               </Box>
+              <Typography variant="h3" sx={{ fontWeight: 'bold', textAlign: 'right' }}>{memberCount}</Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #9e9e9e 0%, #bdbdbd 100%)', color: 'white' }}>
+          <Card elevation={3} sx={{ borderRadius: 2, background: 'linear-gradient(45deg, #4caf50 30%, #81c784 90%)', color: 'white' }}>
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{stats.guestCount}</Typography>
-                  <Typography variant="body2">Khách hàng</Typography>
-                </Box>
-                <PeopleIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <CoachIcon sx={{ fontSize: 40, mr: 2 }} />
+                <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
+                  Huấn luyện viên
+                </Typography>
               </Box>
+              <Typography variant="h3" sx={{ fontWeight: 'bold', textAlign: 'right' }}>{coachCount}</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card elevation={3} sx={{ borderRadius: 2, background: 'linear-gradient(45deg, #9e9e9e 30%, #bdbdbd 90%)', color: 'white' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <PeopleIcon sx={{ fontSize: 40, mr: 2 }} />
+                <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
+                  Khách hàng
+                </Typography>
+              </Box>
+              <Typography variant="h3" sx={{ fontWeight: 'bold', textAlign: 'right' }}>{guestCount}</Typography>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
 
-      {/* Filters */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Tìm kiếm theo tên hoặc email"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              variant="outlined"
-            />
-          </Grid>
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Lọc theo vai trò</InputLabel>
-              <Select
-                value={roleFilter}
-                label="Lọc theo vai trò"
-                onChange={(e) => setRoleFilter(e.target.value)}
-              >
-                <MenuItem value="all">Tất cả</MenuItem>
-                <MenuItem value="coach">Huấn luyện viên</MenuItem>
-                <MenuItem value="member">Thành viên</MenuItem>
-                <MenuItem value="guest">Khách hàng</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-        </Grid>
-      </Paper>
+      <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
+        {/* Thanh tìm kiếm và bộ lọc vai trò */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap' }}>
+          <TextField
+            label="Tìm kiếm (Tên đăng nhập/Email)"
+            variant="outlined"
+            sx={{ flexGrow: 1, mr: 2, mb: { xs: 2, sm: 0 } }}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              endAdornment: (
+                <SearchIcon color="action" />
+              ),
+            }}
+          />
+          <FormControl sx={{ minWidth: 200 }}>
+            <InputLabel>Lọc theo vai trò</InputLabel>
+            <Select
+              value={roleFilter}
+              label="Lọc theo vai trò"
+              onChange={(e) => setRoleFilter(e.target.value)}
+            >
+              <MenuItem value="all">Tất cả</MenuItem>
+              <MenuItem value="member">Thành viên</MenuItem>
+              <MenuItem value="coach">Huấn luyện viên</MenuItem>
+              <MenuItem value="guest">Khách hàng</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
 
-      {/* Users Table */}
-      <Paper>
-        <TableContainer>
-          <Table>
+        {/* Bảng danh sách người dùng */}
+        <TableContainer component={Paper} elevation={0}>
+          <Table sx={{ minWidth: 650 }} aria-label="Bảng người dùng">
             <TableHead>
-              <TableRow>
-                <TableCell>ID</TableCell>
-                <TableCell>Tên người dùng</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Số điện thoại</TableCell>
-                <TableCell>Địa chỉ</TableCell>
-                <TableCell>Vai trò</TableCell>
-                <TableCell>Thành viên</TableCell>
-                <TableCell>Ngày tạo</TableCell>
-                <TableCell>Số điếu/ngày</TableCell>
-                <TableCell>Chi phí/gói</TableCell>
-                <TableCell>Tần suất</TableCell>
-                <TableCell>Tình trạng sức khỏe</TableCell>
-                <TableCell>Loại thuốc lá</TableCell>
-                <TableCell>Số điếu hôm nay</TableCell>
-                <TableCell>Cảm nhận hôm nay</TableCell>
-                <TableCell>Hành động</TableCell>
+              <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                <TableCell sx={{ fontWeight: 'bold' }}>ID</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Tên đăng nhập</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Email</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Số điện thoại</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Vai trò</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 'bold' }}>Hành động</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>{user.id}</TableCell>
-                  <TableCell>{user.username}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.phoneNumber || "Chưa có"}</TableCell>
-                  <TableCell>{user.address || "Chưa có"}</TableCell>
-                  <TableCell>{user.role}</TableCell>
-                  <TableCell>{user.isMember ? "Có" : "Không"}</TableCell>
-                  <TableCell>{user.createdAt ? new Date(user.createdAt).toLocaleString() : ""}</TableCell>
-                  <TableCell>{user.smokingStatus?.cigarettesPerDay ?? "Chưa có"}</TableCell>
-                  <TableCell>{user.smokingStatus?.costPerPack ?? "Chưa có"}</TableCell>
-                  <TableCell>{user.smokingStatus?.smokingFrequency ?? "Chưa có"}</TableCell>
-                  <TableCell>{user.smokingStatus?.healthStatus ?? "Chưa có"}</TableCell>
-                  <TableCell>{user.smokingStatus?.cigaretteType ?? "Chưa có"}</TableCell>
-                  <TableCell>{user.smokingStatus?.dailyCigarettes ?? "Chưa có"}</TableCell>
-                  <TableCell>{user.smokingStatus?.dailyFeeling ?? "Chưa có"}</TableCell>
-                  <TableCell>
-                    <IconButton color="primary" onClick={() => handleEdit(user)} size="small">
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton color="error" onClick={() => handleDelete(user.id)} size="small">
-                      <DeleteIcon />
-                    </IconButton>
+              {filteredUsers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
+                    Không tìm thấy người dùng nào.
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filteredUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell>{user.id}</TableCell>
+                    <TableCell>{user.username}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.phoneNumber}</TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={getRoleLabel(getUserRole(user))}
+                        sx={{ 
+                          backgroundColor: getRoleColor(getUserRole(user)), 
+                          color: 'white',
+                          fontWeight: 'bold'
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Tooltip title="Chỉnh sửa">
+                        <IconButton onClick={() => handleEdit(user)} color="primary">
+                          <EditIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Xóa">
+                        <IconButton onClick={() => handleDelete(user.id)} color="secondary">
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Xem chi tiết">
+                        <Button variant="outlined" size="small" sx={{ ml: 1 }} onClick={() => handleViewUserDetail(user.id)}>
+                          Chi tiết
+                        </Button>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </TableContainer>
       </Paper>
 
-      {/* Edit Dialog */}
-      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-        <DialogTitle>Chỉnh sửa người dùng</DialogTitle>
+      {/* Dialog chỉnh sửa người dùng */}
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>Chỉnh sửa Người dùng</DialogTitle>
         <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <TextField
-                name="username"
-                label="Tên người dùng"
-                value={formData.username}
-                onChange={handleInputChange}
-                fullWidth
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                name="email"
-                label="Email"
-                value={formData.email}
-                onChange={handleInputChange}
-                fullWidth
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Vai trò</InputLabel>
-                <Select
-                  name="role"
-                  value={formData.role}
-                  label="Vai trò"
-                  onChange={handleInputChange}
-                >
-                  <MenuItem value="admin">Quản trị viên</MenuItem>
-                  <MenuItem value="coach">Coaching</MenuItem>
-                  <MenuItem value="member">Khách hàng Premium</MenuItem>
-                  <MenuItem value="guest">Khách hàng</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                name="phoneNumber"
-                label="Số điện thoại"
-                value={formData.phoneNumber}
-                onChange={handleInputChange}
-                fullWidth
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                name="address"
-                label="Địa chỉ"
-                value={formData.address}
-                onChange={handleInputChange}
-                fullWidth
-                multiline
-                rows={2}
-              />
-            </Grid>
-          </Grid>
+          <TextField
+            margin="dense"
+            label="Tên đăng nhập"
+            type="text"
+            fullWidth
+            variant="outlined"
+            name="username"
+            value={formData.username}
+            onChange={handleInputChange}
+          />
+          <TextField
+            margin="dense"
+            label="Email"
+            type="email"
+            fullWidth
+            variant="outlined"
+            name="email"
+            value={formData.email}
+            onChange={handleInputChange}
+          />
+          <TextField
+            margin="dense"
+            label="Số điện thoại"
+            type="text"
+            fullWidth
+            variant="outlined"
+            name="phoneNumber"
+            value={formData.phoneNumber}
+            onChange={handleInputChange}
+          />
+          <TextField
+            margin="dense"
+            label="Địa chỉ"
+            type="text"
+            fullWidth
+            variant="outlined"
+            name="address"
+            value={formData.address}
+            onChange={handleInputChange}
+          />
+          <FormControl fullWidth margin="dense">
+            <InputLabel>Vai trò</InputLabel>
+            <Select
+              name="role"
+              value={formData.role}
+              label="Vai trò"
+              onChange={handleInputChange}
+            >
+              <MenuItem value="member">Thành viên</MenuItem>
+              <MenuItem value="coach">Huấn luyện viên</MenuItem>
+              <MenuItem value="guest">Khách hàng</MenuItem>
+            </Select>
+          </FormControl>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Hủy</Button>
-          <Button onClick={handleSave} variant="contained">
+          <Button onClick={handleSave} variant="contained" color="primary">
             Lưu
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          sx={{ width: "100%" }}
-        >
+      {/* Dialog xem chi tiết người dùng */}
+      <Dialog open={detailOpen} onClose={handleCloseDetail} maxWidth="sm" fullWidth>
+        <DialogTitle>Chi tiết Người dùng</DialogTitle>
+        <DialogContent>
+          {selectedUserDetail ? (
+            <Box>
+              <Typography variant="h6" gutterBottom>ID: {selectedUserDetail.id}</Typography>
+              <Typography variant="h6" gutterBottom>Tên đăng nhập: {selectedUserDetail.username}</Typography>
+              <Typography variant="h6" gutterBottom>Email: {selectedUserDetail.email}</Typography>
+              <Typography variant="h6" gutterBottom>Số điện thoại: {selectedUserDetail.phoneNumber}</Typography>
+              <Typography variant="h6" gutterBottom>Địa chỉ: {selectedUserDetail.address}</Typography>
+              <Typography variant="h6" gutterBottom>Vai trò: {getRoleLabel(getUserRole(selectedUserDetail))}</Typography>
+              <Typography variant="h6" gutterBottom>Ngày tạo: {new Date(selectedUserDetail.createdAt).toLocaleDateString()}</Typography>
+              {selectedUserDetail.role === 'coach' && (
+                <Box sx={{ mt: 3, p: 2, border: '1px solid #eee', borderRadius: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>Thông tin Huấn luyện viên:</Typography>
+                  <Typography variant="body1">Chuyên môn: {selectedUserDetail.expertise}</Typography>
+                  <Typography variant="body1">Kinh nghiệm: {selectedUserDetail.experience}</Typography>
+                  <Typography variant="body1">Giới thiệu: {selectedUserDetail.bio}</Typography>
+                  {selectedUserDetail.assignedMembers && selectedUserDetail.assignedMembers.length > 0 && (
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Các thành viên được chỉ định:</Typography>
+                      <ul>
+                        {selectedUserDetail.assignedMembers.map(member => (
+                          <li key={member.id}>{member.username} ({member.email})</li>
+                        ))}
+                      </ul>
+                    </Box>
+                  )}
+                </Box>
+              )}
+              {selectedUserDetail.role === 'member' && (
+                <Box sx={{ mt: 3, p: 2, border: '1px solid #eee', borderRadius: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>Thông tin Thành viên:</Typography>
+                  <Typography variant="body1">Số điếu hút mỗi ngày: {selectedUserDetail.cigarettesPerDay}</Typography>
+                  <Typography variant="body1">Số năm hút: {selectedUserDetail.smokingYears}</Typography>
+                  <Typography variant="body1">Lý do cai: {selectedUserDetail.reasonToQuit}</Typography>
+                  {selectedUserDetail.assignedCoach && (
+                    <Typography variant="body1">Huấn luyện viên được chỉ định: {selectedUserDetail.assignedCoach.username} ({selectedUserDetail.assignedCoach.email})</Typography>
+                  )}
+                  {selectedUserDetail.progress && selectedUserDetail.progress.length > 0 && (
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Tiến độ:</Typography>
+                      <ul>
+                        {selectedUserDetail.progress.map(p => (
+                          <li key={p.date}>Ngày {new Date(p.date).toLocaleDateString()}: {p.cigarettesSmoked} điếu, Ghi chú: {p.note}</li>
+                        ))}
+                      </ul>
+                    </Box>
+                  )}
+                </Box>
+              )}
+            </Box>
+          ) : (
+            <Typography>Đang tải chi tiết người dùng...</Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDetail}>Đóng</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar thông báo */}
+      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={handleSnackbarClose}>
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
           {snackbar.message}
         </Alert>
       </Snackbar>

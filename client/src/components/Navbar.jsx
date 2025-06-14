@@ -1,30 +1,16 @@
 import React, { useState } from "react";
-import { 
-  AppBar, 
-  Toolbar, 
-  Typography, 
-  Button, 
-  Box, 
-  Avatar,
-  Menu,
-  MenuItem,
-  IconButton
-} from "@mui/material";
-import { 
-  Home as HomeIcon,
-  SmokeFree as SmokeIcon,
-  WorkspacePremium as PremiumIcon
-} from "@mui/icons-material";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
-
+import { Link, useNavigate } from "react-router-dom";
+import '../style/Navbar.scss';
+import logo from "../assets/images/logo.png";
 
 const Navbar = () => {
-  const [anchorEl, setAnchorEl] = useState(null);
+  const [showDropdown, setShowDropdown] = useState(false);
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
   const isLoggedIn = !!token;
   const userStr = localStorage.getItem('user');
   let user = null;
+
   try {
     if (userStr && userStr !== 'undefined') {
       user = JSON.parse(userStr);
@@ -32,135 +18,89 @@ const Navbar = () => {
   } catch (e) {
     user = null;
   }
+
   const isAdmin = user && user.role === 'admin';
-
-  const handleMenu = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
+  const isCoach = user && user.role === 'coach';
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    handleClose();
+    setShowDropdown(false);
     navigate('/login');
   };
 
   return (
-    <AppBar position="static" sx={{ backgroundColor: '#2d3748' }}>
-      <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        {/* Logo bên trái */}
-        <Box 
-          component={RouterLink} 
-          to="/" 
-          sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            textDecoration: 'none', 
-            color: 'inherit',
-            '&:hover': {
-              opacity: 0.8
-            }
-          }}
-        >
-          <SmokeIcon sx={{ fontSize: 32, mr: 1, color: '#68d391' }} />
-          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-            Hành Trình Không Khói
-          </Typography>
-        </Box>
-        
-        {/* Navigation buttons ở giữa */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Button 
-            color="inherit" 
-            component={RouterLink} 
-            to="/"
-            startIcon={<HomeIcon />}
-          >
-            Trang chủ
-          </Button>
-          <Button color="inherit" component={RouterLink} to="/blog">
-            Blog
-          </Button>
-          <Button color="inherit" component={RouterLink} to="/leaderboard">
-            Bảng xếp hạng
-          </Button>
-          {isLoggedIn && !isAdmin && (
-            <Button 
-              color="inherit" 
-              component={RouterLink} 
-              to="/subscription"
-              startIcon={<PremiumIcon />}
-              sx={{
-                backgroundColor: 'rgba(255, 193, 7, 0.1)',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 193, 7, 0.2)',
-                }
-              }}
-            >
-              Gói Premium
-            </Button>
-          )}
-        </Box>
+    <header className="header">
+      <div className="header-container">
+        <div className="header-left">
+          <Link to="/" className="logo">
+            <img
+              src={logo}
+              alt="Logo"
+              className="logo-img"
+            />
+          </Link>
 
-        {/* User menu bên phải */}
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <nav className="nav">
+            <Link to="#" className="nav-item">Giới thiệu</Link>
+            <Link to="" className="nav-item">Trang chủ</Link>
+            <Link to="/blog" className="nav-item">Blog</Link>
+            <Link to="/leaderboard" className="nav-item">Bảng xếp hạng</Link>
+            <Link to="/community" className="nav-item">Cộng đồng</Link>
+           
+          </nav>
+        </div>
+
+        <div className="header-right">
           {isLoggedIn ? (
-            <>
-              <IconButton
-                size="large"
-                aria-label="account of current user"
-                aria-controls="menu-appbar"
-                aria-haspopup="true"
-                onClick={handleMenu}
-                color="inherit"
-                sx={{ ml: 2 }}
+            <div className="user-menu">
+              <div
+                className="avatar-container"
+                onClick={() => setShowDropdown(!showDropdown)}
               >
-                <Avatar sx={{ width: 32, height: 32 }} />
-              </IconButton>
-              <Menu
-                id="menu-appbar"
-                anchorEl={anchorEl}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                keepMounted
-                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                open={Boolean(anchorEl)}
-                onClose={handleClose}
-              >
-                {!isAdmin && (
-                  <MenuItem 
-                    onClick={() => {
-                      handleClose();
-                      navigate('/profile');
-                    }}
-                  >
-                    Hồ sơ cá nhân
-                  </MenuItem>
-                )}
-                {isAdmin && (
-                  <MenuItem
-                    onClick={() => {
-                      handleClose();
-                      navigate('/admin/users');
-                    }}
-                  >
-                    Quản lý tài khoản
-                  </MenuItem>
-                )}
-                <MenuItem onClick={handleLogout}>Đăng xuất</MenuItem>
-              </Menu>
-            </>
+                <img
+                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || 'default'}`}
+                  alt="User avatar"
+                  className="user-avatar"
+                />
+              </div>
+              {showDropdown && (
+                <div className="dropdown-menu">
+                  {!isAdmin && (
+                    <Link to="/profile" className="dropdown-item">
+                      Hồ sơ cá nhân
+                    </Link>
+                  )}
+                  {isAdmin && (
+                    <Link to="/admin/users" className="dropdown-item">
+                      Quản lý tài khoản
+                    </Link>
+                  )}
+                  {!isAdmin && !isCoach && (
+                    <Link to="/my-progress" className="dropdown-item">
+                      Theo dõi quá trình
+                    </Link>
+                  )}
+                  {isCoach && (
+                    <Link to="/coach/dashboard" className="dropdown-item">
+                      Lịch tư vấn
+                    </Link>
+                  )}
+                  <button onClick={handleLogout} className="dropdown-item">
+                    Đăng xuất
+                  </button>
+                </div>
+              )}
+            </div>
           ) : (
-            <Button color="inherit" component={RouterLink} to="/login">
-              Đăng nhập
-            </Button>
+            <div className="auth-buttons">
+              
+              <Link to="/login" className="btn-primary">Đăng nhập</Link>
+            </div>
           )}
-        </Box>
-      </Toolbar>
-    </AppBar>
+        </div>
+      </div>
+    </header>
   );
 };
 

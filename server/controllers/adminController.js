@@ -1,230 +1,198 @@
 const { sql } = require('../db');
 
-// Lấy danh sách user
-exports.getUsers = async (req, res) => {
-  try {
-    const result = await sql.query`
-      SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address, CreatedAt,
-             cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, dailyCigarettes, dailyFeeling
-      FROM Users
-    `;
-    
-    console.log('Raw database result:', result.recordset); // Debug log
-    
-    const users = result.recordset.map(user => {
-      console.log(`User ${user.Username}: Role=${user.Role}, IsAdmin=${user.IsAdmin}, IsMember=${user.IsMember}`); // Debug log
-      return {
-        id: user.Id,
-        username: user.Username,
-        email: user.Email,
-        phoneNumber: user.PhoneNumber || "",
-        address: user.Address || "",
-        role: user.Role || 'guest',
-        isMember: user.IsMember,
-        createdAt: user.CreatedAt,
-        smokingStatus: {
-          cigarettesPerDay: user.cigarettesPerDay || 0,
-          costPerPack: user.costPerPack || 0,
-          smokingFrequency: user.smokingFrequency || '',
-          healthStatus: user.healthStatus || '',
-          cigaretteType: user.cigaretteType || '',
-          dailyCigarettes: user.dailyCigarettes || 0,
-          dailyFeeling: user.dailyFeeling || ''
+const adminController = {
+    getAllUsers: async (req, res) => {
+        try {
+            const result = await sql.query`
+                SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address, CreatedAt
+                FROM Users
+                ORDER BY CreatedAt DESC
+            `;
+            res.json(result.recordset);
+        } catch (error) {
+            console.error('Error getting users:', error);
+            res.status(500).json({ message: 'Error getting users' });
         }
-      };
-    });
-    
-    console.log('Mapped users:', users); // Debug log
-    res.json(users);
-  } catch (error) {
-    console.error('Database error:', error); // Debug log
-    res.status(500).json({ message: 'Get users failed', error: error.message });
-  }
-};
+    },
 
-// Cập nhật thông tin user
-exports.updateUser = async (req, res) => {
-  try {
-    const { username, email, role, isAdmin, isMember, phoneNumber, address, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, dailyCigarettes, dailyFeeling } = req.body;
-    const userId = req.params.id;
+    getAllCoaches: async (req, res) => {
+        try {
+            const result = await sql.query`
+                SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address, CreatedAt
+                FROM Users 
+                WHERE Role = 'coach'
+                ORDER BY CreatedAt DESC
+            `;
+            res.json(result.recordset);
+        } catch (error) {
+            console.error('Error getting coaches:', error);
+            res.status(500).json({ message: 'Error getting coaches' });
+        }
+    },
 
-    await sql.query`
-      UPDATE Users
-      SET
-        Username = ${username},
-        Email = ${email},
-        Role = ${role || 'guest'},
-        IsMember = ${isMember || 0},
-        PhoneNumber = ${phoneNumber},
-        Address = ${address},
-        cigarettesPerDay = ${cigarettesPerDay || 0},
-        costPerPack = ${costPerPack || 0},
-        smokingFrequency = ${smokingFrequency || ''},
-        healthStatus = ${healthStatus || ''},
-        cigaretteType = ${cigaretteType || ''},
-        dailyCigarettes = ${dailyCigarettes || 0},
-        dailyFeeling = ${dailyFeeling || ''}
-      WHERE Id = ${userId}
-    `;
+    getUserDetail: async (req, res) => {
+        try {
+            const userId = req.params.id;
+            const userResult = await sql.query`
+                SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address
+                FROM Users WHERE Id = ${userId}
+            `;
+            
+            if (userResult.recordset.length === 0) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+            
+            const user = userResult.recordset[0];
+            const profileResult = await sql.query`
+                SELECT * FROM SmokingProfiles WHERE UserId = ${userId}
+            `;
+            
+            const profile = profileResult.recordset[0];
+            const userDetail = {
+                id: user.Id,
+                username: user.Username,
+                email: user.Email,
+                phoneNumber: user.PhoneNumber || "",
+                address: user.Address || "",
+                role: user.Role || 'guest',
+                isMember: user.IsMember,
+                smokingStatus: profile ? {
+                    cigarettesPerDay: profile.cigarettesPerDay || 0,
+                    costPerPack: profile.costPerPack || 0,
+                    smokingFrequency: profile.smokingFrequency || '',
+                    healthStatus: profile.healthStatus || '',
+                    cigaretteType: profile.cigaretteType || '',
+                    quitReason: profile.QuitReason || ''
+                } : {}
+            };
+            res.json(userDetail);
+        } catch (error) {
+            console.error('Error getting user detail:', error);
+            res.status(500).json({ message: 'Error getting user detail' });
+        }
+    },
 
-    const result = await sql.query`
-      SELECT Id, Username, Email, Role, IsAdmin, IsMember, PhoneNumber, Address, CreatedAt,
-             cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, dailyCigarettes, dailyFeeling
-      FROM Users WHERE Id = ${userId}
-    `;
-    res.json({
-      id: result.recordset[0].Id,
-      username: result.recordset[0].Username,
-      email: result.recordset[0].Email,
-      phoneNumber: result.recordset[0].PhoneNumber || "",
-      address: result.recordset[0].Address || "",
-      role: result.recordset[0].Role || 'guest',
-      isAdmin: result.recordset[0].IsAdmin,
-      isMember: result.recordset[0].IsMember,
-      createdAt: result.recordset[0].CreatedAt,
-      smokingStatus: {
-        cigarettesPerDay: result.recordset[0].cigarettesPerDay || 0,
-        costPerPack: result.recordset[0].costPerPack || 0,
-        smokingFrequency: result.recordset[0].smokingFrequency || '',
-        healthStatus: result.recordset[0].healthStatus || '',
-        cigaretteType: result.recordset[0].cigaretteType || '',
-        dailyCigarettes: result.recordset[0].dailyCigarettes || 0,
-        dailyFeeling: result.recordset[0].dailyFeeling || ''
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Update failed', error: error.message });
-  }
-};
+    updateUser: async (req, res) => {
+        try {
+            const { username, email, role, isMember, phoneNumber, address } = req.body;
+            const userId = parseInt(req.params.id);
 
-// Xóa user
-exports.deleteUser = async (req, res) => {
-  try {
-    const userId = req.params.id;
-    await sql.query`DELETE FROM Users WHERE Id = ${userId}`;
-    res.json({ message: 'User deleted' });
-  } catch (error) {
-    res.status(500).json({ message: 'Delete failed', error: error.message });
-  }
-};
+            if (!username || !email) {
+                return res.status(400).json({ 
+                    success: false,
+                    message: 'Username and email are required' 
+                });
+            }
 
-// Lấy danh sách guests
-exports.getGuests = async (req, res) => {
-  try {
-    const result = await sql.query`
-      SELECT 
-        Id,
-        Username,
-        Email,
-        IsMember,
-        IsAdmin,
-        phoneNumber,
-        address,
-        cigarettesPerDay,
-        costPerPack,
-        smokingFrequency,
-        healthStatus,
-        QuitReason,
-        CreatedAt
-      FROM Guests
-      ORDER BY CreatedAt DESC
-    `;
+            if (isNaN(userId)) {
+                return res.status(400).json({ 
+                    success: false,
+                    message: 'Invalid user ID' 
+                });
+            }
 
-    // Map thêm trường role cho mỗi guest
-    const guests = result.recordset.map(guest => ({
-      ...guest,
-      role: guest.IsAdmin ? 'admin' : (guest.IsMember ? 'member' : 'guest')
-    }));
+            const checkUser = await sql.query`SELECT Id FROM Users WHERE Id = ${userId}`;
+            if (checkUser.recordset.length === 0) {
+                return res.status(404).json({ 
+                    success: false,
+                    message: 'User not found' 
+                });
+            }
 
-    res.json(guests);
-  } catch (error) {
-    res.status(500).json({ message: 'Lỗi khi lấy danh sách guests', error: error.message });
-  }
-};
+            await sql.query`
+                UPDATE Users
+                SET
+                    Username = ${username},
+                    Email = ${email},
+                    Role = ${role || 'guest'},
+                    IsMember = ${isMember ? 1 : 0},
+                    PhoneNumber = ${phoneNumber || null},
+                    Address = ${address || null}
+                WHERE Id = ${userId}
+            `;
 
-// Cập nhật thông tin guest
-exports.updateGuest = async (req, res) => {
-  try {
-    const guestId = req.params.id;
-    const { 
-      username, 
-      email, 
-      isMember,
-      phoneNumber, 
-      address, 
-      cigarettesPerDay, 
-      costPerPack, 
-      smokingFrequency, 
-      healthStatus, 
-      quitReason 
-    } = req.body;
+            const result = await sql.query`
+                SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address, CreatedAt
+                FROM Users WHERE Id = ${userId}
+            `;
+            
+            const user = result.recordset[0];
+            const updatedUser = {
+                id: user.Id,
+                username: user.Username,
+                email: user.Email,
+                phoneNumber: user.PhoneNumber || "",
+                address: user.Address || "",
+                role: user.Role || 'guest',
+                isMember: user.IsMember,
+                createdAt: user.CreatedAt
+            };
 
-    // Kiểm tra guest có tồn tại không
-    const guest = await sql.query`SELECT * FROM Guests WHERE Id = ${guestId}`;
-    if (guest.recordset.length === 0) {
-      return res.status(404).json({ message: 'Không tìm thấy guest' });
+            res.status(200).json({
+                success: true,
+                message: 'User updated successfully',
+                data: updatedUser
+            });
+        } catch (error) {
+            console.error('Update user error:', error);
+            res.status(500).json({ 
+                success: false,
+                message: 'Update failed', 
+                error: error.message
+            });
+        }
+    },
+
+    deleteUser: async (req, res) => {
+        try {
+            const userId = req.params.id;
+            
+            const checkUser = await sql.query`SELECT Id FROM Users WHERE Id = ${userId}`;
+            if (checkUser.recordset.length === 0) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+            
+            // Delete related records
+            await sql.query`DELETE FROM UserBadges WHERE UserId = ${userId}`;
+            await sql.query`DELETE FROM Comments WHERE UserId = ${userId}`;
+            await sql.query`DELETE FROM Blogs WHERE UserId = ${userId}`;
+            await sql.query`DELETE FROM Feedbacks WHERE UserId = ${userId}`;
+            await sql.query`DELETE FROM QuitPlans WHERE UserId = ${userId}`;
+            await sql.query`DELETE FROM Progress WHERE UserId = ${userId}`;
+            await sql.query`DELETE FROM Notifications WHERE UserId = ${userId}`;
+            await sql.query`DELETE FROM UserStatistics WHERE UserId = ${userId}`;
+            await sql.query`DELETE FROM Rankings WHERE UserId = ${userId}`;
+            await sql.query`DELETE FROM SmokingDailyLog WHERE UserId = ${userId}`;
+            await sql.query`DELETE FROM SmokingProfiles WHERE UserId = ${userId}`;
+            
+            // Delete user
+            await sql.query`DELETE FROM Users WHERE Id = ${userId}`;
+            
+            res.json({ message: 'User deleted successfully' });
+        } catch (error) {
+            console.error('Delete user error:', error);
+            res.status(500).json({ message: 'Delete failed', error: error.message });
+        }
+    },
+
+    getStatistics: async (req, res) => {
+        try {
+            const totalUsers = await sql.query`SELECT COUNT(*) as count FROM Users`;
+            const totalCoaches = await sql.query`SELECT COUNT(*) as count FROM Users WHERE Role = 'coach'`;
+            const totalMembers = await sql.query`SELECT COUNT(*) as count FROM Users WHERE IsMember = 1`;
+            const totalGuests = await sql.query`SELECT COUNT(*) as count FROM Users WHERE Role = 'guest'`;
+
+            res.json({
+                totalUsers: totalUsers.recordset[0].count,
+                totalCoaches: totalCoaches.recordset[0].count,
+                totalMembers: totalMembers.recordset[0].count,
+                totalGuests: totalGuests.recordset[0].count
+            });
+        } catch (error) {
+            console.error('Statistics error:', error);
+            res.status(500).json({ message: 'Error getting statistics', error: error.message });
+        }
     }
-
-    await sql.query`
-      UPDATE Guests
-      SET 
-        Username = ${username},
-        Email = ${email},
-        IsMember = ${isMember},
-        phoneNumber = ${phoneNumber},
-        address = ${address},
-        cigarettesPerDay = ${cigarettesPerDay},
-        costPerPack = ${costPerPack},
-        smokingFrequency = ${smokingFrequency},
-        healthStatus = ${healthStatus},
-        QuitReason = ${quitReason}
-      WHERE Id = ${guestId}
-    `;
-
-    const updatedGuest = await sql.query`
-      SELECT * FROM Guests WHERE Id = ${guestId}
-    `;
-
-    res.json({
-      message: 'Cập nhật thông tin thành công',
-      guest: {
-        ...updatedGuest.recordset[0],
-        role: updatedGuest.recordset[0].IsAdmin ? 'admin' : 
-              (updatedGuest.recordset[0].IsMember ? 'member' : 'guest')
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Lỗi khi cập nhật thông tin guest', error: error.message });
-  }
 };
 
-// Xóa guest
-exports.deleteGuest = async (req, res) => {
-  try {
-    const guestId = req.params.id;
-
-    // Kiểm tra xem guest có tồn tại không
-    const guest = await sql.query`SELECT * FROM Guests WHERE Id = ${guestId}`;
-    if (guest.recordset.length === 0) {
-      return res.status(404).json({ message: 'Không tìm thấy guest' });
-    }
-
-    // Xóa các bản ghi liên quan
-    await sql.query`DELETE FROM GuestBadges WHERE GuestId = ${guestId}`;
-    await sql.query`DELETE FROM GuestMemberships WHERE GuestId = ${guestId}`;
-    await sql.query`DELETE FROM Comments WHERE GuestId = ${guestId}`;
-    await sql.query`DELETE FROM Blogs WHERE GuestId = ${guestId}`;
-    await sql.query`DELETE FROM Feedbacks WHERE GuestId = ${guestId}`;
-    await sql.query`DELETE FROM Plans WHERE GuestId = ${guestId}`;
-    await sql.query`DELETE FROM Progress WHERE GuestId = ${guestId}`;
-    await sql.query`DELETE FROM Notifications WHERE GuestId = ${guestId}`;
-    await sql.query`DELETE FROM CommunityPosts WHERE GuestId = ${guestId}`;
-
-    // Xóa guest
-    await sql.query`DELETE FROM Guests WHERE Id = ${guestId}`;
-
-    res.json({ message: 'Xóa guest thành công' });
-  } catch (error) {
-    res.status(500).json({ message: 'Lỗi khi xóa guest', error: error.message });
-  }
-};
+module.exports = adminController;

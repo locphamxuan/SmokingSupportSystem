@@ -1,0 +1,705 @@
+openapi: 3.0.0
+info:
+  title: Smoking Support System API
+  description: API documentation for the Smoking Support System platform
+  version: 1.0.0
+  contact:
+    email: support@smokingsupport.com
+
+servers:
+  - url: http://localhost:5000/api
+    description: Development server
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        phoneNumber:
+          type: string
+        address:
+          type: string
+        role:
+          type: string
+          enum: [guest, user, member, coach, admin]
+        isMember:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    LoginRequest:
+      type: object
+      required:
+        - emailOrUsername
+        - password
+      properties:
+        emailOrUsername:
+          type: string
+        password:
+          type: string
+    RegisterRequest:
+      type: object
+      required:
+        - username
+        - password
+        - email
+        - phoneNumber
+        - address
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        email:
+          type: string
+        phoneNumber:
+          type: string
+        address:
+          type: string
+    SmokingProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        cigarettesPerDay:
+          type: integer
+        costPerPack:
+          type: integer
+        smokingFrequency:
+          type: string
+        healthStatus:
+          type: string
+        cigaretteType:
+          type: string
+        quitReason:
+          type: string
+    QuitPlan:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        coachId:
+          type: integer
+        planType:
+          type: string
+          enum: [suggested, custom]
+        startDate:
+          type: string
+          format: date
+        targetDate:
+          type: string
+          format: date
+        planDetail:
+          type: string
+        status:
+          type: string
+          enum: [active, completed, cancelled]
+        initialCigarettes:
+          type: integer
+        dailyReduction:
+          type: integer
+        milestones:
+          type: array
+          items:
+            type: object
+        currentProgress:
+          type: integer
+        quitReason:
+          type: string
+    Progress:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        planId:
+          type: integer
+        date:
+          type: string
+          format: date
+        cigarettes:
+          type: integer
+        moneySpent:
+          type: number
+        note:
+          type: string
+    Booking:
+      type: object
+      properties:
+        id:
+          type: integer
+        memberId:
+          type: integer
+        coachId:
+          type: integer
+        scheduledTime:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [pending, confirmed, cancelled]
+        note:
+          type: string
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+        senderId:
+          type: integer
+        receiverId:
+          type: integer
+        progressId:
+          type: integer
+        content:
+          type: string
+        sentAt:
+          type: string
+          format: date-time
+        isRead:
+          type: boolean
+    MemberWithAppointment:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          properties:
+            appointment: # This will be the field for appointment details
+              $ref: '#/components/schemas/Booking' # Reference to the Booking schema
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid credentials
+
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input
+
+  /auth/upgrade-member:
+    post:
+      tags:
+        - Authentication
+      summary: Upgrade user to member
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User upgraded to member successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '403':
+          description: Forbidden
+        '401':
+          description: Unauthorized
+
+  /auth/profile:
+    get:
+      tags:
+        - Users
+      summary: Get user profile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  username:
+                    type: string
+                  email:
+                    type: string
+                  phoneNumber:
+                    type: string
+                  address:
+                    type: string
+                  role:
+                    type: string
+                  isMember:
+                    type: boolean
+                  smokingStatus:
+                    $ref: '#/components/schemas/SmokingProfile'
+    put:
+      tags:
+        - Users
+      summary: Update user profile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /auth/smoking-status:
+    put:
+      tags:
+        - Smoking Profiles
+      summary: Update smoking profile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmokingProfile'
+      responses:
+        '200':
+          description: Smoking profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmokingProfile'
+
+  /auth/quit-plan:
+    post:
+      tags:
+        - Quit Plans
+      summary: Create or update quit plan
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuitPlan'
+      responses:
+        '200':
+          description: Quit plan created/updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Invalid input
+    get:
+      tags:
+        - Quit Plans
+      summary: Get user's quit plan
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Quit plan retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  quitPlan:
+                    $ref: '#/components/schemas/QuitPlan'
+
+  /auth/progress:
+    post:
+      tags:
+        - Progress
+      summary: Record daily progress
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Progress'
+      responses:
+        '200':
+          description: Progress recorded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /auth/progress/latest:
+    get:
+      tags:
+        - Progress
+      summary: Get latest progress
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Latest progress retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  progress:
+                    $ref: '#/components/schemas/Progress'
+
+  /smoking-profiles:
+    post:
+      tags:
+        - Smoking Profiles
+      summary: Create smoking profile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmokingProfile'
+      responses:
+        '201':
+          description: Smoking profile created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmokingProfile'
+    get:
+      tags:
+        - Smoking Profiles
+      summary: Get user's smoking profile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Smoking profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmokingProfile'
+
+  /quit-plans:
+    get:
+      tags:
+        - Quit Plans
+      summary: Get user's quit plans
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Quit plans retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QuitPlan'
+
+  /progress:
+    get:
+      tags:
+        - Progress
+      summary: Get user's progress
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Progress retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Progress'
+
+  /bookings:
+    post:
+      tags:
+        - Bookings
+      summary: Create booking
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Booking'
+      responses:
+        '201':
+          description: Booking created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+    get:
+      tags:
+        - Bookings
+      summary: Get user's bookings
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Bookings retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Booking'
+
+  /bookings/{bookingId}/confirm:
+    post:
+      tags:
+        - Bookings
+      summary: Confirm a booking
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Booking confirmed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '404':
+          description: Booking not found
+        '403':
+          description: Not authorized to confirm this booking
+
+  /bookings/{bookingId}/cancel:
+    post:
+      tags:
+        - Bookings
+      summary: Cancel a booking
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Booking cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '404':
+          description: Booking not found
+        '403':
+          description: Not authorized to cancel this booking
+
+  /messages:
+    post:
+      tags:
+        - Messages
+      summary: Send message
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Message'
+      responses:
+        '201':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+    get:
+      tags:
+        - Messages
+      summary: Get user's messages
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Messages retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+
+  /admin/users:
+    get:
+      tags:
+        - Admin
+      summary: Get all users
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+    put:
+      tags:
+        - Admin
+      summary: Update user (Not implemented)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '501':
+          description: Not implemented in external API
+    delete:
+      tags:
+        - Admin
+      summary: Delete user (Not implemented)
+      security:
+        - BearerAuth: []
+      responses:
+        '501':
+          description: Not implemented in external API
+
+  /admin/coaches:
+    get:
+      tags:
+        - Admin
+      summary: Get all coaches
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Coaches retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+
+  /admin/statistics:
+    get:
+      tags:
+        - Admin
+      summary: Get statistics (Not implemented)
+      security:
+        - BearerAuth: []
+      responses:
+        '501':
+          description: Not implemented in external API
+
+  /messages/chat-members:
+    get:
+      tags:
+        - Messages
+      summary: Get chat members for coach (Not implemented)
+      security:
+        - BearerAuth: []
+      responses:
+        '501':
+          description: Not implemented in external API
+
+  /hlv/members:
+    get:
+      tags:
+        - Coach
+      summary: Get assigned members for coach
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Members retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  members:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MemberWithAppointment' 
