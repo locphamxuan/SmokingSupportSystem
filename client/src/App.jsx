@@ -4,6 +4,10 @@ import { ThemeProvider, createTheme, CircularProgress, Box } from '@mui/material
 
 // Import AuthContext
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
+import { ThemeProvider, createTheme, CircularProgress, Box } from '@mui/material';
+
+// Import AuthContext
+import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
 
 // Import components and pages (đảm bảo đuôi .jsx)
 import Navbar from './components/Navbar.jsx'; 
@@ -47,6 +51,17 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   }
 
   if (!isAuthenticated) { 
+  const { isAuthenticated, user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!isAuthenticated) { 
     return <Navigate to="/login" replace />;
   }
 
@@ -68,6 +83,17 @@ const AppRoutes = () => {
       </Box>
     );
   }
+// App Routes Component
+const AppRoutes = () => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <>
@@ -78,6 +104,9 @@ const AppRoutes = () => {
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/about" element={<AboutPage />} />
 
+        {/* Các route công khai cho đăng nhập/đăng ký - chuyển hướng nếu đã đăng nhập */}
+        <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} />
+        <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
         {/* Các route công khai cho đăng nhập/đăng ký - chuyển hướng nếu đã đăng nhập */}
         <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} />
         <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
@@ -154,6 +183,21 @@ const AppRoutes = () => {
             } 
           />
 
+        {/* Route dự phòng cho các đường dẫn không khớp */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
+  );
+};
+
+function App() {
+  return (
+    <ThemeProvider theme={theme}>
+      <AuthProvider>
+        <Router future={{ v7_relativeSplatPath: true }}>
+          <AppRoutes />
+        </Router>
+      </AuthProvider>
         {/* Route dự phòng cho các đường dẫn không khớp */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
