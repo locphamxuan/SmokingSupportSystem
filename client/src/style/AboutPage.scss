@@ -8,12 +8,12 @@
   }
 
   section {
-    padding: 4rem 0;
+    padding: 6rem 0; // Adjusted general section padding
   }
 
   h1, h2 {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem; // Adjusted margin for main headings
     color: #333;
   }
 
@@ -23,250 +23,418 @@
   }
 
   h2 {
-    font-size: 2rem;
-    font-weight: 600;
+    font-size: 2.2rem; // Adjusted font size for h2
+    font-weight: 700; // Adjusted font weight for h2
   }
 
   h3 {
     font-size: 1.25rem;
     font-weight: 600;
-    margin-bottom: 1rem;
+    margin-bottom: 0.8rem; // Adjusted margin for h3
     color: #333;
   }
 }
 
 // Hero Section
 .hero-section {
-  background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('../assets/images/ảnh1.jpg');
-  background-size: cover;
-  background-position: center;
-  color: white;
-  text-align: center;
-  padding: 8rem 0;
+  background-color: #ffffff;
+  padding: 10rem 0; /* Increased padding for more vertical space */
+
+  .container {
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 0 1rem;
+  }
+
+  .knowledge-is-power {
+    color: #4CAF50;
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    text-align: center;
+  }
 
   h1 {
-    color: white;
-    font-size: 3.5rem;
+    color: #1a237e;
+    font-size: 4.5rem; /* Slightly larger font size for more impact */
+    font-weight: 800;
+    line-height: 1;
     margin-bottom: 1.5rem;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    text-align: center;
+
+    @media (max-width: 768px) {
+      font-size: 3.5rem;
+    }
+
+    @media (max-width: 480px) {
+      font-size: 2.8rem;
+    }
   }
 
   .subtitle {
-    font-size: 1.25rem;
-    max-width: 800px;
-    margin: 0 auto;
+    color: #555;
+    font-size: 1.1rem;
     line-height: 1.6;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    margin: 0 auto;
+    text-align: center;
+
+    @media (max-width: 768px) {
+      font-size: 1rem;
+    }
   }
+}
+
+// Section Subtitle common style
+.section-subtitle {
+  text-align: center;
+  font-size: 1.1rem;
+  color: #555;
+  margin-bottom: 2rem;
+  font-weight: 400;
 }
 
 // Harmful Effects Section
 .harmful-effects {
-  background-color: #f8f9fa;
+  background-color: #ffffff; // Changed to white background
+  padding: 6rem 0; // Adjusted vertical padding for generous whitespace
 
-  .effects-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 2rem;
-    margin-bottom: 2rem;
+  .container {
+    max-width: 900px; // Adjusted container width for this section
+    padding: 0 2rem; // Keep horizontal padding
   }
 
-  .effect-card {
-    background: white;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease;
+  h2 {
+    color: #1a237e; // Dark blue color
+    text-align: left; // Align to left as per image
+    margin-bottom: 0.5rem; // Adjusted margin
+  }
 
-    &:hover {
-      transform: translateY(-5px);
-    }
+  .section-subtitle {
+    color: #4CAF50; // Green color from reference
+    font-size: 1rem; // Adjusted font size
+    font-weight: 600; // Adjusted font weight
+    text-align: left; // Align to left as per image
+    margin-bottom: 2.5rem; // Adjusted spacing
+  }
 
-    img {
-      width: 100%;
-      height: 200px;
-      object-fit: cover;
-      filter: grayscale(50%);
-      transition: filter 0.3s ease;
+  .effects-content {
+    display: flex;
+    gap: 4rem; // Gap between columns
+    margin-bottom: 2.5rem;
+    flex-wrap: wrap; // Allow columns to wrap on smaller screens
 
-      &:hover {
-        filter: grayscale(0%);
+    .left-column,
+    .right-column {
+      flex: 1;
+      min-width: 300px; // Ensure columns don't become too narrow
+
+      p {
+        color: #424242; // Darker grey color
+        line-height: 1.7; // Adjusted line height
+        font-size: 1.1rem; // Adjusted font size
+        margin-bottom: 1.5rem; // Space between paragraphs
+
+        &:last-child {
+          margin-bottom: 0; // No margin for the last paragraph in a column
+        }
       }
-    }
-
-    h3 {
-      padding: 1.5rem 1.5rem 0.5rem;
-      color: #2563eb;
-    }
-
-    p {
-      padding: 0 1.5rem 1.5rem;
-      color: #666;
-      line-height: 1.6;
     }
   }
 
   .learn-more-btn {
-    display: inline-block;
-    padding: 1rem 2.5rem;
-    background-color: #2563eb;
+    display: block; // Changed to block for full width in its context
+    width: fit-content; // Adjust width to content
+    margin: 3rem 0 0 0; // Align to the left, remove auto
+    padding: 1rem 3rem; // Adjusted padding
+    background-color: #4CAF50; // Green color
     color: white;
     text-decoration: none;
     border-radius: 8px;
-    font-weight: 500;
+    font-weight: 600; // Increased font weight
+    font-size: 1.1rem; // Adjusted font size
     transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.2); // Adjusted shadow color
 
     &:hover {
-      background-color: #1d4ed8;
+      background-color: #43A047; // Darker green on hover
       transform: translateY(-2px);
-      box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+      box-shadow: 0 6px 12px rgba(76, 175, 80, 0.3);
     }
+  }
+}
+
+// Image below Harmful Effects Section
+.harmful-effects-image-container {
+  text-align: center; // Center the image within its container
+  margin: 4rem auto; // Add vertical margin and center the container itself
+
+  .harmful-effects-image {
+    display: block; // Allows margin auto for horizontal centering
+    max-width: 100vw; // Set max-width to 100% of viewport width to fill the screen
+    width: 100%; // Make it responsive within its max-width
+    border-radius: 0; // Removed border-radius to make it sharp on edges
+    box-shadow: none; // Removed box-shadow as it's not visible in the reference image
   }
 }
 
 // Benefits Section
 .benefits {
+  background-color: #f8f9fa; // Light grey background from the image
+  padding: 6rem 0; // Standard vertical padding
+
+  .container {
+    max-width: 900px; // Consistent container width
+    padding: 0 2rem; // Keep horizontal padding
+  }
+
+  h2 {
+    color: #1a237e; // Dark blue color
+    text-align: left; // Align to left as per image
+    margin-bottom: 3rem; // Increased margin for spacing
+  }
+
   .benefits-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 2rem;
+    grid-template-columns: repeat(3, 1fr); // Three columns as per image
+    gap: 3rem; // Increased gap between cards
   }
 
   .benefit-card {
-    text-align: center;
-    background: white;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease;
+    text-align: left; // Align text to left within card
+    background: none; // No background
+    border-radius: 0; // No border radius
+    overflow: visible; // Allow content to overflow if needed
+    box-shadow: none; // No box shadow
+    transition: none; // No transition
 
     &:hover {
-      transform: translateY(-5px);
+      transform: none; // No transform on hover
     }
 
     img {
-      width: 100%;
-      height: 200px;
-      object-fit: cover;
-      transition: transform 0.3s ease;
-
-      &:hover {
-        transform: scale(1.05);
-      }
+      display: none; // Hide images as there are none in the reference
     }
 
     h3 {
-      padding: 1.5rem 1.5rem 0.5rem;
-      color: #2563eb;
+      padding: 0; // No padding
+      color: #1a237e; // Dark blue color
+      font-size: 1.6rem; // Increased font size
+      font-weight: 700; // Increased font weight
+      margin-bottom: 0.5rem; // Adjusted margin
     }
 
     p {
-      padding: 0 1.5rem 1.5rem;
-      color: #666;
-      line-height: 1.6;
+      padding: 0; // No padding
+      color: #424242; // Darker grey color
+      line-height: 1.7; // Adjusted line height
+      font-size: 1.1rem; // Adjusted font size
     }
   }
 }
 
 // Steps Section
 .steps {
-  background-color: #f8f9fa;
+  background-color: #e6ffe6; // Light green background from image
+  padding: 6rem 0; // Standard vertical padding
 
-  .steps-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 2rem;
+  .container {
+    max-width: 900px; // Consistent container width
+    padding: 0 2rem; // Keep horizontal padding
   }
 
-  .step-card {
-    background: white;
-    padding: 2rem;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    position: relative;
-    transition: transform 0.3s ease;
+  h2 {
+    color: #333; // Changed to dark grey (appears black)
+    text-align: center; // Align to center as per image
+    margin-bottom: 1rem; // Adjusted margin
+  }
 
-    &:hover {
-      transform: translateY(-5px);
-    }
+  .section-description {
+    text-align: center; // Center the description
+    font-size: 1.1rem;
+    color: #333; // Changed to dark grey (appears black)
+    margin-bottom: 4rem; // Increased margin below description
+    font-weight: 400;
+  }
 
-    .step-number {
-      font-size: 2.5rem;
-      font-weight: 700;
-      color: #2563eb;
-      margin-bottom: 1rem;
-      opacity: 0.8;
-    }
+  .steps-grid {
+    display: flex;
+    flex-direction: column; // Stack items vertically
+    align-items: center; // Center cards horizontally
+    gap: 2.5rem; // Space between steps
 
-    h3 {
-      color: #2563eb;
-    }
+    .step-card {
+      display: flex; // Use flexbox for icon and text alignment
+      align-items: flex-start; // Align items to the top
+      max-width: 500px; // Limit card width
+      background: none;
+      padding: 0;
+      border-radius: 0;
+      box-shadow: none;
+      position: relative; // For dotted line
+      transition: none;
 
-    p {
-      color: #666;
-      line-height: 1.6;
+      &:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        left: 24px; // Align with center of icon
+        top: 50px; // Start below the icon
+        bottom: -2.5rem; // Extend to next icon
+        width: 2px;
+        background-image: linear-gradient(to bottom, #ccc 33%, rgba(255,255,255,0) 0%);
+        background-position: left top;
+        background-size: 2px 15px; // Dotted effect
+        background-repeat: repeat-y;
+        z-index: 0;
+      }
+
+      &:hover {
+        transform: none;
+      }
+
+      .step-icon {
+        flex-shrink: 0; // Prevent icon from shrinking
+        width: 50px;
+        height: 50px;
+        background-color: #4CAF50; // Green background for icon
+        border-radius: 50%; // Circular shape
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-right: 1.5rem; // Space between icon and text
+        z-index: 1; // Above the dotted line
+
+        i {
+          color: white; // White icon
+          font-size: 1.5rem;
+        }
+      }
+
+      h3 {
+        color: #333; // Changed to dark grey (appears black)
+        font-size: 1.6rem; // Increased font size
+        font-weight: 700; // Increased font weight
+        margin-bottom: 0.5rem; // Adjusted margin
+        text-align: left; // Align to left
+      }
+
+      p {
+        color: #333; // Changed to dark grey (appears black)
+        line-height: 1.7; // Adjusted line height
+        font-size: 1.1rem; // Adjusted font size
+        text-align: left; // Align to left
+      }
     }
   }
 }
 
 // FAQ Section
 .faq {
+  background-color: #f8f9fa; // Light grey background from the image
+  padding: 6rem 0; // Standard vertical padding
+
+  .container {
+    max-width: 900px; // Consistent container width
+    padding: 0 2rem; // Keep horizontal padding
+  }
+
+  h2 {
+    color: #333; // Changed to dark grey (appears black)
+    text-align: center; // Align to center as per image
+    margin-bottom: 1rem; // Adjusted margin
+  }
+
+  .section-description {
+    text-align: center; // Center the description
+    font-size: 1.1rem;
+    color: #333; // Changed to dark grey (appears black)
+    margin-bottom: 4rem; // Increased margin below description
+    font-weight: 400;
+  }
+
   .faq-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: 2rem;
-    margin-bottom: 3rem;
+    grid-template-columns: repeat(2, 1fr); // Two columns as per image
+    gap: 3rem; // Increased gap between items
+    margin-bottom: 4rem; // Increased margin below grid
   }
 
   .faq-item {
-    background: white;
-    padding: 2rem;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease;
+    display: flex; // Use flexbox for icon and text alignment
+    align-items: flex-start; // Align items to the top
+    background: none; // Removed background
+    padding: 0; // Removed padding
+    border-radius: 0; // Removed border radius
+    box-shadow: none; // Removed box shadow
+    transition: none; // Removed transition
 
     &:hover {
-      transform: translateY(-5px);
+      transform: none; // Removed transform on hover
     }
 
-    h3 {
-      color: #2563eb;
-      margin-bottom: 1rem;
-      font-size: 1.2rem;
+    .faq-icon {
+      flex-shrink: 0; // Prevent icon from shrinking
+      width: 40px;
+      height: 40px;
+      background-color: #4CAF50; // Green background for icon
+      border-radius: 50%; // Circular shape
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-right: 1rem; // Space between icon and text
+
+      i {
+        color: white; // White icon
+        font-size: 1.2rem;
+      }
     }
 
-    p {
-      color: #666;
-      line-height: 1.6;
+    .faq-content {
+      flex-grow: 1; // Allow content to take remaining space
+
+      h3 {
+        color: #333; // Changed to dark grey (appears black)
+        margin-bottom: 0.5rem; // Adjusted margin
+        font-size: 1.25rem; // Adjusted font size
+        font-weight: 700; // Bold font weight
+      }
+
+      p {
+        color: #333; // Changed to dark grey (appears black)
+        line-height: 1.7; // Adjusted line height
+        font-size: 1.1rem; // Adjusted font size
+      }
     }
   }
 
   .contact-support {
-    text-align: center;
-    margin-top: 3rem;
+    text-align: center; // Align to center as per image
+    margin-top: 0; // Removed top margin
 
     p {
-      margin-bottom: 1.5rem;
-      color: #666;
-      font-size: 1.1rem;
+      margin-bottom: 1.5rem; // Adjusted margin
+      color: #333; // Changed to dark grey (appears black)
+      font-size: 1.1rem; // Adjusted font size
+      font-weight: 400; // Normal font weight
     }
 
     .contact-btn {
       display: inline-block;
-      padding: 1rem 2.5rem;
-      background-color: #2563eb;
+      padding: 1rem 3rem; // Adjusted padding to match other buttons
+      background-color: #4CAF50; // Green color from reference
       color: white;
       text-decoration: none;
       border-radius: 8px;
-      font-weight: 500;
+      font-weight: 600; // Increased font weight
+      font-size: 1.1rem; // Adjusted font size
       transition: all 0.3s ease;
-      box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+      box-shadow: 0 4px 8px rgba(76, 175, 80, 0.2); // Adjusted shadow color
 
       &:hover {
-        background-color: #1d4ed8;
+        background-color: #43A047; // Darker green on hover
         transform: translateY(-2px);
-        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+        box-shadow: 0 6px 12px rgba(76, 175, 80, 0.3);
       }
     }
   }
@@ -274,52 +442,247 @@
 
 // Community Section
 .community {
-  background-color: #f8f9fa;
+  background-color: #2e7d32; /* Deep green background from the image */
+  padding: 6rem 0; /* Standard padding for sections */
 
-  .community-content {
-    max-width: 800px;
+  .container {
+    max-width: 1200px;
     margin: 0 auto;
-    text-align: center;
+    padding: 0 2rem;
   }
 
-  .community-benefits {
-    ul {
-      list-style: none;
-      padding: 0;
+  .community-content-wrapper {
+    display: flex;
+    background-color: #ffffff; /* White background for the card */
+    border-radius: 20px; /* Rounded corners for the card */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+    overflow: hidden; /* Ensures rounded corners apply to image */
+    align-items: center; /* Vertically align items in the middle */
+    padding: 3rem; /* Padding inside the card */
+    gap: 3rem; /* Space between image and text content */
+
+    @media (max-width: 992px) {
+      flex-direction: column; /* Stack columns on smaller screens */
+      padding: 2rem;
+    }
+  }
+
+  .community-image-card {
+    flex: 1; /* Allows image to take available space */
+    min-width: 400px; /* Minimum width for the image container */
+    display: flex; /* For centering the image if it's smaller */
+    justify-content: center;
+    align-items: center;
+
+    @media (max-width: 992px) {
+      min-width: unset;
+      width: 100%;
+      max-width: 500px; /* Constrain image width on mobile */
+      margin-bottom: 2rem;
+    }
+
+    img {
+      width: 100%;
+      height: auto;
+      border-radius: 10px; /* Slightly rounded corners for the image */
+      display: block; /* Remove extra space below image */
+    }
+  }
+
+  .community-text-content {
+    flex: 1.5; /* Allows text content to take more space */
+    color: #333; /* Dark grey for general text */
+
+    h2 {
+      color: #333; /* Dark grey for heading */
+      font-size: 2.5rem; /* Larger font size for heading */
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      line-height: 1.2;
+
+      @media (max-width: 768px) {
+        font-size: 2rem;
+      }
+    }
+
+    p {
+      font-size: 1.1rem;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+      color: #555; /* Slightly lighter grey for paragraph */
+    }
+
+    .community-benefits {
+      display: flex;
+      gap: 3rem; /* Space between the two columns of benefits */
       margin-bottom: 2.5rem;
 
-      li {
-        margin-bottom: 1.2rem;
-        font-size: 1.2rem;
-        color: #666;
+      @media (max-width: 768px) {
+        flex-direction: column;
+        gap: 1.5rem;
+      }
 
-        &:before {
-          content: "✓";
-          color: #2563eb;
-          margin-right: 0.8rem;
-          font-weight: bold;
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+
+        li {
+          display: flex;
+          align-items: center;
+          font-size: 1rem;
+          color: #555;
+          margin-bottom: 1rem;
+
+          i {
+            color: #2e7d32; /* Deep green for checkmark icons */
+            margin-right: 0.8rem;
+            font-size: 1.2rem;
+          }
+        }
+      }
+    }
+
+    .join-btn {
+      display: inline-flex; /* Use flex to align text and icon */
+      align-items: center;
+      padding: 0.8rem 2rem;
+      background-color: #2e7d32; /* Deep green for button */
+      color: white;
+      text-decoration: none;
+      border-radius: 50px; /* Pill-shaped button */
+      font-weight: 600;
+      font-size: 1rem;
+      transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+      box-shadow: 0 4px 10px rgba(46, 125, 50, 0.3);
+
+      i {
+        margin-left: 0.8rem;
+        transition: transform 0.3s ease;
+      }
+
+      &:hover {
+        background-color: #1b5e20; /* Darker green on hover */
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(46, 125, 50, 0.4);
+
+        i {
+          transform: translateX(5px);
+        }
+      }
+    }
+  }
+}
+
+// Useful Articles Section
+.articles-section {
+  background-color: #ffffff;
+  padding: 6rem 0;
+
+  .container {
+    max-width: 1200px; // Standard container width for articles
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  .articles-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+
+    h2 {
+      color: #1a237e;
+      text-align: left;
+      margin-bottom: 0; // Override default h2 margin
+    }
+
+    .see-more-btn {
+      color: #1a237e;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+
+      i {
+        margin-left: 0.5rem;
+        transition: transform 0.3s ease;
+      }
+
+      &:hover {
+        color: #4CAF50; // Green color on hover
+
+        i {
+          transform: translateX(5px);
         }
       }
     }
   }
 
-  .join-btn {
-    display: inline-block;
-    padding: 1.2rem 3.5rem;
-    background-color: #2563eb;
-    color: white;
-    text-decoration: none;
-    border-radius: 8px;
-    font-size: 1.2rem;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  .articles-grid {
+    display: flex; /* Change to flexbox */
+    overflow-x: auto; /* Enable horizontal scrolling */
+    gap: 2rem; /* Space between articles */
+    padding-bottom: 1rem; /* Add some padding for scrollbar */
 
-    &:hover {
-      background-color: #1d4ed8;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+    .article-card {
+      flex: 0 0 auto; /* Prevent cards from growing or shrinking, keep their defined width */
+      width: 300px; /* Set a fixed width for each card */
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease;
+
+      &:hover {
+        transform: translateY(-5px);
+      }
+
+      img {
+        width: 100%;
+        height: 200px; // Standard height for article images
+        object-fit: cover;
+      }
+
+      .article-content {
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: calc(100% - 200px); // Adjust height based on image height
+
+        h3 {
+          color: #1a237e;
+          font-size: 1.25rem;
+          font-weight: 700;
+          margin-bottom: 0.5rem;
+          line-height: 1.4;
+        }
+
+        .article-date {
+          color: #666;
+          font-size: 0.9rem;
+          margin-top: auto; // Pushes date to the bottom
+        }
+      }
     }
+  }
+}
+
+// Image after Benefits Section
+.post-quit-image-container {
+  width: 100vw; /* Full viewport width */
+  margin-left: calc(50% - 50vw); /* Center the element by offsetting the margin */
+  overflow: hidden; /* Ensure no horizontal scrollbar */
+  margin-top: 4rem; /* Add some space above the image */
+  margin-bottom: 4rem; /* Add some space below the image */
+
+  .post-quit-image {
+    width: 100%; /* Image takes full width of its container */
+    height: auto;
+    display: block; /* Remove extra space below image */
+    object-fit: cover; /* Cover the container while maintaining aspect ratio */
   }
 }
 
@@ -357,5 +720,39 @@
     .effect-card, .benefit-card, .step-card, .faq-item {
       margin: 0 1rem;
     }
+  }
+}
+
+// Footer Section
+.footer {
+  background-color: #f8f9fa; // Light grey background from image
+  padding: 4rem 0; // Standard vertical padding
+
+  .container {
+    max-width: 900px; // Consistent container width
+    padding: 0 2rem; // Keep horizontal padding
+    text-align: center; // Center all content within the container
+  }
+
+  .social-icons {
+    margin-bottom: 2rem; // Space below icons
+
+    a {
+      display: inline-block;
+      margin: 0 1rem; // Space between icons
+      color: #333; // Dark grey color for icons
+      font-size: 2rem; // Size for Font Awesome icons
+
+      img {
+        width: 36px; // Specific width for image-based icons
+        height: 36px; // Specific height for image-based icons
+        vertical-align: middle; // Align images with icons
+      }
+    }
+  }
+
+  .copyright {
+    color: #555; // Slightly lighter grey for copyright text
+    font-size: 0.9rem; // Smaller font size
   }
 } 
