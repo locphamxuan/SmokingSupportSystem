@@ -70,97 +70,79 @@ const AppRoutes = () => {
         {/* Các route công khai cho đăng nhập/đăng ký - chuyển hướng nếu đã đăng nhập */}
         <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} />
         <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
-        {/* Các route công khai cho đăng nhập/đăng ký - chuyển hướng nếu đã đăng nhập */}
-        <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} />
-        <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
           
-          {/* Các route được bảo vệ */}
-          <Route 
-            path="/profile" 
-            element={
-              <ProtectedRoute allowedRoles={['member', 'coach', 'admin', 'guest']}>
-                <ProfilePage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/my-progress" 
-            element={
-              <ProtectedRoute allowedRoles={['member', 'guest']}> 
-                <MyProgressPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/chat-coach/:coachId" 
-            element={
-              <ProtectedRoute allowedRoles={['member']}> 
-                <ChatCoachPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/admin/users" 
-            element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <AdminUserPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/coach/dashboard" 
-            element={
-              <ProtectedRoute allowedRoles={['coach']}>
-                <CoachDashboardPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/coach/chat/:memberId" 
-            element={
-              <CoachChatPage />
-            } 
-          />
-          <Route 
-            path="/coach/member/:memberId/progress" 
-            element={
-              <ProtectedRoute allowedRoles={['coach']}>
-                <CoachMemberProgressPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/subscribe" 
-            element={
-              <ProtectedRoute allowedRoles={['member', 'guest']}> 
-                <SubscriptionPlans />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/achievements" 
-            element={
-              <ProtectedRoute allowedRoles={['member', 'coach', 'admin', 'guest']}> 
-                <AchievementsPage />
-              </ProtectedRoute>
-            } 
-          />
+        {/* Các route được bảo vệ */}
+        <Route 
+          path="/profile" 
+          element={
+            <ProtectedRoute allowedRoles={['member', 'coach', 'admin', 'guest']}>
+              <ProfilePage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/my-progress" 
+          element={
+            <ProtectedRoute allowedRoles={['member', 'guest']}> 
+              <MyProgressPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/chat-coach/:coachId" 
+          element={
+            <ProtectedRoute allowedRoles={['member']}> 
+              <ChatCoachPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/users" 
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminUserPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/coach/dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={['coach']}>
+              <CoachDashboardPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/coach/chat/:memberId" 
+          element={
+            <CoachChatPage />
+          } 
+        />
+        <Route 
+          path="/coach/member/:memberId/progress" 
+          element={
+            <ProtectedRoute allowedRoles={['coach']}>
+              <CoachMemberProgressPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/subscribe" 
+          element={
+            <ProtectedRoute allowedRoles={['member', 'guest']}> 
+              <SubscriptionPlans />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/achievements" 
+          element={
+            <ProtectedRoute allowedRoles={['member', 'coach', 'admin', 'guest']}> 
+              <AchievementsPage />
+            </ProtectedRoute>
+          } 
+        />
 
-        {/* Route dự phòng cho các đường dẫn không khớp */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </>
-  );
-};
-
-function App() {
-  return (
-    <ThemeProvider theme={theme}>
-      <AuthProvider>
-        <Router future={{ v7_relativeSplatPath: true }}>
-          <AppRoutes />
-        </Router>
-      </AuthProvider>
         {/* Route dự phòng cho các đường dẫn không khớp */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
