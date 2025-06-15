@@ -339,230 +339,376 @@ const AdminUserPage = () => {
   const { coachCount, memberCount, guestCount, totalUsers } = getStatistics();
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom sx={{ color: '#333', fontWeight: 'bold' }}>
-        <DashboardIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> Quản Lý Người Dùng
-      </Typography>
+    <Box sx={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #28a745 0%, #20c997 50%, #17a2b8 100%)',
+      pt: { xs: 15, sm: 16, md: 18 },
+      pb: 3
+    }}>
+      <Container maxWidth="xl" sx={{ 
+        pt: 2
+      }}>
+        <Box sx={{
+          background: 'rgba(45, 55, 72, 0.95)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: 3,
+          p: 4,
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '4px',
+            background: 'linear-gradient(90deg, #28a745, #20c997, #17a2b8)'
+          }
+        }}>
+          <Typography variant="h5" component="h1" gutterBottom sx={{ 
+            color: '#e2e8f0', 
+            fontWeight: 'bold',
+            mb: 3,
+            textAlign: 'center'
+          }}>
+            <DashboardIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> Quản Lý Người Dùng
+          </Typography>
 
-      {/* Thẻ thống kê người dùng */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card elevation={3} sx={{ borderRadius: 2, background: 'linear-gradient(45deg, #2196f3 30%, #21cbff 90%)', color: 'white' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <PeopleIcon sx={{ fontSize: 40, mr: 2 }} />
-                <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
-                  Tổng số Người dùng
-                </Typography>
-              </Box>
-              <Typography variant="h3" sx={{ fontWeight: 'bold', textAlign: 'right' }}>{totalUsers}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card elevation={3} sx={{ borderRadius: 2, background: 'linear-gradient(45deg, #ff9800 30%, #ffc107 90%)', color: 'white' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <PremiumIcon sx={{ fontSize: 40, mr: 2 }} />
-                <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
-                  Thành viên Premium
-                </Typography>
-              </Box>
-              <Typography variant="h3" sx={{ fontWeight: 'bold', textAlign: 'right' }}>{memberCount}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card elevation={3} sx={{ borderRadius: 2, background: 'linear-gradient(45deg, #4caf50 30%, #81c784 90%)', color: 'white' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <CoachIcon sx={{ fontSize: 40, mr: 2 }} />
-                <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
-                  Huấn luyện viên
-                </Typography>
-              </Box>
-              <Typography variant="h3" sx={{ fontWeight: 'bold', textAlign: 'right' }}>{coachCount}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card elevation={3} sx={{ borderRadius: 2, background: 'linear-gradient(45deg, #9e9e9e 30%, #bdbdbd 90%)', color: 'white' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <PeopleIcon sx={{ fontSize: 40, mr: 2 }} />
-                <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
-                  Khách hàng
-                </Typography>
-              </Box>
-              <Typography variant="h3" sx={{ fontWeight: 'bold', textAlign: 'right' }}>{guestCount}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+          {/* Thẻ thống kê người dùng */}
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid item xs={6} sm={3} md={3}>
+              <Card elevation={0} sx={{ 
+                borderRadius: 2, 
+                background: 'linear-gradient(135deg, #28a745 30%, #20c997 90%)', 
+                color: 'white',
+                height: '100px',
+                transition: 'transform 0.3s ease',
+                '&:hover': {
+                  transform: 'translateY(-2px)'
+                }
+              }}>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '100%' }}>
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                        Tổng số Người dùng
+                      </Typography>
+                      <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{totalUsers}</Typography>
+                    </Box>
+                    <PeopleIcon sx={{ fontSize: 32, opacity: 0.8 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={6} sm={3} md={3}>
+              <Card elevation={0} sx={{ 
+                borderRadius: 2, 
+                background: 'linear-gradient(135deg, #20c997 30%, #17a2b8 90%)', 
+                color: 'white',
+                height: '100px',
+                transition: 'transform 0.3s ease',
+                '&:hover': {
+                  transform: 'translateY(-2px)'
+                }
+              }}>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '100%' }}>
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                        Thành viên Premium
+                      </Typography>
+                      <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{memberCount}</Typography>
+                    </Box>
+                    <PremiumIcon sx={{ fontSize: 32, opacity: 0.8 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={6} sm={3} md={3}>
+              <Card elevation={0} sx={{ 
+                borderRadius: 2, 
+                background: 'linear-gradient(135deg, #17a2b8 30%, #28a745 90%)', 
+                color: 'white',
+                height: '100px',
+                transition: 'transform 0.3s ease',
+                '&:hover': {
+                  transform: 'translateY(-2px)'
+                }
+              }}>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '100%' }}>
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                        Huấn luyện viên
+                      </Typography>
+                      <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{coachCount}</Typography>
+                    </Box>
+                    <CoachIcon sx={{ fontSize: 32, opacity: 0.8 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={6} sm={3} md={3}>
+              <Card elevation={0} sx={{ 
+                borderRadius: 2, 
+                background: 'linear-gradient(135deg, #6c757d 30%, #495057 90%)', 
+                color: 'white',
+                height: '100px',
+                transition: 'transform 0.3s ease',
+                '&:hover': {
+                  transform: 'translateY(-2px)'
+                }
+              }}>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '100%' }}>
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                        Khách hàng
+                      </Typography>
+                      <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{guestCount}</Typography>
+                    </Box>
+                    <PeopleIcon sx={{ fontSize: 32, opacity: 0.8 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
 
-      <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-        {/* Thanh tìm kiếm và bộ lọc vai trò */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap' }}>
-          <TextField
-            label="Tìm kiếm (Tên đăng nhập/Email)"
-            variant="outlined"
-            sx={{ flexGrow: 1, mr: 2, mb: { xs: 2, sm: 0 } }}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              endAdornment: (
-                <SearchIcon color="action" />
-              ),
-            }}
-          />
-          <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel>Lọc theo vai trò</InputLabel>
-            <Select
-              value={roleFilter}
-              label="Lọc theo vai trò"
-              onChange={(e) => setRoleFilter(e.target.value)}
-            >
-              <MenuItem value="all">Tất cả</MenuItem>
-              <MenuItem value="member">Thành viên</MenuItem>
-              <MenuItem value="coach">Huấn luyện viên</MenuItem>
-              <MenuItem value="guest">Khách hàng</MenuItem>
-            </Select>
-          </FormControl>
-        </Box>
+          <Paper elevation={2} sx={{ 
+            p: 3, 
+            borderRadius: 2, 
+            background: 'white'
+          }}>
+            {/* Thanh tìm kiếm và bộ lọc vai trò */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
+              <TextField
+                label="Tìm kiếm (Tên đăng nhập/Email)"
+                variant="outlined"
+                size="small"
+                sx={{ 
+                  flexGrow: 1, 
+                  mr: 2, 
+                  mb: { xs: 2, sm: 0 },
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: '#28a745'
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#28a745'
+                    }
+                  },
+                  '& .MuiInputLabel-root': {
+                    '&.Mui-focused': {
+                      color: '#28a745'
+                    }
+                  }
+                }}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  endAdornment: (
+                    <SearchIcon color="action" />
+                  ),
+                }}
+              />
+              <FormControl sx={{ 
+                minWidth: 180,
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: '#28a745'
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#28a745'
+                  }
+                },
+                '& .MuiInputLabel-root': {
+                  '&.Mui-focused': {
+                    color: '#28a745'
+                  }
+                }
+              }} size="small">
+                <InputLabel>Lọc theo vai trò</InputLabel>
+                <Select
+                  value={roleFilter}
+                  label="Lọc theo vai trò"
+                  onChange={(e) => setRoleFilter(e.target.value)}
+                >
+                  <MenuItem value="all">Tất cả</MenuItem>
+                  <MenuItem value="member">Thành viên</MenuItem>
+                  <MenuItem value="coach">Huấn luyện viên</MenuItem>
+                  <MenuItem value="guest">Khách hàng</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
 
-        {/* Bảng danh sách người dùng */}
-        <TableContainer component={Paper} elevation={0}>
-          <Table sx={{ minWidth: 650 }} aria-label="Bảng người dùng">
-            <TableHead>
-              <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                <TableCell sx={{ fontWeight: 'bold' }}>ID</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Tên đăng nhập</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Email</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Số điện thoại</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Vai trò</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 'bold' }}>Hành động</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredUsers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
-                    Không tìm thấy người dùng nào.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>{user.id}</TableCell>
-                    <TableCell>{user.username}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.phoneNumber}</TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={getRoleLabel(getUserRole(user))}
-                        sx={{ 
-                          backgroundColor: getRoleColor(getUserRole(user)), 
-                          color: 'white',
-                          fontWeight: 'bold'
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <Tooltip title="Chỉnh sửa">
-                        <IconButton onClick={() => handleEdit(user)} color="primary">
-                          <EditIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Xóa">
-                        <IconButton onClick={() => handleDelete(user.id)} color="secondary">
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Xem chi tiết">
-                        <Button variant="outlined" size="small" sx={{ ml: 1 }} onClick={() => handleViewUserDetail(user.id)}>
-                          Chi tiết
-                        </Button>
-                      </Tooltip>
-                    </TableCell>
+            {/* Bảng danh sách người dùng */}
+            <TableContainer component={Paper} elevation={0}>
+              <Table sx={{ minWidth: 650 }} aria-label="Bảng người dùng" size="small">
+                <TableHead>
+                  <TableRow sx={{ 
+                    background: 'linear-gradient(90deg, #28a745, #20c997, #17a2b8)',
+                  }}>
+                    <TableCell sx={{ fontWeight: 'bold', py: 1, color: 'white' }}>ID</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', py: 1, color: 'white' }}>Tên đăng nhập</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', py: 1, color: 'white' }}>Email</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', py: 1, color: 'white' }}>Số điện thoại</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', py: 1, color: 'white' }}>Vai trò</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 'bold', py: 1, color: 'white' }}>Hành động</TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
+                </TableHead>
+                <TableBody>
+                  {filteredUsers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} align="center" sx={{ py: 2 }}>
+                        Không tìm thấy người dùng nào.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredUsers.map((user) => (
+                      <TableRow key={user.id} sx={{ 
+                        '&:hover': { 
+                          backgroundColor: '#f5f5f5'
+                        }
+                      }}>
+                        <TableCell sx={{ py: 1 }}>{user.id}</TableCell>
+                        <TableCell sx={{ py: 1 }}>{user.username}</TableCell>
+                        <TableCell sx={{ py: 1 }}>{user.email}</TableCell>
+                        <TableCell sx={{ py: 1 }}>{user.phoneNumber}</TableCell>
+                        <TableCell sx={{ py: 1 }}>
+                          <Chip 
+                            label={getRoleLabel(getUserRole(user))}
+                            size="small"
+                            sx={{ 
+                              backgroundColor: getRoleColor(getUserRole(user)), 
+                              color: 'white',
+                              fontWeight: 'bold',
+                              fontSize: '0.75rem'
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell align="right" sx={{ py: 1 }}>
+                          <Tooltip title="Chỉnh sửa">
+                            <IconButton 
+                              onClick={() => handleEdit(user)} 
+                              color="primary"
+                              size="small"
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Xóa">
+                            <IconButton 
+                              onClick={() => handleDelete(user.id)} 
+                              color="secondary"
+                              size="small"
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Xem chi tiết">
+                            <Button 
+                              variant="outlined" 
+                              size="small" 
+                              sx={{ 
+                                ml: 0.5, 
+                                fontSize: '0.75rem', 
+                                px: 1
+                              }} 
+                              onClick={() => handleViewUserDetail(user.id)}
+                            >
+                              Chi tiết
+                            </Button>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
           </Table>
         </TableContainer>
       </Paper>
 
-      {/* Dialog chỉnh sửa người dùng */}
-      <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>Chỉnh sửa Người dùng</DialogTitle>
-        <DialogContent>
-          <TextField
-            margin="dense"
-            label="Tên đăng nhập"
-            type="text"
-            fullWidth
-            variant="outlined"
-            name="username"
-            value={formData.username}
-            onChange={handleInputChange}
-          />
-          <TextField
-            margin="dense"
-            label="Email"
-            type="email"
-            fullWidth
-            variant="outlined"
-            name="email"
-            value={formData.email}
-            onChange={handleInputChange}
-          />
-          <TextField
-            margin="dense"
-            label="Số điện thoại"
-            type="text"
-            fullWidth
-            variant="outlined"
-            name="phoneNumber"
-            value={formData.phoneNumber}
-            onChange={handleInputChange}
-          />
-          <TextField
-            margin="dense"
-            label="Địa chỉ"
-            type="text"
-            fullWidth
-            variant="outlined"
-            name="address"
-            value={formData.address}
-            onChange={handleInputChange}
-          />
-          <FormControl fullWidth margin="dense">
-            <InputLabel>Vai trò</InputLabel>
-            <Select
-              name="role"
-              value={formData.role}
-              label="Vai trò"
-              onChange={handleInputChange}
-            >
-              <MenuItem value="member">Thành viên</MenuItem>
-              <MenuItem value="coach">Huấn luyện viên</MenuItem>
-              <MenuItem value="guest">Khách hàng</MenuItem>
-            </Select>
-          </FormControl>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>Hủy</Button>
-          <Button onClick={handleSave} variant="contained" color="primary">
-            Lưu
-          </Button>
-        </DialogActions>
-      </Dialog>
+          {/* Dialog chỉnh sửa người dùng */}
+          <Dialog 
+            open={open} 
+            onClose={handleClose}
+          >
+            <DialogTitle>
+              Chỉnh sửa Người dùng
+            </DialogTitle>
+            <DialogContent>
+              <TextField
+                margin="dense"
+                label="Tên đăng nhập"
+                type="text"
+                fullWidth
+                variant="outlined"
+                name="username"
+                value={formData.username}
+                onChange={handleInputChange}
+              />
+              <TextField
+                margin="dense"
+                label="Email"
+                type="email"
+                fullWidth
+                variant="outlined"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+              />
+              <TextField
+                margin="dense"
+                label="Số điện thoại"
+                type="text"
+                fullWidth
+                variant="outlined"
+                name="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={handleInputChange}
+              />
+              <TextField
+                margin="dense"
+                label="Địa chỉ"
+                type="text"
+                fullWidth
+                variant="outlined"
+                name="address"
+                value={formData.address}
+                onChange={handleInputChange}
+              />
+              <FormControl fullWidth margin="dense">
+                <InputLabel>Vai trò</InputLabel>
+                <Select
+                  name="role"
+                  value={formData.role}
+                  label="Vai trò"
+                  onChange={handleInputChange}
+                >
+                  <MenuItem value="member">Thành viên</MenuItem>
+                  <MenuItem value="coach">Huấn luyện viên</MenuItem>
+                  <MenuItem value="guest">Khách hàng</MenuItem>
+                </Select>
+              </FormControl>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleClose}>Hủy</Button>
+              <Button onClick={handleSave} variant="contained" color="primary">
+                Lưu
+              </Button>
+            </DialogActions>
+          </Dialog>
 
-      {/* Dialog xem chi tiết người dùng */}
-      <Dialog open={detailOpen} onClose={handleCloseDetail} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ borderBottom: '1px solid #eee', pb: 2 }}>
-          Chi tiết Người dùng - {selectedUserDetail ? getRoleLabel(selectedUserDetail.role) : ''}
-        </DialogTitle>
+          {/* Dialog xem chi tiết người dùng */}
+          <Dialog 
+            open={detailOpen} 
+            onClose={handleCloseDetail} 
+            maxWidth="md" 
+            fullWidth
+          >
+            <DialogTitle sx={{ borderBottom: '1px solid #eee', pb: 2 }}>
+              Chi tiết Người dùng - {selectedUserDetail ? getRoleLabel(selectedUserDetail.role) : ''}
+            </DialogTitle>
         <DialogContent sx={{ pt: 3 }}>
           {selectedUserDetail ? (
             <Box>
@@ -864,20 +1010,22 @@ const AdminUserPage = () => {
             </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ borderTop: '1px solid #eee', pt: 2 }}>
-          <Button onClick={handleCloseDetail} variant="contained" color="primary">
-            Đóng
-          </Button>
-        </DialogActions>
-      </Dialog>
+            <DialogActions sx={{ borderTop: '1px solid #eee', pt: 2 }}>
+              <Button onClick={handleCloseDetail} variant="contained" color="primary">
+                Đóng
+              </Button>
+            </DialogActions>
+          </Dialog>
 
-      {/* Snackbar thông báo */}
-      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={handleSnackbarClose}>
-        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Container>
+          {/* Snackbar thông báo */}
+          <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={handleSnackbarClose}>
+            <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
+              {snackbar.message}
+            </Alert>
+          </Snackbar>
+        </Box>
+      </Container>
+    </Box>
   );
 };
 

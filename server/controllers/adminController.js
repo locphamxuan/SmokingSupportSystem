@@ -33,8 +33,11 @@ const adminController = {
     getUserDetail: async (req, res) => {
         try {
             const userId = req.params.id;
+            console.log('Getting user detail for ID:', userId);
+            
+            // Lấy thông tin user cơ bản
             const userResult = await sql.query`
-                SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address, CreatedAt
+                SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address, CreatedAt, CoachId
                 FROM Users WHERE Id = ${userId}
             `;
             
@@ -44,6 +47,8 @@ const adminController = {
             
             const user = userResult.recordset[0];
             const userRole = user.Role || (user.IsMember ? 'member' : 'guest');
+            
+            console.log('User found:', { id: user.Id, username: user.Username, role: userRole });
             
             // Lấy thông tin cơ bản
             const userDetail = {
@@ -57,124 +62,106 @@ const adminController = {
                 createdAt: user.CreatedAt
             };
 
-            // Lấy thông tin profile hút thuốc
-            const profileResult = await sql.query`
-                SELECT * FROM SmokingProfiles WHERE UserId = ${userId}
-            `;
-            
-            if (profileResult.recordset.length > 0) {
-                const profile = profileResult.recordset[0];
-                userDetail.smokingProfile = {
-                    cigarettesPerDay: profile.cigarettesPerDay || 0,
-                    costPerPack: profile.costPerPack || 0,
-                    smokingFrequency: profile.smokingFrequency || '',
-                    healthStatus: profile.healthStatus || '',
-                    cigaretteType: profile.cigaretteType || '',
-                    quitReason: profile.QuitReason || ''
-                };
+            // Lấy thông tin profile hút thuốc (với try-catch riêng)
+            try {
+                console.log('Fetching smoking profile for user:', userId);
+                const profileResult = await sql.query`
+                    SELECT * FROM SmokingProfiles WHERE UserId = ${userId}
+                `;
+                
+                if (profileResult.recordset.length > 0) {
+                    const profile = profileResult.recordset[0];
+                    userDetail.smokingProfile = {
+                        cigarettesPerDay: profile.cigarettesPerDay || 0,
+                        costPerPack: profile.costPerPack || 0,
+                        smokingFrequency: profile.smokingFrequency || '',
+                        healthStatus: profile.healthStatus || '',
+                        cigaretteType: profile.cigaretteType || '',
+                        quitReason: profile.QuitReason || ''
+                    };
+                    console.log('Smoking profile found:', userDetail.smokingProfile);
+                } else {
+                    console.log('No smoking profile found for user:', userId);
+                    userDetail.smokingProfile = null;
+                }
+            } catch (profileError) {
+                console.log('SmokingProfiles table error:', profileError.message);
+                userDetail.smokingProfile = null;
             }
 
-            // Lấy thông tin chi tiết theo role
+            // Lấy thông tin chi tiết theo role (với try-catch riêng)
             if (userRole === 'coach') {
-                // Lấy thông tin các member được assign cho coach từ bảng Booking
-                const assignedMembersResult = await sql.query`
-                    SELECT DISTINCT u.Id, u.Username, u.Email, u.PhoneNumber, 
-                           sp.cigarettesPerDay, sp.QuitReason, b.Status, b.ScheduledTime
-                    FROM Users u
-                    INNER JOIN Booking b ON u.Id = b.MemberId
-                    LEFT JOIN SmokingProfiles sp ON u.Id = sp.UserId
-                    WHERE b.CoachId = ${userId}
-                `;
+                try {
+                    console.log('Fetching assigned members for coach:', userId);
+                    // Lấy members được assign cho coach này
+                    const assignedMembersResult = await sql.query`
+                        SELECT DISTINCT u.Id, u.Username, u.Email, u.PhoneNumber
+                        FROM Users u
+                        WHERE u.CoachId = ${userId}
+                    `;
+                    
+                    userDetail.assignedMembers = assignedMembersResult.recordset.map(member => ({
+                        id: member.Id,
+                        username: member.Username,
+                        email: member.Email,
+                        phoneNumber: member.PhoneNumber || 'N/A',
+                        cigarettesPerDay: 0,
+                        quitReason: 'Chưa cập nhật',
+                        bookingStatus: 'Chưa có',
+                        scheduledTime: null
+                    }));
+                    console.log('Assigned members found:', userDetail.assignedMembers.length);
+                } catch (coachError) {
+                    console.log('Error getting coach data:', coachError.message);
+                    userDetail.assignedMembers = [];
+                }
                 
-                userDetail.assignedMembers = assignedMembersResult.recordset.map(member => ({
-                    id: member.Id,
-                    username: member.Username,
-                    email: member.Email,
-                    phoneNumber: member.PhoneNumber,
-                    cigarettesPerDay: member.cigarettesPerDay || 0,
-                    quitReason: member.QuitReason || 'Chưa cập nhật',
-                    bookingStatus: member.Status,
-                    scheduledTime: member.ScheduledTime
-                }));
-
-                // Lấy thông tin tiến độ của các member từ bảng Booking
-                const progressResult = await sql.query`
-                    SELECT p.UserId, p.Date, p.CigarettesSmoked, p.Notes, u.Username
-                    FROM Progress p
-                    INNER JOIN Users u ON p.UserId = u.Id
-                    INNER JOIN Booking b ON u.Id = b.MemberId
-                    WHERE b.CoachId = ${userId}
-                    AND p.Date >= DATEADD(day, -7, GETDATE())
-                    ORDER BY p.Date DESC
-                `;
-                
-                userDetail.recentProgress = progressResult.recordset.map(progress => ({
-                    userId: progress.UserId,
-                    username: progress.Username,
-                    date: progress.Date,
-                    cigarettesSmoked: progress.CigarettesSmoked,
-                    notes: progress.Notes
-                }));
+                userDetail.recentProgress = [];
                 
             } else if (userRole === 'member' || userRole === 'guest') {
-                // Lấy thông tin coach được assign từ bảng Booking
-                const coachResult = await sql.query`
-                    SELECT DISTINCT u.Id, u.Username, u.Email, u.PhoneNumber, 
-                           b.Status, b.ScheduledTime, b.Note, b.CreatedAt
-                    FROM Users u
-                    INNER JOIN Booking b ON u.Id = b.CoachId
-                    WHERE b.MemberId = ${userId}
-                    ORDER BY b.CreatedAt DESC
-                `;
-                
-                if (coachResult.recordset.length > 0) {
-                    const coach = coachResult.recordset[0];
-                    userDetail.assignedCoach = {
-                        id: coach.Id,
-                        username: coach.Username,
-                        email: coach.Email,
-                        phoneNumber: coach.PhoneNumber,
-                        bookingStatus: coach.Status,
-                        scheduledTime: coach.ScheduledTime,
-                        bookingNote: coach.Note
-                    };
+                try {
+                    console.log('Fetching coach info for user:', userId, 'CoachId:', user.CoachId);
+                    // Lấy thông tin coach từ CoachId trong Users table
+                    if (user.CoachId) {
+                        const coachResult = await sql.query`
+                            SELECT Id, Username, Email, PhoneNumber
+                            FROM Users 
+                            WHERE Id = ${user.CoachId}
+                        `;
+                        
+                        if (coachResult.recordset.length > 0) {
+                            const coach = coachResult.recordset[0];
+                            userDetail.assignedCoach = {
+                                id: coach.Id,
+                                username: coach.Username,
+                                email: coach.Email,
+                                phoneNumber: coach.PhoneNumber || 'N/A',
+                                bookingStatus: 'Đã phân công',
+                                scheduledTime: null,
+                                bookingNote: 'Được phân công bởi hệ thống'
+                            };
+                            console.log('Coach found:', userDetail.assignedCoach);
+                        } else {
+                            console.log('Coach not found for CoachId:', user.CoachId);
+                            userDetail.assignedCoach = null;
+                        }
+                    } else {
+                        console.log('No coach assigned to user:', userId);
+                        userDetail.assignedCoach = null;
+                    }
+                } catch (memberError) {
+                    console.log('Error getting member data:', memberError.message);
+                    userDetail.assignedCoach = null;
                 }
 
-                // Lấy tiến độ cá nhân
-                const progressResult = await sql.query`
-                    SELECT Date, CigarettesSmoked, Notes
-                    FROM Progress
-                    WHERE UserId = ${userId}
-                    ORDER BY Date DESC
-                `;
-                
-                userDetail.progress = progressResult.recordset.map(progress => ({
-                    date: progress.Date,
-                    cigarettesSmoked: progress.CigarettesSmoked,
-                    notes: progress.Notes
-                }));
-
-                // Lấy thông tin quit plan
-                const quitPlanResult = await sql.query`
-                    SELECT StartDate, EndDate, GoalType, GoalValue, Description
-                    FROM QuitPlans
-                    WHERE UserId = ${userId}
-                    ORDER BY StartDate DESC
-                `;
-                
-                if (quitPlanResult.recordset.length > 0) {
-                    const plan = quitPlanResult.recordset[0];
-                    userDetail.quitPlan = {
-                        startDate: plan.StartDate,
-                        endDate: plan.EndDate,
-                        goalType: plan.GoalType,
-                        goalValue: plan.GoalValue,
-                        description: plan.Description
-                    };
-                }
+                // Khởi tạo các field mặc định
+                userDetail.progress = [];
+                userDetail.quitPlan = null;
             }
 
+            console.log('Returning user detail:', JSON.stringify(userDetail, null, 2));
             res.json(userDetail);
+            
         } catch (error) {
             console.error('Error getting user detail:', error);
             console.error('Error details:', {

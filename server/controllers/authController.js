@@ -19,7 +19,7 @@ exports.register = async (req, res) => {
     // Thêm user mới
     const insert = await sql.query`
       INSERT INTO Users (Username, Email, Password, PhoneNumber, Address, Role, IsMember, CreatedAt, CoachId)
-      VALUES (${username}, ${email}, ${password}, ${phoneNumber}, ${address}, 'user', 0, GETDATE(), NULL);
+      VALUES (${username}, ${email}, ${password}, ${phoneNumber}, ${address}, 'guest', 0, GETDATE(), NULL);
       SELECT SCOPE_IDENTITY() AS Id;
     `;
     const userId = insert.recordset[0].Id;

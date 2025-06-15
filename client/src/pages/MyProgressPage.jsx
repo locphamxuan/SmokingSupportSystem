@@ -34,7 +34,19 @@ const MyProgressPage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user"));
+  
+  // Safely parse user from localStorage
+  let user = null;
+  try {
+    const userStr = localStorage.getItem("user");
+    if (userStr && userStr !== 'undefined') {
+      user = JSON.parse(userStr);
+    }
+  } catch (error) {
+    console.error("Error parsing user from localStorage:", error);
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+  }
 
   const fetchUserData = useCallback(async () => {
     try {
@@ -71,6 +83,7 @@ const MyProgressPage = () => {
       setUserData(fetchedUserData);
     } catch (error) {
       console.error("Lỗi khi tải thông tin người dùng:", error);
+      console.error("Error details:", error.response?.data || error.message);
       setError('Không thể tải thông tin người dùng. Vui lòng thử lại sau.');
     } finally {
       setLoading(false);
@@ -156,18 +169,7 @@ const MyProgressPage = () => {
     }
   };
 
-  const handleCreateQuitPlan = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/auth/create-quit-plan', userData.quitPlan, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setSuccess('Kế hoạch cai thuốc đã được tạo!');
-      fetchUserData();
-    } catch (error) {
-      setError(error.response?.data?.message || 'Tạo kế hoạch thất bại.');
-    }
-  };
+
 
   const handleUpdateQuitPlan = async () => {
     try {
@@ -209,8 +211,8 @@ const MyProgressPage = () => {
   }
 
   return (
-    <div className="d-flex flex-column min-vh-100 bg-light">
-      <div className="flex-grow-1 container py-4">
+    <div className="my-progress-wrapper">
+      <div className="my-progress-container">
         <div className="d-flex align-items-center mb-3">
           <button
             onClick={() => navigate('/')}
@@ -222,9 +224,29 @@ const MyProgressPage = () => {
 
         <h4 className="mb-3 fw-bold text-success">Quá trình cai thuốc của bạn</h4>
 
-        {/* Alert for messages */}
-        {error && <div className="alert alert-danger" role="alert">{error}</div>}
-        {success && <div className="alert alert-success" role="alert">{success}</div>}
+        {/* Alert for messages - Fixed positioning */}
+        {error && (
+          <div className="alert alert-danger alert-dismissible fade show" role="alert">
+            {error}
+            <button 
+              type="button" 
+              className="btn-close" 
+              onClick={handleCloseSnackbar}
+              aria-label="Close"
+            ></button>
+          </div>
+        )}
+        {success && (
+          <div className="alert alert-success alert-dismissible fade show" role="alert">
+            {success}
+            <button 
+              type="button" 
+              className="btn-close" 
+              onClick={handleCloseSnackbar}
+              aria-label="Close"
+            ></button>
+          </div>
+        )}
 
         <div className="row">
           {/* Thông tin tài khoản */}
@@ -490,7 +512,7 @@ const MyProgressPage = () => {
       </div>
 
       {/* Footer from HomePage */}
-      <footer className="footer bg-light py-4">
+      <footer className="footer">
         <div className="container">
           <div className="social-icons">
             <a href="#" aria-label="Twitter" target="_blank" rel="noopener noreferrer"><i className="fab fa-twitter" style={{ fontSize: '36px' }}></i></a>
