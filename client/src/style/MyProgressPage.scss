@@ -1,0 +1,243 @@
+// Variables
+$primary-color: #28a745;
+$secondary-color: #6c757d;
+$light-bg: #f8f9fa;
+$border-color: #dee2e6;
+$text-color: #212529;
+$white: #ffffff;
+
+// Main container styles
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+// Card styles
+.card {
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease-in-out;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  .card-header {
+    border-radius: 8px 8px 0 0;
+    padding: 1rem;
+    font-size: 1.1rem;
+  }
+
+  .card-body {
+    padding: 1.5rem;
+  }
+}
+
+// Form styles
+.form-control, .form-select {
+  border: 1px solid $border-color;
+  border-radius: 4px;
+  padding: 0.5rem;
+  transition: border-color 0.2s ease-in-out;
+
+  &:focus {
+    border-color: $primary-color;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+  }
+}
+
+.form-label {
+  font-weight: 500;
+  color: $text-color;
+  margin-bottom: 0.5rem;
+}
+
+// Button styles
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+
+  &-success {
+    background-color: $primary-color;
+    border-color: $primary-color;
+    color: $white;
+
+    &:hover {
+      background-color: darken($primary-color, 10%);
+      border-color: darken($primary-color, 10%);
+    }
+  }
+
+  &-outline-success {
+    color: $primary-color;
+    border-color: $primary-color;
+
+    &:hover {
+      background-color: $primary-color;
+      color: $white;
+    }
+  }
+}
+
+// Progress bar styles
+.progress {
+  height: 10px;
+  border-radius: 5px;
+  background-color: $light-bg;
+  margin: 1rem 0;
+
+  .progress-bar {
+    background-color: $primary-color;
+    border-radius: 5px;
+  }
+}
+
+// List group styles
+.list-group {
+  border-radius: 4px;
+  overflow: hidden;
+
+  .list-group-item {
+    border: 1px solid $border-color;
+    padding: 0.75rem 1rem;
+
+    &:first-child {
+      border-top: none;
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+}
+
+// Badge styles
+.badge {
+  padding: 0.5em 0.75em;
+  font-weight: 500;
+  border-radius: 4px;
+}
+
+// Alert styles
+.alert {
+  border: none;
+  border-radius: 4px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+
+  &-success {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: darken($primary-color, 10%);
+  }
+
+  &-danger {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+  }
+
+  &-info {
+    background-color: rgba(23, 162, 184, 0.1);
+    color: #17a2b8;
+  }
+}
+
+// Footer styles
+.footer {
+  background-color: $light-bg;
+  padding: 2rem 0;
+  margin-top: auto;
+
+  .social-icons {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+
+    a {
+      color: $text-color;
+      transition: color 0.2s ease-in-out;
+
+      &:hover {
+        color: $primary-color;
+      }
+
+      img {
+        border-radius: 50%;
+        transition: transform 0.2s ease-in-out;
+
+        &:hover {
+          transform: scale(1.1);
+        }
+      }
+    }
+  }
+
+  .copyright {
+    text-align: center;
+    color: $secondary-color;
+    margin: 0;
+  }
+}
+
+// Responsive styles
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .card {
+    margin-bottom: 1rem;
+  }
+
+  .btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  .social-icons {
+    gap: 1rem;
+  }
+}
+
+// Loading spinner styles
+.spinner-border {
+  width: 3rem;
+  height: 3rem;
+  color: $primary-color;
+}
+
+// Custom styles for specific elements
+.border-dashed {
+  border: 2px dashed $border-color;
+}
+
+.text-secondary {
+  color: $secondary-color !important;
+}
+
+// Hover effects
+.card, .btn, .form-control, .form-select {
+  &:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+// Animation for alerts
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.alert {
+  animation: fadeIn 0.3s ease-in-out;
+} 

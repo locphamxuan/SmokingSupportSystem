@@ -31,12 +31,11 @@ const Navbar = () => {
           </Link>
 
           <nav className="nav">
-            <Link to="#" className="nav-item">Giới thiệu</Link>
-            <Link to="" className="nav-item">Trang chủ</Link>
+            <Link to="/" className="nav-item">Trang chủ</Link>
+            <Link to="/about" className="nav-item">Thông tin về thuốc lá </Link>
             <Link to="/blog" className="nav-item">Blog</Link>
             <Link to="/leaderboard" className="nav-item">Bảng xếp hạng</Link>
-            <Link to="/community" className="nav-item">Cộng đồng</Link>
-           
+            <Link to="/subscribe" className="nav-item">Mua gói</Link>
           </nav>
         </div>
 
@@ -45,7 +44,9 @@ const Navbar = () => {
             <div className="user-menu">
               <div
                 className="avatar-container"
-                onClick={() => setShowDropdown(!showDropdown)}
+                onClick={() => {
+                  setShowDropdown(!showDropdown);
+                }}
               >
                 <img
                   src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || 'default'}`}
@@ -53,37 +54,32 @@ const Navbar = () => {
                   className="user-avatar"
                 />
               </div>
-              {showDropdown && (
-                <div className="dropdown-menu">
-                  {!isAdmin && (
-                    <Link to="/profile" className="dropdown-item">
-                      Hồ sơ cá nhân
-                    </Link>
-                  )}
-                  {isAdmin && (
-                    <Link to="/admin/users" className="dropdown-item">
-                      Quản lý tài khoản
-                    </Link>
-                  )}
-                  {!isAdmin && !isCoach && (
-                    <Link to="/my-progress" className="dropdown-item">
-                      Theo dõi quá trình
-                    </Link>
-                  )}
-                  {isCoach && (
-                    <Link to="/coach/dashboard" className="dropdown-item">
-                      Lịch tư vấn
-                    </Link>
-                  )}
-                  <button onClick={handleLogout} className="dropdown-item">
-                    Đăng xuất
-                  </button>
-                </div>
-              )}
+
+              <div className="dropdown-menu" style={{ display: showDropdown ? 'flex' : 'none' }}>
+                <Link to="/profile" className="dropdown-item" onClick={() => console.log('Clicked Hồ sơ cá nhân')}>
+                  Hồ sơ cá nhân
+                </Link>
+                <Link to="/my-progress" className="dropdown-item" onClick={() => console.log('Clicked Theo dõi quá trình')}>
+                  Theo dõi quá trình
+                </Link>
+                {/* Removed conditional rendering for admin and coach links for debugging */}
+                {isAdmin && (
+                  <Link to="/admin/users" className="dropdown-item" onClick={() => console.log('Clicked Quản lý tài khoản')}>
+                    Quản lý tài khoản
+                  </Link>
+                )}
+                {isCoach && (
+                  <Link to="/coach/dashboard" className="dropdown-item" onClick={() => console.log('Clicked Lịch tư vấn')}>
+                    Lịch tư vấn
+                  </Link>
+                )}
+                <button onClick={handleLogout} className="dropdown-item">
+                  Đăng xuất
+                </button>
+              </div>
             </div>
           ) : (
             <div className="auth-buttons">
-              
               <Link to="/login" className="btn-primary">Đăng nhập</Link>
             </div>
           )}

@@ -1,57 +1,22 @@
 import React, { useState } from 'react';
-import {
-  Container,
-  Box,
-  TextField,
-  Button,
-  Paper,
-  Tabs,
-  Tab,
-  CircularProgress,
-  Alert,
-  Link,
-  IconButton,
-  Tooltip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Typography,
-  Card,
-  CardContent,
-  Divider,
-  Grid
-} from '@mui/material';
-import { 
-  Home as HomeIcon, 
-  FavoriteRounded as HealthIcon,
-  AirRounded as BreathIcon,
-  LocalFloristRounded as LeafIcon,
-  EmojiEventsRounded as TrophyIcon,
-  PersonAdd as RegisterIcon,
-  Login as LoginIcon
-} from '@mui/icons-material';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import '../style/LoginPage.scss';
 
 const LoginPage = () => {
   const { login } = useAuth();
-  
-  // State quản lý tab đang hoạt động (Đăng nhập/Đăng ký)
-  const [activeTab, setActiveTab] = useState(0);
-  // State quản lý trạng thái tải (loading)
+  const [activeTab, setActiveTab] = useState(0); // 0 for Login, 1 for Register
   const [loading, setLoading] = useState(false);
-  // State quản lý thông báo lỗi
   const [error, setError] = useState('');
-  // State quản lý loại người dùng (thành viên, huấn luyện viên, quản trị viên)
-  const [userType, setUserType] = useState('member'); 
-  
-  // State và lỗi cho form đăng nhập
+  const [userType, setUserType] = useState('member');
+
+  // State and errors for login form
   const [loginData, setLoginData] = useState({ emailOrUsername: '', password: '' });
   const [loginErrors, setLoginErrors] = useState({ emailOrUsername: '', password: '' });
-  
-  // State và lỗi cho form đăng ký
+
+  // State and errors for register form (kept for consistency, though Register.jsx will handle actual registration)
   const [registerData, setRegisterData] = useState({
     username: '',
     email: '',
@@ -71,30 +36,19 @@ const LoginPage = () => {
 
   const navigate = useNavigate();
 
-  // Array các câu động viên về cai thuốc lá
-  const motivationalQuotes = [
-    "Mỗi ngày không hút thuốc là một chiến thắng! 🏆",
-    "Hãy thở sâu và cảm nhận không khí trong lành 🌿",
-    "Sức khỏe của bạn là tài sản quý giá nhất 💚",
-    "Hành trình cai thuốc bắt đầu từ quyết tâm của bạn ✨",
-    "Mỗi phút không hút thuốc, phổi bạn đang hồi phục 🫁"
-  ];
-
-  const [currentQuote] = useState(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
-
-  // Hàm kiểm tra định dạng email
+  // Email validation regex
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
   };
 
-  // Hàm kiểm tra định dạng số điện thoại
+  // Phone number validation regex
   const validatePhoneNumber = (phone) => {
     const re = /^[0-9]{10}$/;
     return re.test(phone);
   };
 
-  // Hàm kiểm tra lỗi form đăng nhập
+  // Login form validation
   const validateLoginForm = () => {
     const errors = {};
     if (!loginData.emailOrUsername) {
@@ -107,7 +61,7 @@ const LoginPage = () => {
     return Object.keys(errors).length === 0;
   };
 
-  // Hàm kiểm tra lỗi form đăng ký
+  // Register form validation (for client-side check, actual registration handled by Register.jsx)
   const validateRegisterForm = () => {
     const errors = {};
     if (!registerData.username) {
@@ -140,36 +94,35 @@ const LoginPage = () => {
     return Object.keys(errors).length === 0;
   };
 
-  // Xử lý thay đổi tab
-  const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
+  // Handle tab change
+  const handleTabChange = (index) => {
+    setActiveTab(index);
     setError('');
     setLoginErrors({});
     setRegisterErrors({});
   };
 
-  // Xử lý thay đổi input form đăng nhập
+  // Handle login input change
   const handleLoginInputChange = (e) => {
     setLoginData({ ...loginData, [e.target.name]: e.target.value });
     setLoginErrors({ ...loginErrors, [e.target.name]: '' });
   };
 
-  // Xử lý thay đổi input form đăng ký
+  // Handle register input change
   const handleRegisterInputChange = (e) => {
     setRegisterData({ ...registerData, [e.target.name]: e.target.value });
     setRegisterErrors({ ...registerErrors, [e.target.name]: '' });
   };
 
-  // Xử lý submit form đăng nhập
+  // Handle login form submission
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    // Kiểm tra hợp lệ form
     if (!validateLoginForm()) return;
 
     setLoading(true);
     setError('');
     try {
-      localStorage.clear(); // Xóa dữ liệu cũ trong localStorage
+      localStorage.clear();
       const endpoint = 'http://localhost:5000/api/auth/login';
       const loginPayload = {
         emailOrUsername: loginData.emailOrUsername,
@@ -179,7 +132,6 @@ const LoginPage = () => {
       const response = await axios.post(endpoint, loginPayload);
       const { token, user } = response.data;
 
-      // Kiểm tra role với userType đã chọn
       if (
         (userType === 'member' && user.role !== 'member' && user.role !== 'guest' && user.role !== 'user') ||
         (userType === 'coach' && user.role !== 'coach') ||
@@ -190,13 +142,9 @@ const LoginPage = () => {
         return;
       }
 
-      // Sử dụng AuthContext để login
       login(user, token);
-      
-      // Thiết lập token cho các request axios tiếp theo
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-      // Điều hướng người dùng đến trang phù hợp dựa trên vai trò
       if (user.role === 'coach') {
         navigate('/coach-portal');
       } else if (user.role === 'admin') {
@@ -205,545 +153,142 @@ const LoginPage = () => {
         navigate('/');
       }
     } catch (error) {
-      // Xử lý lỗi đăng nhập
       setError(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại!');
     } finally {
       setLoading(false);
     }
   };
 
-  // Xử lý submit form đăng ký
+  // handleRegisterSubmit function in LoginPage is primarily for validation, actual registration handled by Register.jsx
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
-    // Kiểm tra hợp lệ form
     if (!validateRegisterForm()) return;
-    
+
     setLoading(true);
     setError('');
     try {
-      localStorage.clear(); // Xóa dữ liệu cũ trong localStorage
-      const endpoint = 'http://localhost:5000/api/auth/register';
-      const registerPayload = {
-        username: registerData.username,
-        email: registerData.email,
-        password: registerData.password,
-        phoneNumber: registerData.phoneNumber,
-        address: registerData.address
-      };
-
-      const response = await axios.post(endpoint, registerPayload);
-      
-      if (response.data.success) {
-        // Đăng ký thành công, chuyển về tab đăng nhập
-        setActiveTab(0);
-        setRegisterData({
-          username: '',
-          email: '',
-          password: '',
-          confirmPassword: '',
-          phoneNumber: '',
-          address: ''
-        });
-        setError('');
-        alert('Đăng ký thành công! Vui lòng đăng nhập.');
-      }
-    } catch (error) {
-      // Xử lý lỗi đăng ký
-      setError(error.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại!');
+      // For actual registration, user is redirected to Register.jsx
+      // This part here is mainly for showing loading/error states in LoginPage's register tab
+      // In a real scenario, you'd make an API call from Register.jsx
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      setError('Đăng ký không được thực hiện từ trang này. Vui lòng sử dụng trang Đăng ký riêng.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Box sx={{ 
-      minHeight: '100vh', 
-      background: '#f8f9fa',
-      py: 4
-    }}>
-      <Container maxWidth="xl">
-        {/* Header với nút về trang chủ */}
-        <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <IconButton 
-            onClick={() => navigate('/')}
-            sx={{ 
-              background: 'white',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              '&:hover': { 
-                background: '#4a90e2',
-                color: 'white'
-              }
-            }}
-          >
-            <HomeIcon />
-          </IconButton>
-          
-          <Typography variant="h4" sx={{ 
-            fontWeight: 600,
-            color: '#333',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2
-          }}>
-            <LeafIcon sx={{ color: '#28a745', fontSize: 32 }} />
-            Nền tảng hỗ trợ cai thuốc lá
-          </Typography>
-          
-          <Box sx={{ width: 48 }} /> {/* Spacer for center alignment */}
-        </Box>
+    <div className="auth-page-wrapper d-flex align-items-center justify-content-center min-vh-100">
+      <div className="auth-container card shadow-lg rounded-lg overflow-hidden row no-gutters">
+        <div className="auth-image-half d-none d-md-block col-md-6">
+          <div className="image-overlay d-flex flex-column justify-content-center align-items-center text-white p-4">
+            <h2 className="mb-3 text-center">Chào mừng đến với hệ thống hỗ trợ cai thuốc</h2>
+            <p className="text-center">Hãy cùng chúng tôi bắt đầu hành trình sống khỏe mạnh!</p>
+          </div>
+        </div>
+        <div className="auth-form-half col-md-6 p-4 d-flex flex-column justify-content-center">
+          <div className="d-flex justify-content-between mb-4">
+            <button
+              className={`btn btn-lg w-50 ${activeTab === 0 ? 'btn-success' : 'btn-outline-success'}`}
+              onClick={() => handleTabChange(0)}
+            >
+              Đăng nhập
+            </button>
+            <button
+              className={`btn btn-lg w-50 ${activeTab === 1 ? 'btn-success' : 'btn-outline-success'}`}
+              onClick={() => navigate('/register')} // Redirect to dedicated Register page
+            >
+              Đăng ký
+            </button>
+          </div>
 
-        <Grid container spacing={4} sx={{ justifyContent: 'center', alignItems: 'flex-start' }}>
-          
-          {/* Left Side - Motivational Content */}
-          <Grid item xs={12} lg={6} xl={5}>
-            <Box sx={{ maxWidth: 500, mx: 'auto' }}>
-              
-              {/* Welcome Hero Card */}
-              <Card sx={{ 
-                mb: 3,
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white',
-                textAlign: 'center'
-              }}>
-                <CardContent sx={{ p: 4 }}>
-                  <Box sx={{ mb: 3 }}>
-                    <TrophyIcon sx={{ fontSize: 48, mb: 2 }} />
-                    <Typography variant="h4" fontWeight="bold" gutterBottom>
-                      Chào mừng bạn!
-                    </Typography>
-                    <Typography variant="h6" sx={{ opacity: 0.9 }}>
-                      Hành trình cai thuốc lá bắt đầu từ đây
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </Card>
+          {error && (
+            <div className="alert alert-danger mb-3" role="alert">
+              {error}
+            </div>
+          )}
 
-              {/* Daily Motivation */}
-              <Card sx={{ mb: 3, background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                <CardContent sx={{ p: 3, textAlign: 'center' }}>
-                  <HealthIcon sx={{ fontSize: 40, color: '#4a90e2', mb: 2 }} />
-                  <Typography variant="h6" color="#333" fontWeight="600" gutterBottom>
-                    💪 Động lực hôm nay
-                  </Typography>
-                  <Typography variant="body1" color="#666" sx={{ fontStyle: 'italic', fontSize: '1.1rem' }}>
-                    {currentQuote}
-                  </Typography>
-                </CardContent>
-              </Card>
+          {/* Login Form */}
+          {activeTab === 0 && (
+            <form onSubmit={handleLoginSubmit}>
+              <div className="mb-3">
+                <label htmlFor="userType" className="form-label">Loại tài khoản</label>
+                <select
+                  className="form-select"
+                  id="userType"
+                  name="userType"
+                  value={userType}
+                  onChange={(e) => setUserType(e.target.value)}
+                >
+                  <option value="member">Thành viên</option>
+                  <option value="coach">Huấn luyện viên</option>
+                  <option value="admin">Quản trị viên</option>
+                </select>
+              </div>
 
-              {/* Health Benefits Timeline */}
-              <Card sx={{ background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                <CardContent sx={{ p: 3 }}>
-                  <Typography variant="h6" color="#333" fontWeight="600" gutterBottom sx={{ textAlign: 'center', mb: 3 }}>
-                    🌟 Lợi ích khi bỏ thuốc lá
-                  </Typography>
-                  
-                  <Box sx={{ space: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, p: 2, backgroundColor: '#f8f9fa', borderRadius: 2 }}>
-                      <Box sx={{ 
-                        minWidth: 40, 
-                        height: 40, 
-                        borderRadius: '50%', 
-                        background: '#e91e63', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        mr: 2
-                      }}>
-                        <HealthIcon sx={{ color: 'white', fontSize: 20 }} />
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" fontWeight="600" color="#333">
-                          20 phút đầu tiên
-                        </Typography>
-                        <Typography variant="body2" color="#666">
-                          Nhịp tim và huyết áp giảm xuống bình thường
-                        </Typography>
-                      </Box>
-                    </Box>
+              <div className="mb-3">
+                <label htmlFor="loginEmailOrUsername" className="form-label">Email hoặc Tên đăng nhập</label>
+                <input
+                  type="text"
+                  className={`form-control ${loginErrors.emailOrUsername ? 'is-invalid' : ''}`}
+                  id="loginEmailOrUsername"
+                  name="emailOrUsername"
+                  placeholder="Nhập email hoặc tên đăng nhập"
+                  value={loginData.emailOrUsername}
+                  onChange={handleLoginInputChange}
+                  required
+                />
+                {loginErrors.emailOrUsername && <div className="invalid-feedback">{loginErrors.emailOrUsername}</div>}
+              </div>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, p: 2, backgroundColor: '#f8f9fa', borderRadius: 2 }}>
-                      <Box sx={{ 
-                        minWidth: 40, 
-                        height: 40, 
-                        borderRadius: '50%', 
-                        background: '#00bcd4', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        mr: 2
-                      }}>
-                        <BreathIcon sx={{ color: 'white', fontSize: 20 }} />
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" fontWeight="600" color="#333">
-                          12 giờ
-                        </Typography>
-                        <Typography variant="body2" color="#666">
-                          CO trong máu giảm xuống mức bình thường
-                        </Typography>
-                      </Box>
-                    </Box>
+              <div className="mb-4">
+                <label htmlFor="loginPassword" className="form-label">Mật khẩu</label>
+                <input
+                  type="password"
+                  className={`form-control ${loginErrors.password ? 'is-invalid' : ''}`}
+                  id="loginPassword"
+                  name="password"
+                  placeholder="Nhập mật khẩu"
+                  value={loginData.password}
+                  onChange={handleLoginInputChange}
+                  required
+                />
+                {loginErrors.password && <div className="invalid-feedback">{loginErrors.password}</div>}
+              </div>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', p: 2, backgroundColor: '#f8f9fa', borderRadius: 2 }}>
-                      <Box sx={{ 
-                        minWidth: 40, 
-                        height: 40, 
-                        borderRadius: '50%', 
-                        background: '#28a745', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        mr: 2
-                      }}>
-                        <LeafIcon sx={{ color: 'white', fontSize: 20 }} />
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" fontWeight="600" color="#333">
-                          1 năm
-                        </Typography>
-                        <Typography variant="body2" color="#666">
-                          Giảm 50% nguy cơ mắc bệnh tim mạch
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Box>
-          </Grid>
+              <button
+                type="submit"
+                className="btn btn-success w-100 py-2"
+                disabled={loading}
+              >
+                {loading ? (
+                  <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                ) : (
+                  'Đăng nhập'
+                )}
+              </button>
 
-          {/* Right Side - Login/Register Form */}
-          <Grid item xs={12} lg={6} xl={5}>
-            <Box sx={{ maxWidth: 500, mx: 'auto' }}>
-              <Paper elevation={3} sx={{ 
-                borderRadius: 3,
-                overflow: 'hidden',
-                background: 'white',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-              }}>
-                
-                {/* Form Header */}
-                <Box sx={{ 
-                  background: '#4a90e2',
-                  color: 'white',
-                  p: 3,
-                  textAlign: 'center'
-                }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 2 }}>
-                    {activeTab === 0 ? <LoginIcon sx={{ mr: 1 }} /> : <RegisterIcon sx={{ mr: 1 }} />}
-                    <Typography variant="h4" component="h1" fontWeight="600">
-                      {activeTab === 0 ? 'Đăng nhập' : 'Đăng ký'}
-                    </Typography>
-                  </Box>
-                  <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                    {activeTab === 0 ? 'Chào mừng bạn trở lại!' : 'Tham gia cộng đồng cai thuốc lá'}
-                  </Typography>
-                </Box>
+              <div className="text-center mt-3">
+                <Link to="#" className="text-success text-decoration-none">Quên mật khẩu?</Link>
+              </div>
+            </form>
+          )}
 
-                <Box sx={{ p: 4 }}>
-                  {/* Tabs */}
-                  <Tabs 
-                    value={activeTab} 
-                    onChange={handleTabChange} 
-                    centered 
-                    sx={{ 
-                      mb: 3,
-                      '& .MuiTab-root': {
-                        fontWeight: '600',
-                        fontSize: '1rem',
-                        textTransform: 'none',
-                        '&.Mui-selected': {
-                          color: '#4a90e2'
-                        }
-                      },
-                      '& .MuiTabs-indicator': {
-                        backgroundColor: '#4a90e2',
-                        height: 3,
-                        borderRadius: '3px 3px 0 0'
-                      }
-                    }}
-                  >
-                    <Tab label="Đăng nhập" />
-                    <Tab label="Đăng ký" />
-                  </Tabs>
-
-                  {error && (
-                    <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
-                      {error}
-                    </Alert>
-                  )}
-
-                  {/* Login Form */}
-                  {activeTab === 0 ? (
-                    <Box component="form" onSubmit={handleLoginSubmit}>
-                      <FormControl fullWidth margin="normal">
-                        <InputLabel>Loại tài khoản</InputLabel>
-                        <Select
-                          value={userType}
-                          onChange={(e) => setUserType(e.target.value)}
-                          label="Loại tài khoản"
-                          sx={{
-                            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#4a90e2' },
-                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#4a90e2' }
-                          }}
-                        >
-                          <MenuItem value="member">👤 Thành viên</MenuItem>
-                          <MenuItem value="coach">🏥 Huấn luyện viên</MenuItem>
-                          <MenuItem value="admin">⚙️ Quản trị viên</MenuItem>
-                        </Select>
-                      </FormControl>
-
-                      <TextField
-                        label="Email hoặc Tên đăng nhập"
-                        variant="outlined"
-                        fullWidth
-                        margin="normal"
-                        name="emailOrUsername"
-                        value={loginData.emailOrUsername}
-                        onChange={handleLoginInputChange}
-                        error={!!loginErrors.emailOrUsername}
-                        helperText={loginErrors.emailOrUsername}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            '&:hover fieldset': { borderColor: '#4a90e2' },
-                            '&.Mui-focused fieldset': { borderColor: '#4a90e2' }
-                          },
-                          '& .MuiInputLabel-root.Mui-focused': { color: '#4a90e2' }
-                        }}
-                      />
-
-                      <TextField
-                        label="Mật khẩu"
-                        type="password"
-                        variant="outlined"
-                        fullWidth
-                        margin="normal"
-                        name="password"
-                        value={loginData.password}
-                        onChange={handleLoginInputChange}
-                        error={!!loginErrors.password}
-                        helperText={loginErrors.password}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            '&:hover fieldset': { borderColor: '#4a90e2' },
-                            '&.Mui-focused fieldset': { borderColor: '#4a90e2' }
-                          },
-                          '& .MuiInputLabel-root.Mui-focused': { color: '#4a90e2' }
-                        }}
-                      />
-
-                      <Button
-                        type="submit"
-                        variant="contained"
-                        fullWidth
-                        size="large"
-                        disabled={loading}
-                        sx={{ 
-                          mt: 3, 
-                          mb: 2, 
-                          height: 56,
-                          backgroundColor: '#4a90e2',
-                          fontWeight: '600',
-                          fontSize: '1.1rem',
-                          textTransform: 'none',
-                          borderRadius: 2,
-                          '&:hover': {
-                            backgroundColor: '#3d7bc6'
-                          }
-                        }}
-                      >
-                        {loading ? (
-                          <CircularProgress size={24} color="inherit" />
-                        ) : (
-                          <>
-                            <LoginIcon sx={{ mr: 1 }} />
-                            Đăng nhập
-                          </>
-                        )}
-                      </Button>
-
-                      <Divider sx={{ my: 2 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          hoặc
-                        </Typography>
-                      </Divider>
-
-                      <Box sx={{ textAlign: 'center' }}>
-                        <Link 
-                          href="#" 
-                          variant="body2" 
-                          onClick={(e) => e.preventDefault()} 
-                          sx={{ 
-                            color: '#4a90e2',
-                            textDecoration: 'none',
-                            fontWeight: '500',
-                            '&:hover': { textDecoration: 'underline' }
-                          }}
-                        >
-                          Quên mật khẩu? Chúng tôi sẽ giúp bạn!
-                        </Link>
-                      </Box>
-                    </Box>
-                  ) : (
-                    /* Register Form */
-                    <Box component="form" onSubmit={handleRegisterSubmit}>
-                      <TextField
-                        label="Tên đăng nhập"
-                        variant="outlined"
-                        fullWidth
-                        margin="normal"
-                        name="username"
-                        value={registerData.username}
-                        onChange={handleRegisterInputChange}
-                        error={!!registerErrors.username}
-                        helperText={registerErrors.username}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            '&:hover fieldset': { borderColor: '#4a90e2' },
-                            '&.Mui-focused fieldset': { borderColor: '#4a90e2' }
-                          },
-                          '& .MuiInputLabel-root.Mui-focused': { color: '#4a90e2' }
-                        }}
-                      />
-
-                      <TextField
-                        label="Email"
-                        variant="outlined"
-                        fullWidth
-                        margin="normal"
-                        name="email"
-                        value={registerData.email}
-                        onChange={handleRegisterInputChange}
-                        error={!!registerErrors.email}
-                        helperText={registerErrors.email}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            '&:hover fieldset': { borderColor: '#4a90e2' },
-                            '&.Mui-focused fieldset': { borderColor: '#4a90e2' }
-                          },
-                          '& .MuiInputLabel-root.Mui-focused': { color: '#4a90e2' }
-                        }}
-                      />
-
-                      <TextField
-                        label="Số điện thoại"
-                        variant="outlined"  
-                        fullWidth
-                        margin="normal"
-                        name="phoneNumber"
-                        value={registerData.phoneNumber}
-                        onChange={handleRegisterInputChange}
-                        error={!!registerErrors.phoneNumber}
-                        helperText={registerErrors.phoneNumber}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            '&:hover fieldset': { borderColor: '#4a90e2' },
-                            '&.Mui-focused fieldset': { borderColor: '#4a90e2' }
-                          },
-                          '& .MuiInputLabel-root.Mui-focused': { color: '#4a90e2' }
-                        }}
-                      />
-
-                      <TextField
-                        label="Địa chỉ"
-                        variant="outlined"
-                        fullWidth
-                        margin="normal"
-                        name="address"
-                        value={registerData.address}
-                        onChange={handleRegisterInputChange}
-                        error={!!registerErrors.address}
-                        helperText={registerErrors.address}
-                        multiline
-                        rows={2}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            '&:hover fieldset': { borderColor: '#4a90e2' },
-                            '&.Mui-focused fieldset': { borderColor: '#4a90e2' }
-                          },
-                          '& .MuiInputLabel-root.Mui-focused': { color: '#4a90e2' }
-                        }}
-                      />
-
-                      <TextField
-                        label="Mật khẩu"
-                        type="password"
-                        variant="outlined"
-                        fullWidth
-                        margin="normal"
-                        name="password"
-                        value={registerData.password}
-                        onChange={handleRegisterInputChange}
-                        error={!!registerErrors.password}
-                        helperText={registerErrors.password}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            '&:hover fieldset': { borderColor: '#4a90e2' },
-                            '&.Mui-focused fieldset': { borderColor: '#4a90e2' }
-                          },
-                          '& .MuiInputLabel-root.Mui-focused': { color: '#4a90e2' }
-                        }}
-                      />
-
-                      <TextField
-                        label="Xác nhận mật khẩu"
-                        type="password"
-                        variant="outlined"
-                        fullWidth
-                        margin="normal"
-                        name="confirmPassword"
-                        value={registerData.confirmPassword}
-                        onChange={handleRegisterInputChange}
-                        error={!!registerErrors.confirmPassword}
-                        helperText={registerErrors.confirmPassword}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            '&:hover fieldset': { borderColor: '#4a90e2' },
-                            '&.Mui-focused fieldset': { borderColor: '#4a90e2' }
-                          },
-                          '& .MuiInputLabel-root.Mui-focused': { color: '#4a90e2' }
-                        }}
-                      />
-
-                      <Button
-                        type="submit"
-                        variant="contained"
-                        fullWidth
-                        size="large"
-                        disabled={loading}
-                        sx={{ 
-                          mt: 3, 
-                          mb: 2, 
-                          height: 56,
-                          backgroundColor: '#28a745',
-                          fontWeight: '600',
-                          fontSize: '1.1rem',
-                          textTransform: 'none',
-                          borderRadius: 2,
-                          '&:hover': {
-                            backgroundColor: '#218838'
-                          }
-                        }}
-                      >
-                        {loading ? (
-                          <CircularProgress size={24} color="inherit" />
-                        ) : (
-                          <>
-                            <RegisterIcon sx={{ mr: 1 }} />
-                            Tạo tài khoản
-                          </>
-                        )}
-                      </Button>
-                    </Box>
-                  )}
-                </Box>
-              </Paper>
-            </Box>
-          </Grid>
-        </Grid>
-      </Container>
-    </Box>
+          {/* Register Form (Placeholder, actual registration handled by Register.jsx) */}
+          {activeTab === 1 && (
+            <div className="text-center">
+              <p>Vui lòng chuyển đến trang Đăng ký để tạo tài khoản mới.</p>
+              <button
+                className="btn btn-success mt-3"
+                onClick={() => navigate('/register')}
+              >
+                Đi đến trang Đăng ký
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 
