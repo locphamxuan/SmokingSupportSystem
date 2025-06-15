@@ -1,12 +1,17 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  Container, Paper, Typography, Grid, TextField, Button, Box, LinearProgress, List, ListItem, ListItemText, Snackbar, Alert, Dialog, Chip, DialogTitle, DialogContent, DialogActions, CircularProgress
-} from '@mui/material';
-import axios from 'axios';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import 'bootstrap/dist/css/bootstrap.min.css'; // Import Bootstrap CSS
+import '../style/MyProgressPage.scss'; // Assuming you'll create this file for custom styles
+import facebookImage from '../assets/images/facebook.jpg'; // Import Facebook image for footer
+import instagramImage from '../assets/images/instragram.jpg'; // Import Instagram image for footer
 
 const MyProgressPage = () => {
   const [userData, setUserData] = useState({
+    username: '',
+    email: '',
+    phoneNumber: '',
+    address: '',
     smokingStatus: {
       cigarettesPerDay: 0,
       costPerPack: 0,
@@ -14,1127 +19,491 @@ const MyProgressPage = () => {
       healthStatus: '',
       cigaretteType: '',
       quitReason: '',
-      dailyLog: { cigarettes: 0, feeling: '' }
+      dailyLog: {
+        cigarettes: 0,
+        feeling: ''
+      }
     },
     quitPlan: null,
+    achievements: [],
     role: 'guest',
-    coachId: null
+    isMember: false,
+    coach: null,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [openDialog, setOpenDialog] = useState(false);
-  const [autoSaveStatus, setAutoSaveStatus] = useState('');
-  const [openBookCoachDialog, setOpenBookCoachDialog] = useState(false);
-  const [coaches, setCoaches] = useState([]);
-  const [bookingCoach, setBookingCoach] = useState(false);
-  const [openBookAppointmentDialog, setOpenBookAppointmentDialog] = useState(false);
-  const [openCoachSelectionForAppointmentDialog, setOpenCoachSelectionForAppointmentDialog] = useState(false);
-  const [selectedCoachForAppointment, setSelectedCoachForAppointment] = useState(null);
-  const [appointmentDetails, setAppointmentDetails] = useState({
-    scheduledTime: null,
-    status: 'đang chờ xác nhận',
-    note: '',
-  });
-  const [bookingLoading, setBookingLoading] = useState(false);
-  const [bookingError, setBookingError] = useState(null);
-  const [bookingSuccess, setBookingSuccess] = useState(false);
   const navigate = useNavigate();
-  
-  const debounceTimeoutRef = useRef(null);
-  const lastSavedDataRef = useRef(null);
+  const user = JSON.parse(localStorage.getItem("user"));
 
-  const fetchCoaches = useCallback(async () => {
-    console.log('Bắt đầu tải danh sách huấn luyện viên...');
+  const fetchUserData = useCallback(async () => {
     try {
-      setLoading(true);
       const token = localStorage.getItem('token');
       if (!token) {
-        console.log('Không tìm thấy token, điều hướng đến trang đăng nhập.');
         navigate('/login');
         return;
       }
-      console.log('Đang gọi API /api/hlv...');
-      const response = await axios.get('http://localhost:5000/api/hlv', {
+
+      const response = await axios.get('http://localhost:5000/api/auth/profile', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      console.log('Phản hồi API cho huấn luyện viên:', response.data);
-      setCoaches(response.data.coaches);
-      console.log('Đã tải danh sách huấn luyện viên để lựa chọn:', response.data.coaches);
-    } catch (error) {
-      console.error('❌ Lỗi khi tải danh sách huấn luyện viên:', error);
-      setError('Không thể tải danh sách huấn luyện viên.');
-    } finally {
-      setLoading(false);
-      console.log('Kết thúc tải danh sách huấn luyện viên.');
-    }
-  }, [navigate]);
-
-  const setUserDataWithAutoSave = useCallback((newData) => {
-    setUserData(prevUserData => {
-      const updatedData = typeof newData === 'function' ? newData(prevUserData) : newData;
       
-      try {
-        localStorage.setItem('myProgressData', JSON.stringify(updatedData));
-        console.log('✅ Dữ liệu đã được lưu vào localStorage');
-      } catch (error) {
-        console.error('❌ Lỗi khi lưu vào localStorage:', error);
-      }
-      
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
-
-      debounceTimeoutRef.current = setTimeout(async () => {
-        try {
-          if (JSON.stringify(updatedData) === JSON.stringify(lastSavedDataRef.current)) {
-            return;
-          }
-
-          setAutoSaveStatus('saving');
-          const token = localStorage.getItem('token');
-          if (!token) return;
-
-          await axios.put('http://localhost:5000/api/auth/smoking-status', {
-            cigarettesPerDay: Number(updatedData.smokingStatus.cigarettesPerDay),
-            costPerPack: Number(updatedData.smokingStatus.costPerPack),
-            smokingFrequency: String(updatedData.smokingStatus.smokingFrequency),
-            healthStatus: String(updatedData.smokingStatus.healthStatus),
-            cigaretteType: String(updatedData.smokingStatus.cigaretteType || ''),
-            quitReason: String(updatedData.smokingStatus.quitReason || ''),
-            dailyCigarettes: Number(updatedData.smokingStatus.dailyLog?.cigarettes || 0),
-            dailyFeeling: String(updatedData.smokingStatus.dailyLog?.feeling || '')
-          }, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-
-          lastSavedDataRef.current = JSON.parse(JSON.stringify(updatedData));
-          setAutoSaveStatus('saved');
-          console.log('💾 Auto-saved to server successfully');
-          
-          // XÓa và lưu status sau 2 giây
-          setTimeout(() => setAutoSaveStatus(''), 2000);
-        } catch (error) {
-          console.error('❌ Auto-save failed:', error);
-          setAutoSaveStatus('error');
-          setTimeout(() => setAutoSaveStatus(''), 3000);
-        }
-      }, 2000); // 2 second delay
-      
-      return updatedData;
-    });
-  }, []);
-
-  // Fetch all user data
-  const fetchAllUserData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-
-      console.log('🔄 Fetching user data from server...');
-
-      // Fetch from server first to get latest data
-      const [profileRes, quitPlanRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/auth/profile', {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        axios.get('http://localhost:5000/api/auth/quit-plan', {
-          headers: { Authorization: `Bearer ${token}` }
-        }).catch(() => ({ data: { quitPlan: null } })) // Handle quit plan not found
-      ]);
-      
-      console.log('📥 Profile data received:', profileRes.data);
-      console.log('📥 Quit plan data received:', quitPlanRes.data);
-      
-      let dailyLog = {
-        cigarettes: profileRes.data.smokingStatus?.dailyLog?.cigarettes || 0,
-        feeling: profileRes.data.smokingStatus?.dailyLog?.feeling || ''
-      };
-
-      // Lấy nhật ký hôm nay từ Progress (nếu có)
-      const today = new Date().toISOString().slice(0, 10);
-      const progressRes = await axios.get('http://localhost:5000/api/auth/progress/latest', {
-        headers: { Authorization: `Bearer ${token}` }
-      }).catch(() => ({ data: { progress: null } })); // Handle progress not found
-      if (progressRes.data.progress && progressRes.data.progress.Date?.slice(0, 10) === today) {
-        dailyLog = {
-          cigarettes: progressRes.data.progress.Cigarettes,
-          feeling: progressRes.data.progress.Note
-        };
-      }
-
-      const serverData = {
-        id: profileRes.data.id,
-        username: profileRes.data.username,
-        email: profileRes.data.email,
-        phoneNumber: profileRes.data.phoneNumber,
-        address: profileRes.data.address,
-        role: profileRes.data.role,
-        isMember: profileRes.data.isMember,
-        coachId: profileRes.data.coachId,
+      const fetchedUserData = {
+        ...response.data,
         smokingStatus: {
-          ...profileRes.data.smokingStatus,
-          dailyLog
+          cigarettesPerDay: response.data.smokingStatus?.cigarettesPerDay || 0,
+          costPerPack: response.data.smokingStatus?.costPerPack || 0,
+          smokingFrequency: response.data.smokingStatus?.smokingFrequency || '',
+          healthStatus: response.data.smokingStatus?.healthStatus || '',
+          cigaretteType: response.data.smokingStatus?.cigaretteType || '',
+          quitReason: response.data.smokingStatus?.quitReason || '',
+          dailyLog: {
+            cigarettes: response.data.smokingStatus?.dailyLog?.cigarettes || 0,
+            feeling: response.data.smokingStatus?.dailyLog?.feeling || ''
+          }
         },
-        quitPlan: quitPlanRes.data.quitPlan || null
+        quitPlan: response.data.quitPlan || null,
+        achievements: response.data.achievements || [],
+        isMember: response.data.isMember || false,
+        coach: response.data.coach || null,
       };
-
-      console.log('📊 Processed server data:', serverData);
-      console.log('🚭 Smoking status:', serverData.smokingStatus);
-      console.log('🚦 Quit plan (processed):', serverData.quitPlan);
-
-      setUserData(serverData);
-      lastSavedDataRef.current = JSON.parse(JSON.stringify(serverData));
       
-      // Save to localStorage
-      try {
-        localStorage.setItem('myProgressData', JSON.stringify(serverData));
-        console.log('✅ Data saved to localStorage');
-      } catch (error) {
-        console.error('❌ Failed to save to localStorage:', error);
-      }
+      setUserData(fetchedUserData);
     } catch (error) {
-      console.error('❌ Error fetching user data:', error);
-      setError('Không thể tải thông tin người dùng hoặc kế hoạch.');
-      
-      // Try to load from localStorage as fallback
-      try {
-        const savedData = localStorage.getItem('myProgressData');
-        if (savedData) {
-          const parsedData = JSON.parse(savedData);
-          console.log('📥 Loaded fallback data from localStorage:', parsedData);
-          setUserData(parsedData);
-        }
-      } catch (localError) {
-        console.error('❌ Failed to load from localStorage:', localError);
-      }
+      console.error("Lỗi khi tải thông tin người dùng:", error);
+      setError('Không thể tải thông tin người dùng. Vui lòng thử lại sau.');
     } finally {
       setLoading(false);
     }
   }, [navigate]);
 
   useEffect(() => {
-    fetchAllUserData();
-    
-    // Cleanup timeout on unmount
-    return () => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
-    };
-  }, [fetchAllUserData]);
+    fetchUserData();
+  }, [fetchUserData]);
 
-  // Quit plan
-  const handleCreateQuitPlan = () => {
-    setUserDataWithAutoSave(prev => ({
-      ...prev,
-      quitPlan: {
-        startDate: '',
-        targetDate: '',
-        planType: '',
-        initialCigarettes: 0,
-        dailyReduction: 1,
-        milestones: [],
-        currentProgress: 0
-      }
-    }));
-    setOpenDialog(true);
+  useEffect(() => {
+    if (user && (user.role === "admin" || user.role === "coach")) {
+      navigate("/"); // Redirect admin/coach to home or their respective dashboards
+    }
+  }, [user, navigate]);
+
+  const handleUpdateSmokingStatus = async (field, value) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put('http://localhost:5000/api/auth/smoking-status', { [field]: value }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUserData(prev => ({ ...prev, smokingStatus: { ...prev.smokingStatus, [field]: value } }));
+      setSuccess('Cập nhật thành công!');
+    } catch (error) {
+      setError(error.response?.data?.message || 'Cập nhật thất bại.');
+    }
   };
 
-  const handleSaveQuitPlan = async () => {
+  const handleUpdateDailyLog = async () => {
     try {
-      setLoading(true);
       const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-      const plan = {
-        startDate: userData.quitPlan.startDate,
-        targetDate: userData.quitPlan.targetDate,
-        planType: userData.quitPlan.planType,
-        initialCigarettes: userData.quitPlan.initialCigarettes || 0,
-        dailyReduction: userData.quitPlan.dailyReduction || 1,
-        milestones: userData.quitPlan.milestones || [],
-        currentProgress: userData.quitPlan.currentProgress || 0,
-        planDetail: userData.quitPlan.planDetail || '',
-      
-      };
-      if (!plan.startDate || !plan.targetDate || !plan.planType) {
-        setError('Vui lòng nhập đầy đủ thông tin kế hoạch!');
-        setLoading(false);
-        return;
-      }
-      await axios.post(
-        'http://localhost:5000/api/auth/quit-plan',
-        plan,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setOpenDialog(false);
-      setSuccess('Tạo/cập nhật kế hoạch cai thuốc thành công!');
-      setError('');
-      await fetchAllUserData();
+      await axios.put('http://localhost:5000/api/auth/daily-log', userData.smokingStatus.dailyLog, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSuccess('Nhật ký đã được cập nhật!');
     } catch (error) {
-      setError(error.response?.data?.message || 'Lỗi khi tạo/cập nhật kế hoạch cai thuốc.');
-    } finally {
-      setLoading(false);
+      setError(error.response?.data?.message || 'Cập nhật nhật ký thất bại.');
     }
   };
 
   const handleCloseSnackbar = () => {
-    setSuccess('');
     setError('');
+    setSuccess('');
   };
 
-  const handleSaveProgress = async () => {
+  const handleRequestCoach = async () => {
     try {
-      setLoading(true);
       const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-      // Lấy planId từ kế hoạch cai thuốc hiện tại (nếu có)
-      const planId = userData.quitPlan?.id || userData.quitPlan?.planId || 1; // hoặc lấy đúng id từ quitPlan
-      const date = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
-      const cigarettes = Number(userData.smokingStatus.dailyLog.cigarettes || 0);
-      const moneySpent = ((userData.smokingStatus.dailyLog.cigarettes / 20) * userData.smokingStatus.costPerPack) || 0;
-      const note = userData.smokingStatus.dailyLog.feeling || '';
-
-      console.log('Attempting to save progress with data:', { planId, date, cigarettes, moneySpent, note });
-
-      await axios.post('http://localhost:5000/api/auth/progress', {
-        planId,
-        date,
-        cigarettes,
-        moneySpent,
-        note
-      }, {
+      await axios.post('http://localhost:5000/api/users/request-coach', {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-
-      setSuccess('Lưu nhật ký tiến độ thành công!');
-      setError('');
-      await fetchAllUserData();
+      setSuccess('Yêu cầu hỗ trợ từ huấn luyện viên đã được gửi!');
+      fetchUserData();
     } catch (error) {
-      console.error('❌ Error saving progress:', error);
-      setError(error.response?.data?.message || 'Lỗi khi lưu nhật ký tiến độ!');
-    } finally {
-      setLoading(false);
+      setError(error.response?.data?.message || 'Gửi yêu cầu thất bại.');
     }
   };
 
-  const handleBookCoach = async (coachId) => {
-    console.log('Attempting to book coach with ID:', coachId);
-    try {
-      setBookingCoach(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-      await axios.post(
-        'http://localhost:5000/api/bookings/book-coach',
-        { coachId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setSuccess('Gán huấn luyện viên thành công!');
-      setError('');
-      setOpenBookCoachDialog(false);
-      await fetchAllUserData();
-    } catch (error) {
-      setError(error.response?.data?.message || 'Lỗi khi đặt lịch với Coach.');
-    } finally {
-      setBookingCoach(false);
-    }
-  };
-
-  // Xử lý mở dialog đặt lịch
-  const handleOpenBookAppointmentDialog = () => {
-    // Luôn mở dialog chọn coach trước
-    setOpenCoachSelectionForAppointmentDialog(true);
-    fetchCoaches(); // Fetch coaches when dialog opens
-    setBookingError(null); // Clear previous errors
-    setBookingSuccess(false); // Clear previous success
-  };
-
-  // Xử lý đóng dialog chọn huấn luyện viên để đặt lịch
-  const handleCloseCoachSelectionForAppointmentDialog = () => {
-    setOpenCoachSelectionForAppointmentDialog(false);
-    setSelectedCoachForAppointment(null);
-  };
-
-  // Xử lý chọn huấn luyện viên từ danh sách để đặt lịch
-  const handleSelectCoachForAppointment = async (coach) => {
-    setBookingError(null); // Clear previous errors
-    setBookingSuccess(false); // Clear previous success
-
-    if (!userData.coachId) { // User has no assigned coach yet
-      setBookingLoading(true); // Indicate booking in progress
-      try {
-        await handleBookCoach(coach.Id); // Assign the coach
-        // After successfully assigning coach, userData.coachId should be updated by fetchAllUserData in handleBookCoach
-        // Need to re-fetch user data to ensure userData.coachId is updated for the next check
-        await fetchAllUserData(); // Re-fetch all user data to ensure coachId is updated
-        
-        // Now, proceed to book appointment with the newly assigned coach (which is now userData.coachId)
-        setSelectedCoachForAppointment(coach);
-        setOpenCoachSelectionForAppointmentDialog(false);
-        setOpenBookAppointmentDialog(true);
-      } catch (error) {
-        setBookingError(error.response?.data?.message || 'Không thể gán huấn luyện viên.');
-      } finally {
-        setBookingLoading(false);
-      }
-    } else if (userData.coachId !== coach.Id) { // User has a coach, but selected a different one
-      setBookingError('Bạn chỉ có thể đặt lịch với huấn luyện viên đã được gán cho mình.');
-      // Keep the coach selection dialog open to allow user to choose their assigned coach
-    } else { // User has a coach, and selected their assigned coach
-      setSelectedCoachForAppointment(coach);
-      setOpenCoachSelectionForAppointmentDialog(false);
-      setOpenBookAppointmentDialog(true);
-    }
-  };
-
-  // Xử lý đóng dialog đặt lịch
-  const handleCloseBookAppointmentDialog = () => {
-    setOpenBookAppointmentDialog(false);
-    // Reset form khi đóng
-    setAppointmentDetails({
-      scheduledTime: null,
-      status: 'đang chờ xác nhận',
-      note: '',
-    });
-  };
-
-  // Xử lý đặt lịch hẹn
-  const handleBookAppointment = async () => {
-    if (!appointmentDetails.scheduledTime) {
-      setBookingError('Vui lòng chọn thời gian hẹn.');
-      return;
-    }
-
-    setBookingLoading(true);
-    setBookingError(null);
-    setBookingSuccess(false);
-
+  const handleCancelCoachRequest = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.post(
-        'http://localhost:5000/api/bookings/book-appointment',
-        {
-          coachId: selectedCoachForAppointment.Id,
-          scheduledTime: appointmentDetails.scheduledTime,
-          status: 'đang chờ xác nhận',
-          note: appointmentDetails.note,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      setBookingSuccess(true);
-      // Optional: Refresh user data or show a success message then close
-      setTimeout(() => {
-        handleCloseBookAppointmentDialog();
-        // You might want to re-fetch user data or bookings here if they are displayed on the page
-      }, 2000);
+      await axios.post('http://localhost:5000/api/users/cancel-coach-request', {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSuccess('Đã hủy yêu cầu hỗ trợ từ huấn luyện viên.');
+      fetchUserData();
     } catch (error) {
-      console.error('Error booking appointment:', error);
-      setBookingError(error.response?.data?.message || 'Không thể đặt lịch hẹn. Vui lòng thử lại.');
-    } finally {
-      setBookingLoading(false);
+      setError(error.response?.data?.message || 'Hủy yêu cầu thất bại.');
+    }
+  };
+
+  const handleJoinQuitPlan = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('http://localhost:5000/api/auth/join-quit-plan', {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSuccess('Bạn đã tham gia kế hoạch cai thuốc!');
+      fetchUserData();
+    } catch (error) {
+      setError(error.response?.data?.message || 'Tham gia kế hoạch thất bại.');
+    }
+  };
+
+  const handleCreateQuitPlan = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('http://localhost:5000/api/auth/create-quit-plan', userData.quitPlan, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSuccess('Kế hoạch cai thuốc đã được tạo!');
+      fetchUserData();
+    } catch (error) {
+      setError(error.response?.data?.message || 'Tạo kế hoạch thất bại.');
+    }
+  };
+
+  const handleUpdateQuitPlan = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put('http://localhost:5000/api/auth/quit-plan', userData.quitPlan, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSuccess('Kế hoạch cai thuốc đã được cập nhật!');
+      fetchUserData();
+    } catch (error) {
+      setError(error.response?.data?.message || 'Cập nhật kế hoạch thất bại.');
+    }
+  };
+
+  const handleAddMilestone = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const newMilestoneTitle = prompt("Nhập tiêu đề mốc quan trọng mới:");
+      if (newMilestoneTitle) {
+        await axios.post('http://localhost:5000/api/auth/quit-plan/milestones', { title: newMilestoneTitle }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setSuccess('Mốc quan trọng đã được thêm!');
+        fetchUserData();
+      }
+    } catch (error) {
+      setError(error.response?.data?.message || 'Thêm mốc quan trọng thất bại.');
     }
   };
 
   if (loading) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ my: 4 }}>
-          <LinearProgress />
-        </Box>
-      </Container>
+      <div className="d-flex justify-content-center align-items-center vh-100">
+        <div className="spinner-border text-success" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 4, mb: 2 }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: '#1976d2' }}>
-          Theo dõi quá trình cai thuốc
-        </Typography>
-        
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          {/* Refresh button */}
-          <Button
-            variant="outlined"
-            onClick={fetchAllUserData}
-            disabled={loading}
-            sx={{ 
-              minWidth: 120,
-              '&:hover': {
-                backgroundColor: '#1976d2',
-                color: 'white'
-              }
-            }}
+    <div className="d-flex flex-column min-vh-100 bg-light">
+      <div className="flex-grow-1 container py-4">
+        <div className="d-flex align-items-center mb-3">
+          <button
+            onClick={() => navigate('/')}
+            className="btn btn-outline-success me-2"
           >
-            {loading ? 'Đang tải...' : '🔄 Tải lại'}
-          </Button>
-          
-          {/* Auto-save status indicator */}
-          {autoSaveStatus && (
-            <Chip
-              label={
-                autoSaveStatus === 'saving' ? 'Đang lưu...' :
-                autoSaveStatus === 'saved' ? 'Đã lưu tự động' :
-                autoSaveStatus === 'error' ? 'Lỗi lưu tự động' : ''
-              }
-              color={
-                autoSaveStatus === 'saving' ? 'info' :
-                autoSaveStatus === 'saved' ? 'success' :
-                autoSaveStatus === 'error' ? 'error' : 'default'
-              }
-              size="small"
-              sx={{ 
-                animation: autoSaveStatus === 'saving' ? 'pulse 1.5s infinite' : 'none',
-                '@keyframes pulse': {
-                  '0%': { opacity: 1 },
-                  '50%': { opacity: 0.5 },
-                  '100%': { opacity: 1 }
-                }
-              }}
-            />
-          )}
-        </Box>
-      </Box>
-      
-      <Snackbar open={!!error || !!success} autoHideDuration={6000} onClose={handleCloseSnackbar}>
-        <Alert onClose={handleCloseSnackbar} severity={error ? 'error' : 'success'} sx={{ width: '100%' }}>
-          {error || success}
-        </Alert>
-      </Snackbar>
-      
-      {/* Hiển thị thông tin hiện tại từ database */}
-      <Paper sx={{ p: 3, mb: 4, bgcolor: '#f8f9fa' }}>
-        <Typography variant="h6" gutterBottom sx={{ color: '#1976d2', fontWeight: 600 }}>
-          👤 Thông tin tài khoản
-        </Typography>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" color="text.secondary">Tên đăng nhập:</Typography>
-              <Typography variant="h6" color="primary">{userData.username}</Typography>
-            </Box>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" color="text.secondary">Email:</Typography>
-              <Typography variant="h6" color="primary">{userData.email}</Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" color="text.secondary">Vai trò:</Typography>
-              <Chip 
-                label={userData.role === 'admin' ? 'Quản trị viên' : userData.role === 'member' ? 'Thành viên' : userData.role === 'coach' ? 'Huấn luyện viên' : 'Khách'}
-                color={userData.role === 'admin' ? 'error' : userData.role === 'member' ? 'success' : userData.role === 'coach' ? 'info' : 'default'}
-                size="small"
-              />
-            </Box>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" color="text.secondary">Trạng thái thành viên:</Typography>
-              <Chip 
-                label={userData.isMember ? 'Premium' : 'Miễn phí'}
-                color={userData.isMember ? 'success' : 'default'}
-                size="small"
-              />
-            </Box>
-            {userData.isMember && (
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary">Huấn luyện viên của bạn:</Typography>
-                {userData.coachId ? (
-                  <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      onClick={() => navigate(`/chat-coach/${userData.coachId}`)}
-                    >
-                      Chat với Huấn luyện viên
-                    </Button>
-                    <Button
-                      variant="contained"
-                      color="secondary"
-                      onClick={handleOpenBookAppointmentDialog}
-                    >
-                      Đặt lịch hẹn
-                    </Button>
-                  </Box>
-                ) : (
-                  <Button 
-                    variant="contained" 
-                    color="secondary" 
-                    size="small" 
-                    onClick={handleOpenBookAppointmentDialog}
+            <i className="fas fa-arrow-left me-2"></i> Quay lại trang chủ
+          </button>
+        </div>
+
+        <h4 className="mb-3 fw-bold text-success">Quá trình cai thuốc của bạn</h4>
+
+        {/* Alert for messages */}
+        {error && <div className="alert alert-danger" role="alert">{error}</div>}
+        {success && <div className="alert alert-success" role="alert">{success}</div>}
+
+        <div className="row">
+          {/* Thông tin tài khoản */}
+          <div className="col-md-6 mb-4">
+            <div className="card shadow-sm h-100">
+              <div className="card-header bg-success text-white fw-bold">Thông tin tài khoản</div>
+              <div className="card-body">
+                <p><strong>Tên đăng nhập:</strong> {userData.username}</p>
+                <p><strong>Email:</strong> {userData.email}</p>
+                <p><strong>Số điện thoại:</strong> {userData.phoneNumber || 'Chưa cập nhật'}</p>
+                <p><strong>Địa chỉ:</strong> {userData.address || 'Chưa cập nhật'}</p>
+                <p>
+                  <strong>Vai trò:</strong>
+                  <span className={`badge ms-2 
+                    ${userData.role === 'admin' ? 'bg-danger' : 
+                     userData.role === 'coach' ? 'bg-info' : 
+                     userData.role === 'member' ? 'bg-primary' : 'bg-secondary'}`}
                   >
-                    Đặt lịch với Coach
-                  </Button>
+                    {userData.role === 'member' ? 'Thành viên' : userData.role === 'guest' ? 'Khách' : userData.role === 'coach' ? 'Huấn luyện viên' : userData.role}
+                  </span>
+                </p>
+                {userData.role !== 'coach' && userData.role !== 'admin' && (
+                  <p>
+                    <strong>Gói thành viên:</strong>
+                    <span className={`badge ms-2 ${userData.isMember ? 'bg-success' : 'bg-warning text-dark'}`}>
+                      {userData.isMember ? 'Premium' : 'Miễn phí'}
+                    </span>
+                    {!userData.isMember && (
+                      <button onClick={() => navigate('/subscribe')} className="btn btn-sm btn-outline-success ms-2">Nâng cấp</button>
+                    )}
+                  </p>
                 )}
-              </Box>
-            )}
-          </Grid>
-        </Grid>
-      </Paper>
+                
+                {/* Coach Request/Chat */}
+                {userData.isMember && userData.role !== 'coach' && userData.role !== 'admin' && (
+                  <div className="mt-3">
+                    {userData.coach ? (
+                      <div className="alert alert-info">
+                        <p className="mb-1"><strong>Huấn luyện viên của bạn:</strong> {userData.coach.username}</p>
+                        <button onClick={() => navigate(`/chat-coach/${userData.coach._id}`)} className="btn btn-success me-2">Nhắn tin với Coach</button>
+                        <button onClick={handleCancelCoachRequest} className="btn btn-outline-danger">Hủy yêu cầu Coach</button>
+                      </div>
+                    ) : (
+                      <button onClick={handleRequestCoach} className="btn btn-success">Yêu cầu hỗ trợ từ Coach</button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
-      {/* Hiển thị thông tin tình trạng hút thuốc từ database */}
-      <Paper sx={{ p: 3, mb: 4, bgcolor: '#f8f9fa' }}>
-        <Typography variant="h6" gutterBottom sx={{ color: '#1976d2', fontWeight: 600 }}>
-          📊 Thông tin tình trạng hút thuốc của bạn
-        </Typography>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" color="text.secondary">Số điếu thuốc/ngày:</Typography>
-              <Typography variant="h6" color="primary">{userData.smokingStatus.cigarettesPerDay} điếu</Typography>
-            </Box>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" color="text.secondary">Chi phí/gói:</Typography>
-              <Typography variant="h6" color="primary">{userData.smokingStatus.costPerPack.toLocaleString()} VNĐ</Typography>
-            </Box>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" color="text.secondary">Loại thuốc lá:</Typography>
-              <Typography variant="h6" color="primary">{userData.smokingStatus.cigaretteType || 'Chưa cập nhật'}</Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" color="text.secondary">Tần suất hút thuốc:</Typography>
-              <Typography variant="h6" color="primary">{userData.smokingStatus.smokingFrequency || 'Chưa cập nhật'}</Typography>
-            </Box>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" color="text.secondary">Tình trạng sức khỏe:</Typography>
-              <Typography variant="h6" color="primary">{userData.smokingStatus.healthStatus || 'Chưa cập nhật'}</Typography>
-            </Box>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" color="text.secondary">Nhật ký hôm nay:</Typography>
-              <Typography variant="body1" color="primary">
-                {userData.smokingStatus.dailyLog.cigarettes} điếu - {userData.smokingStatus.dailyLog.feeling || 'Chưa có cảm nhận'}
-              </Typography>
-            </Box>
-          </Grid>
-        </Grid>
-        
-        {/* Thống kê chi phí */}
-        <Box sx={{ mt: 3, p: 2, bgcolor: 'warning.light', borderRadius: 2 }}>
-          <Typography variant="h6" gutterBottom>💰 Thống kê chi phí</Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={6} md={3}>
-              <Typography variant="subtitle2">Chi phí/ngày:</Typography>
-              <Typography variant="h6" color="error">
-                {((userData.smokingStatus.cigarettesPerDay / 20) * userData.smokingStatus.costPerPack).toLocaleString()} VNĐ
-              </Typography>
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <Typography variant="subtitle2">Chi phí/tháng:</Typography>
-              <Typography variant="h6" color="error">
-                {(((userData.smokingStatus.cigarettesPerDay / 20) * userData.smokingStatus.costPerPack) * 30).toLocaleString()} VNĐ
-              </Typography>
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <Typography variant="subtitle2">Chi phí/năm:</Typography>
-              <Typography variant="h6" color="error">
-                {(((userData.smokingStatus.cigarettesPerDay / 20) * userData.smokingStatus.costPerPack) * 365).toLocaleString()} VNĐ
-              </Typography>
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <Typography variant="subtitle2">Tổng điếu/tháng:</Typography>
-              <Typography variant="h6" color="warning.dark">
-                {userData.smokingStatus.cigarettesPerDay * 30} điếu
-              </Typography>
-            </Grid>
-          </Grid>
-        </Box>
-      </Paper>
-      
-      {/* Form chỉnh sửa tình trạng hút thuốc */}
-      <Paper sx={{ p: 3, mb: 4 }}>
-        <Typography variant="h6" gutterBottom>
-          ✏️ Cập nhật tình trạng hút thuốc
-          <Typography variant="caption" sx={{ ml: 2, color: 'text.secondary' }}>
-            (Dữ liệu được lưu tự động khi bạn nhập)
-          </Typography>
-        </Typography>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              type="number"
-              label="Số điếu thuốc/ngày"
-              value={userData.smokingStatus.cigarettesPerDay}
-              onChange={(e) => setUserDataWithAutoSave({
-                ...userData,
-                smokingStatus: {
-                  ...userData.smokingStatus,
-                  cigarettesPerDay: e.target.value
-                }
-              })}
-              margin="normal"
-              disabled={loading}
-            />
-            <TextField
-              fullWidth
-              type="number"
-              label="Chi phí/gói (VNĐ)"
-              value={userData.smokingStatus.costPerPack}
-              onChange={(e) => setUserDataWithAutoSave({
-                ...userData,
-                smokingStatus: {
-                  ...userData.smokingStatus,
-                  costPerPack: e.target.value
-                }
-              })}
-              margin="normal"
-              disabled={loading}
-            />
-            <TextField
-              fullWidth
-              label="Loại thuốc lá"
-              value={userData.smokingStatus.cigaretteType || ''}
-              onChange={(e) => setUserDataWithAutoSave({
-                ...userData,
-                smokingStatus: {
-                  ...userData.smokingStatus,
-                  cigaretteType: e.target.value
-                }
-              })}
-              margin="normal"
-              disabled={loading}
-            />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Tần suất hút thuốc"
-              value={userData.smokingStatus.smokingFrequency}
-              onChange={(e) => setUserDataWithAutoSave({
-                ...userData,
-                smokingStatus: {
-                  ...userData.smokingStatus,
-                  smokingFrequency: e.target.value
-                }
-              })}
-              margin="normal"
-              disabled={loading}
-            />
-            <TextField
-              fullWidth
-              label="Tình trạng sức khỏe"
-              value={userData.smokingStatus.healthStatus}
-              onChange={(e) => setUserDataWithAutoSave({
-                ...userData,
-                smokingStatus: {
-                  ...userData.smokingStatus,
-                  healthStatus: e.target.value
-                }
-              })}
-              margin="normal"
-              disabled={loading}
-            />
-            <TextField
-              fullWidth
-              label="Lý do muốn cai thuốc"
-              value={userData.smokingStatus.quitReason || ''}
-              onChange={(e) => setUserDataWithAutoSave({
-                ...userData,
-                smokingStatus: {
-                  ...userData.smokingStatus,
-                  quitReason: e.target.value
-                }
-              })}
-              margin="normal"
-              multiline
-              rows={3}
-              disabled={loading}
-            />
-          </Grid>
-        </Grid>
-        <Box sx={{ mt: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Nhật ký hút thuốc hôm nay
-          </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Số điếu đã hút hôm nay"
-                value={userData.smokingStatus.dailyLog?.cigarettes || 0}
-                onChange={(e) => setUserDataWithAutoSave({
-                  ...userData,
-                  smokingStatus: {
-                    ...userData.smokingStatus,
-                    dailyLog: {
-                      ...userData.smokingStatus.dailyLog,
-                      cigarettes: e.target.value
-                    }
-                  }
-                })}
-                margin="normal"
-                disabled={loading}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Cảm nhận"
-                value={userData.smokingStatus.dailyLog?.feeling || ''}
-                onChange={(e) => setUserDataWithAutoSave({
-                  ...userData,
-                  smokingStatus: {
-                    ...userData.smokingStatus,
-                    dailyLog: {
-                      ...userData.smokingStatus.dailyLog,
-                      feeling: e.target.value
-                    }
-                  }
-                })}
-                margin="normal"
-                multiline
-                rows={2}
-                disabled={loading}
-              />
-            </Grid>
-          </Grid>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleSaveProgress}
-            sx={{ mt: 2 }}
-            disabled={loading}
-          >
-            Lưu nhật ký tiến độ
-          </Button>
-        </Box>
-      </Paper>
-      {/* Kế hoạch cai thuốc */}
-      <Paper sx={{ p: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Kế hoạch cai thuốc
-        </Typography>
-        {console.log('🟢 Render quitPlan:', userData.quitPlan)}
-        {userData.quitPlan && userData.quitPlan.startDate ? (
-          <>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <Typography>
-                  Ngày bắt đầu: {new Date(userData.quitPlan.startDate).toLocaleDateString()}
-                </Typography>
-                <Typography>
-                  Mục tiêu: {new Date(userData.quitPlan.targetDate).toLocaleDateString()}
-                </Typography>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle1">Tiến độ</Typography>
-                <LinearProgress
-                  variant="determinate"
-                  value={userData.quitPlan.currentProgress}
-                  sx={{ height: 10, borderRadius: 5 }}
-                />
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  {userData.quitPlan.currentProgress}%
-                </Typography>
-              </Grid>
-            </Grid>
-            <Typography sx={{ mt: 2 }}>
-              <b>Chi tiết kế hoạch:</b> {userData.quitPlan.planDetail || 'Không có'}
-            </Typography>
-            <Typography>
-              <b>Loại kế hoạch:</b> {userData.quitPlan.planType || 'Không có'}
-            </Typography>
-            <Typography>
-              <b>Số điếu ban đầu:</b> {userData.quitPlan.initialCigarettes}
-            </Typography>
-            <Typography>
-              <b>Giảm mỗi ngày:</b> {userData.quitPlan.dailyReduction}
-            </Typography>
-            <Typography sx={{ mt: 2, fontWeight: 600 }}>Các mốc kế hoạch:</Typography>
-            {Array.isArray(userData.quitPlan.milestones) && userData.quitPlan.milestones.length > 0 ? (
-              <List>
-                {userData.quitPlan.milestones.map((milestone, index) => (
-                  typeof milestone === 'string' ? (
-                    <ListItem key={index}>
-                      <ListItemText primary={milestone} />
-                    </ListItem>
-                  ) : (
-                    <ListItem key={index}>
-                      <ListItemText
-                        primary={milestone.title || 'Mốc'}
-                        secondary={milestone.date || ''}
+          {/* Kế hoạch Cai thuốc */}
+          <div className="col-md-6 mb-4">
+            <div className="card shadow-sm h-100">
+              <div className="card-header bg-success text-white fw-bold">Kế hoạch Cai thuốc</div>
+              <div className="card-body">
+                {!userData.quitPlan ? (
+                  <div className="text-center p-3 border border-dashed rounded-3 bg-light">
+                    <p className="text-secondary mb-3">Bạn chưa có kế hoạch cai thuốc. Hãy tạo một kế hoạch để bắt đầu hành trình của mình!</p>
+                    <button onClick={handleJoinQuitPlan} className="btn btn-success me-2">Tham gia Kế hoạch Cai thuốc</button>
+                    <button onClick={() => setUserData(prev => ({ ...prev, quitPlan: { startDate: '', targetDate: '', milestones: [], currentProgress: 0, initialCigarettes: 0 } }))} className="btn btn-outline-success">Tạo Kế hoạch mới</button>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="mb-3">
+                      <label htmlFor="startDate" className="form-label">Ngày bắt đầu</label>
+                      <input
+                        type="date"
+                        className="form-control"
+                        id="startDate"
+                        value={userData.quitPlan.startDate}
+                        onChange={(e) => setUserData(prev => ({
+                          ...prev,
+                          quitPlan: { ...prev.quitPlan, startDate: e.target.value }
+                        }))}
                       />
-                    </ListItem>
-                  )
-                ))}
-              </List>
-            ) : (
-              <Typography color="text.secondary" sx={{ ml: 2 }}>
-                Chưa có mốc nào trong kế hoạch.
-              </Typography>
-            )}
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleCreateQuitPlan}
-              sx={{ mt: 2 }}
-              disabled={loading}
-            >
-              Cập nhật kế hoạch
-            </Button>
-          </>
-        ) : (
-          <Button
-            variant="contained"
-            onClick={handleCreateQuitPlan}
-            sx={{ mt: 2 }}
-            disabled={loading}
-          >
-            Tạo kế hoạch cai thuốc mới
-          </Button>
-        )}
-      </Paper>
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-        <Box sx={{ p: 3, minWidth: 350 }}>
-          <Typography variant="h6" gutterBottom>
-            Nhập thông tin kế hoạch cai thuốc
-            <Typography variant="caption" sx={{ ml: 2, color: 'text.secondary' }}>
-              (Tự động lưu khi nhập)
-            </Typography>
-          </Typography>
-          <TextField
-            fullWidth
-            label="Ngày bắt đầu"
-            type="date"
-            value={userData.quitPlan?.startDate || ''}
-            onChange={e =>
-              setUserDataWithAutoSave(prev => ({
-                ...prev,
-                quitPlan: { ...prev.quitPlan, startDate: e.target.value }
-              }))
-            }
-            margin="normal"
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            fullWidth
-            label="Ngày mục tiêu"
-            type="date"
-            value={userData.quitPlan?.targetDate || ''}
-            onChange={e =>
-              setUserDataWithAutoSave(prev => ({
-                ...prev,
-                quitPlan: { ...prev.quitPlan, targetDate: e.target.value }
-              }))
-            }
-            margin="normal"
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            fullWidth
-            label="Loại kế hoạch (suggested/custom)"
-            value={userData.quitPlan?.planType || ''}
-            onChange={e =>
-              setUserDataWithAutoSave(prev => ({
-                ...prev,
-                quitPlan: { ...prev.quitPlan, planType: e.target.value }
-              }))
-            }
-            margin="normal"
-          />
-          <TextField
-            fullWidth
-            label="Số điếu ban đầu"
-            type="number"
-            value={userData.quitPlan?.initialCigarettes || 0}
-            onChange={e =>
-              setUserDataWithAutoSave(prev => ({
-                ...prev,
-                quitPlan: { ...prev.quitPlan, initialCigarettes: e.target.value }
-              }))
-            }
-            margin="normal"
-          />
-          <TextField
-            fullWidth
-            label="Giảm mỗi ngày"
-            type="number"
-            value={userData.quitPlan?.dailyReduction || 1}
-            onChange={e =>
-              setUserDataWithAutoSave(prev => ({
-                ...prev,
-                quitPlan: { ...prev.quitPlan, dailyReduction: e.target.value }
-              }))
-            }
-            margin="normal"
-          />
-          <TextField
-            fullWidth
-            label="Chi tiết kế hoạch"
-            value={userData.quitPlan?.planDetail || ''}
-            onChange={e =>
-              setUserDataWithAutoSave(prev => ({
-                ...prev,
-                quitPlan: { ...prev.quitPlan, planDetail: e.target.value }
-              }))
-            }
-            margin="normal"
-            multiline
-            rows={3}
-          />
-          
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-            <Button onClick={() => setOpenDialog(false)} sx={{ mr: 1 }}>
-              Hủy
-            </Button>
-            <Button variant="contained" onClick={handleSaveQuitPlan}>
-              Lưu kế hoạch 
-            </Button>
-          </Box>
-        </Box>
-      </Dialog>
+                    </div>
+                    <div className="mb-3">
+                      <label htmlFor="targetDate" className="form-label">Ngày mục tiêu</label>
+                      <input
+                        type="date"
+                        className="form-control"
+                        id="targetDate"
+                        value={userData.quitPlan.targetDate}
+                        onChange={(e) => setUserData(prev => ({
+                          ...prev,
+                          quitPlan: { ...prev.quitPlan, targetDate: e.target.value }
+                        }))}
+                      />
+                    </div>
+                    <div className="mb-3">
+                      <label htmlFor="initialCigarettes" className="form-label">Số điếu ban đầu</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        id="initialCigarettes"
+                        value={userData.quitPlan.initialCigarettes}
+                        onChange={(e) => setUserData(prev => ({
+                          ...prev,
+                          quitPlan: { ...prev.quitPlan, initialCigarettes: Number(e.target.value) }
+                        }))}
+                        min="0"
+                      />
+                    </div>
+                    <p className="fw-bold mt-3 mb-1">Tiến độ hiện tại: {userData.quitPlan.currentProgress.toFixed(2)}%</p>
+                    <div className="progress" style={{ height: '10px' }}>
+                      <div 
+                        className="progress-bar bg-success"
+                        role="progressbar"
+                        style={{ width: `${userData.quitPlan.currentProgress}%` }}
+                        aria-valuenow={userData.quitPlan.currentProgress}
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                      ></div>
+                    </div>
 
-      {/* Book Coach Dialog */}
-      <Dialog open={openBookCoachDialog} onClose={() => setOpenBookCoachDialog(false)}>
-        <Box sx={{ p: 3, minWidth: 350 }}>
-          <Typography variant="h6" gutterBottom>Chọn huấn luyện viên</Typography>
-          {coaches.length === 0 ? (
-            <Typography>Không có huấn luyện viên nào khả dụng.</Typography>
-          ) : (
-            <List>
-              {coaches.map(coach => (
-                <ListItem 
-                  key={coach.Id}
-                  secondaryAction={
-                    <Button 
-                      variant="outlined" 
-                      onClick={() => handleBookCoach(coach.Id)}
-                      disabled={bookingCoach}
-                    >
-                      {bookingCoach ? 'Đang chọn...' : 'Chọn Coach'}
-                    </Button>
-                  }
-                >
-                  <ListItemText primary={coach.Username} secondary={coach.Email} />
-                </ListItem>
-              ))}
-            </List>
-          )}
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-            <Button onClick={() => setOpenBookCoachDialog(false)}>Đóng</Button>
-          </Box>
-        </Box>
-      </Dialog>
+                    <h6 className="mt-4 mb-2">Các mốc quan trọng:</h6>
+                    <ul className="list-group mb-3">
+                      {userData.quitPlan.milestones.length === 0 ? (
+                        <li className="list-group-item text-secondary">Chưa có mốc quan trọng nào.</li>
+                      ) : (
+                        userData.quitPlan.milestones.map((milestone, index) => (
+                          <li key={index} className="list-group-item d-flex justify-content-between align-items-center">
+                            {milestone.title}
+                            <span className="badge bg-secondary">{milestone.date}</span>
+                          </li>
+                        ))
+                      )}
+                    </ul>
+                    <button onClick={handleAddMilestone} className="btn btn-outline-success btn-sm me-2">Thêm Mốc mới</button>
+                    <button onClick={handleUpdateQuitPlan} className="btn btn-success btn-sm">Cập nhật Kế hoạch</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
-      {/* Dialog chọn huấn luyện viên để đặt lịch */}
-      <Dialog open={openCoachSelectionForAppointmentDialog} onClose={handleCloseCoachSelectionForAppointmentDialog}>
-        <DialogTitle>Chọn huấn luyện viên để đặt lịch hẹn</DialogTitle>
-        <DialogContent>
-          {loading && <CircularProgress />}
-          {error && <Alert severity="error">{error}</Alert>}
-          <List>
-            {coaches.length > 0 ? (
-              coaches.map((coach) => (
-                <ListItem key={coach.Id} divider>
-                  <ListItemText
-                    primary={coach.Username}
-                    secondary={
-                      <>
-                        <Typography variant="body2">Email: {coach.Email}</Typography>
-                        <Typography variant="body2">Số điện thoại: {coach.PhoneNumber}</Typography>
-                      </>
-                    }
+          {/* Nhật ký và Thành tích */}
+          <div className="col-md-6 mb-4">
+            <div className="card shadow-sm h-100">
+              <div className="card-header bg-success text-white fw-bold">Nhật ký và Thành tích</div>
+              <div className="card-body">
+                {/* Daily Log */}
+                <h6 className="mb-2">Nhật ký hàng ngày</h6>
+                <div className="mb-3">
+                  <label htmlFor="cigarettesDaily" className="form-label">Số điếu hút hôm nay</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    id="cigarettesDaily"
+                    value={userData.smokingStatus.dailyLog.cigarettes}
+                    onChange={(e) => setUserData(prev => ({ ...prev, smokingStatus: { ...prev.smokingStatus, dailyLog: { ...prev.smokingStatus.dailyLog, cigarettes: Number(e.target.value) } } }))}
+                    min="0"
                   />
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => handleSelectCoachForAppointment(coach)}
-                    disabled={coach.Id === userData.coachId}
-                  >
-                    {coach.Id === userData.coachId ? 'Đã gán' : 'Chọn'}
-                  </Button>
-                </ListItem>
-              ))
-            ) : (
-              !loading && !error && <Typography>Không có huấn luyện viên nào.</Typography>
-            )}
-          </List>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseCoachSelectionForAppointmentDialog} color="primary">
-            Đóng
-          </Button>
-        </DialogActions>
-      </Dialog>
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="feeling" className="form-label">Cảm nhận của bạn</label>
+                  <textarea
+                    className="form-control"
+                    id="feeling"
+                    rows="3"
+                    value={userData.smokingStatus.dailyLog.feeling}
+                    onChange={(e) => setUserData(prev => ({ ...prev, smokingStatus: { ...prev.smokingStatus, dailyLog: { ...prev.smokingStatus.dailyLog, feeling: e.target.value } } }))}
+                  ></textarea>
+                </div>
+                <button onClick={handleUpdateDailyLog} className="btn btn-success btn-sm">Cập nhật Nhật ký</button>
 
-      {/* Dialog đặt lịch hẹn */}
-      <Dialog open={openBookAppointmentDialog} onClose={handleCloseBookAppointmentDialog}>
-        <DialogTitle>Đặt lịch hẹn với Huấn luyện viên</DialogTitle>
-        <DialogContent>
-          {bookingError && <Alert severity="error" sx={{ mb: 2 }}>{bookingError}</Alert>}
-          {bookingSuccess && <Alert severity="success" sx={{ mb: 2 }}>Đặt lịch hẹn thành công!</Alert>}
-          {selectedCoachForAppointment && (
-            <TextField
-              label="Huấn luyện viên"
-              fullWidth
-              value={selectedCoachForAppointment.Username}
-              InputProps={{ readOnly: true }}
-              sx={{ mb: 2 }}
-            />
-          )}
-          <TextField
-            label="Thời gian hẹn"
-            type="datetime-local"
-            fullWidth
-            required
-            value={appointmentDetails.scheduledTime ? new Date(appointmentDetails.scheduledTime).toISOString().slice(0, 16) : ''}
-            onChange={(e) => setAppointmentDetails({ ...appointmentDetails, scheduledTime: e.target.value })}
-            InputLabelProps={{
-              shrink: true,
-            }}
-            sx={{ mb: 2 }}
-          />
-          {/* <TextField
-            select
-            label="Trạng thái"
-            fullWidth
-            value={appointmentDetails.status}
-            onChange={(e) => setAppointmentDetails({ ...appointmentDetails, status: e.target.value })}
-            sx={{ mb: 2 }}
-          >
-            <MenuItem value="Pending">Chờ xác nhận</MenuItem>
-            <MenuItem value="Confirmed">Đã xác nhận</MenuItem>
-            <MenuItem value="Cancelled">Đã hủy</MenuItem>
-            <MenuItem value="Completed">Hoàn thành</MenuItem>
-          </TextField> */}
-          <TextField
-            label="Ghi chú"
-            multiline
-            rows={4}
-            fullWidth
-            value={appointmentDetails.note}
-            onChange={(e) => setAppointmentDetails({ ...appointmentDetails, note: e.target.value })}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseBookAppointmentDialog} color="primary">
-            Hủy
-          </Button>
-          <Button onClick={handleBookAppointment} color="primary" variant="contained" disabled={bookingLoading}>
-            {bookingLoading ? <CircularProgress size={24} /> : 'Đặt lịch'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Container>
+                <hr className="my-4" />
+
+                {/* Achievements */}
+                <h6 className="mb-2">Thành tích của bạn</h6>
+                <ul className="list-group">
+                  {userData.achievements.length === 0 ? (
+                    <li className="list-group-item text-secondary">Bạn chưa có thành tích nào. Hãy tiếp tục cố gắng!</li>
+                  ) : (
+                    userData.achievements.map((achievement, index) => (
+                      <li key={index} className="list-group-item d-flex justify-content-between align-items-center">
+                        {achievement.title}
+                        <span className="badge bg-success">{achievement.date}</span>
+                      </li>
+                    ))
+                  )}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Thông tin Cai thuốc */}
+          <div className="col-md-6 mb-4">
+            <div className="card shadow-sm h-100">
+              <div className="card-header bg-success text-white fw-bold">Thông tin Cai thuốc</div>
+              <div className="card-body">
+                <div className="mb-3">
+                  <label htmlFor="cigarettesPerDay" className="form-label">Số điếu thuốc/ngày</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    id="cigarettesPerDay"
+                    value={userData.smokingStatus.cigarettesPerDay}
+                    onChange={(e) => handleUpdateSmokingStatus('cigarettesPerDay', Number(e.target.value))}
+                    min="0"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="costPerPack" className="form-label">Giá mỗi gói thuốc (VNĐ)</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    id="costPerPack"
+                    value={userData.smokingStatus.costPerPack}
+                    onChange={(e) => handleUpdateSmokingStatus('costPerPack', Number(e.target.value))}
+                    min="0"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="smokingFrequency" className="form-label">Tần suất hút thuốc</label>
+                  <select
+                    className="form-select"
+                    id="smokingFrequency"
+                    value={userData.smokingStatus.smokingFrequency}
+                    onChange={(e) => handleUpdateSmokingStatus('smokingFrequency', e.target.value)}
+                  >
+                    <option value="">Chọn tần suất</option>
+                    <option value="daily">Hàng ngày</option>
+                    <option value="weekly">Hàng tuần</option>
+                    <option value="occasionally">Thỉnh thoảng</option>
+                  </select>
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="healthStatus" className="form-label">Tình trạng sức khỏe liên quan</label>
+                  <textarea
+                    className="form-control"
+                    id="healthStatus"
+                    rows="3"
+                    value={userData.smokingStatus.healthStatus}
+                    onChange={(e) => handleUpdateSmokingStatus('healthStatus', e.target.value)}
+                  ></textarea>
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="cigaretteType" className="form-label">Loại thuốc lá</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="cigaretteType"
+                    value={userData.smokingStatus.cigaretteType}
+                    onChange={(e) => handleUpdateSmokingStatus('cigaretteType', e.target.value)}
+                  />
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="quitReason" className="form-label">Lý do cai thuốc</label>
+                  <textarea
+                    className="form-control"
+                    id="quitReason"
+                    rows="3"
+                    value={userData.smokingStatus.quitReason}
+                    onChange={(e) => handleUpdateSmokingStatus('quitReason', e.target.value)}
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer from HomePage */}
+      <footer className="footer bg-light py-4">
+        <div className="container">
+          <div className="social-icons">
+            <a href="#" aria-label="Twitter" target="_blank" rel="noopener noreferrer"><i className="fab fa-twitter" style={{ fontSize: '36px' }}></i></a>
+            <a href="https://www.facebook.com/loccphamxuan?locale=vi_VN" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><img src={facebookImage} alt="Facebook" style={{ width: '36px', height: '36px' }} /></a>
+            <a href="https://www.instagram.com/xlocpham/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><img src={instagramImage} alt="Instagram" style={{ width: '36px', height: '36px' }} /></a>
+            <a href="#" aria-label="YouTube" target="_blank" rel="noopener noreferrer"><i className="fab fa-youtube" style={{ fontSize: '36px' }}></i></a>
+          </div>
+          <p className="copyright">
+            &copy; 2024 Hỗ trợ cai nghiện. Đã đăng ký bản quyền.
+          </p>
+        </div>
+      </footer>
+    </div>
   );
 };
 
