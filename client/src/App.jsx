@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme, CircularProgress, Box } from '@mui/material';
+import { ThemeProvider, createTheme } from '@mui/material';
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
 import Navbar from './components/Navbar.jsx'; 
 import HomePage from './pages/HomePage.jsx';
@@ -32,7 +32,7 @@ const theme = createTheme({
 
 // Component bảo vệ route
 const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { isAuthenticated, user, loading } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   // Temporarily remove loading overlay for debugging
   // if (loading) {
@@ -56,7 +56,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
 // App Routes Component
 const AppRoutes = () => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   return (
     <>
@@ -154,7 +154,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <AuthProvider>
-        <Router future={{ v7_relativeSplatPath: true }}>
+        <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
           <AppRoutes />
         </Router>
       </AuthProvider>
