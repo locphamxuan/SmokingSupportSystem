@@ -34,7 +34,7 @@ const adminController = {
         try {
             const userId = req.params.id;
             const userResult = await sql.query`
-                SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address
+                SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address, CreatedAt
                 FROM Users WHERE Id = ${userId}
             `;
             
@@ -43,32 +43,147 @@ const adminController = {
             }
             
             const user = userResult.recordset[0];
-            const profileResult = await sql.query`
-                SELECT * FROM SmokingProfiles WHERE UserId = ${userId}
-            `;
+            const userRole = user.Role || (user.IsMember ? 'member' : 'guest');
             
-            const profile = profileResult.recordset[0];
+            // Lấy thông tin cơ bản
             const userDetail = {
                 id: user.Id,
                 username: user.Username,
                 email: user.Email,
                 phoneNumber: user.PhoneNumber || "",
                 address: user.Address || "",
-                role: user.Role || 'guest',
+                role: userRole,
                 isMember: user.IsMember,
-                smokingStatus: profile ? {
+                createdAt: user.CreatedAt
+            };
+
+            // Lấy thông tin profile hút thuốc
+            const profileResult = await sql.query`
+                SELECT * FROM SmokingProfiles WHERE UserId = ${userId}
+            `;
+            
+            if (profileResult.recordset.length > 0) {
+                const profile = profileResult.recordset[0];
+                userDetail.smokingProfile = {
                     cigarettesPerDay: profile.cigarettesPerDay || 0,
                     costPerPack: profile.costPerPack || 0,
                     smokingFrequency: profile.smokingFrequency || '',
                     healthStatus: profile.healthStatus || '',
                     cigaretteType: profile.cigaretteType || '',
                     quitReason: profile.QuitReason || ''
-                } : {}
-            };
+                };
+            }
+
+            // Lấy thông tin chi tiết theo role
+            if (userRole === 'coach') {
+                // Lấy thông tin các member được assign cho coach từ bảng Booking
+                const assignedMembersResult = await sql.query`
+                    SELECT DISTINCT u.Id, u.Username, u.Email, u.PhoneNumber, 
+                           sp.cigarettesPerDay, sp.QuitReason, b.Status, b.ScheduledTime
+                    FROM Users u
+                    INNER JOIN Booking b ON u.Id = b.MemberId
+                    LEFT JOIN SmokingProfiles sp ON u.Id = sp.UserId
+                    WHERE b.CoachId = ${userId}
+                `;
+                
+                userDetail.assignedMembers = assignedMembersResult.recordset.map(member => ({
+                    id: member.Id,
+                    username: member.Username,
+                    email: member.Email,
+                    phoneNumber: member.PhoneNumber,
+                    cigarettesPerDay: member.cigarettesPerDay || 0,
+                    quitReason: member.QuitReason || 'Chưa cập nhật',
+                    bookingStatus: member.Status,
+                    scheduledTime: member.ScheduledTime
+                }));
+
+                // Lấy thông tin tiến độ của các member từ bảng Booking
+                const progressResult = await sql.query`
+                    SELECT p.UserId, p.Date, p.CigarettesSmoked, p.Notes, u.Username
+                    FROM Progress p
+                    INNER JOIN Users u ON p.UserId = u.Id
+                    INNER JOIN Booking b ON u.Id = b.MemberId
+                    WHERE b.CoachId = ${userId}
+                    AND p.Date >= DATEADD(day, -7, GETDATE())
+                    ORDER BY p.Date DESC
+                `;
+                
+                userDetail.recentProgress = progressResult.recordset.map(progress => ({
+                    userId: progress.UserId,
+                    username: progress.Username,
+                    date: progress.Date,
+                    cigarettesSmoked: progress.CigarettesSmoked,
+                    notes: progress.Notes
+                }));
+                
+            } else if (userRole === 'member' || userRole === 'guest') {
+                // Lấy thông tin coach được assign từ bảng Booking
+                const coachResult = await sql.query`
+                    SELECT DISTINCT u.Id, u.Username, u.Email, u.PhoneNumber, 
+                           b.Status, b.ScheduledTime, b.Note, b.CreatedAt
+                    FROM Users u
+                    INNER JOIN Booking b ON u.Id = b.CoachId
+                    WHERE b.MemberId = ${userId}
+                    ORDER BY b.CreatedAt DESC
+                `;
+                
+                if (coachResult.recordset.length > 0) {
+                    const coach = coachResult.recordset[0];
+                    userDetail.assignedCoach = {
+                        id: coach.Id,
+                        username: coach.Username,
+                        email: coach.Email,
+                        phoneNumber: coach.PhoneNumber,
+                        bookingStatus: coach.Status,
+                        scheduledTime: coach.ScheduledTime,
+                        bookingNote: coach.Note
+                    };
+                }
+
+                // Lấy tiến độ cá nhân
+                const progressResult = await sql.query`
+                    SELECT Date, CigarettesSmoked, Notes
+                    FROM Progress
+                    WHERE UserId = ${userId}
+                    ORDER BY Date DESC
+                `;
+                
+                userDetail.progress = progressResult.recordset.map(progress => ({
+                    date: progress.Date,
+                    cigarettesSmoked: progress.CigarettesSmoked,
+                    notes: progress.Notes
+                }));
+
+                // Lấy thông tin quit plan
+                const quitPlanResult = await sql.query`
+                    SELECT StartDate, EndDate, GoalType, GoalValue, Description
+                    FROM QuitPlans
+                    WHERE UserId = ${userId}
+                    ORDER BY StartDate DESC
+                `;
+                
+                if (quitPlanResult.recordset.length > 0) {
+                    const plan = quitPlanResult.recordset[0];
+                    userDetail.quitPlan = {
+                        startDate: plan.StartDate,
+                        endDate: plan.EndDate,
+                        goalType: plan.GoalType,
+                        goalValue: plan.GoalValue,
+                        description: plan.Description
+                    };
+                }
+            }
+
             res.json(userDetail);
         } catch (error) {
             console.error('Error getting user detail:', error);
-            res.status(500).json({ message: 'Error getting user detail' });
+            console.error('Error details:', {
+                message: error.message,
+                stack: error.stack,
+                code: error.code,
+                number: error.number
+            });
+            res.status(500).json({ message: 'Error getting user detail', error: error.message });
         }
     },
 

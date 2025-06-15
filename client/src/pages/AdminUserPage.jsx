@@ -27,7 +27,6 @@ import {
   Grid,
   Card,
   CardContent,
-  Avatar,
   Chip,
   Tooltip
 } from "@mui/material";
@@ -47,7 +46,6 @@ const AdminUserPage = () => {
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [open, setOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
   const [selectedUserDetail, setSelectedUserDetail] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -230,7 +228,6 @@ const AdminUserPage = () => {
   };
 
   const handleEdit = (user) => {
-    setSelectedUser(user);
     setFormData({
       id: user.id,
       username: user.username || "",
@@ -245,7 +242,6 @@ const AdminUserPage = () => {
 
   const handleClose = () => {
     setOpen(false);
-    setSelectedUser(null);
     setFormData({
       id: "",
       username: "",
@@ -563,64 +559,315 @@ const AdminUserPage = () => {
       </Dialog>
 
       {/* Dialog xem chi tiết người dùng */}
-      <Dialog open={detailOpen} onClose={handleCloseDetail} maxWidth="sm" fullWidth>
-        <DialogTitle>Chi tiết Người dùng</DialogTitle>
-        <DialogContent>
+      <Dialog open={detailOpen} onClose={handleCloseDetail} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ borderBottom: '1px solid #eee', pb: 2 }}>
+          Chi tiết Người dùng - {selectedUserDetail ? getRoleLabel(selectedUserDetail.role) : ''}
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
           {selectedUserDetail ? (
             <Box>
-              <Typography variant="h6" gutterBottom>ID: {selectedUserDetail.id}</Typography>
-              <Typography variant="h6" gutterBottom>Tên đăng nhập: {selectedUserDetail.username}</Typography>
-              <Typography variant="h6" gutterBottom>Email: {selectedUserDetail.email}</Typography>
-              <Typography variant="h6" gutterBottom>Số điện thoại: {selectedUserDetail.phoneNumber}</Typography>
-              <Typography variant="h6" gutterBottom>Địa chỉ: {selectedUserDetail.address}</Typography>
-              <Typography variant="h6" gutterBottom>Vai trò: {getRoleLabel(getUserRole(selectedUserDetail))}</Typography>
-              <Typography variant="h6" gutterBottom>Ngày tạo: {new Date(selectedUserDetail.createdAt).toLocaleDateString()}</Typography>
-              {selectedUserDetail.role === 'coach' && (
-                <Box sx={{ mt: 3, p: 2, border: '1px solid #eee', borderRadius: 2 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>Thông tin Huấn luyện viên:</Typography>
-                  <Typography variant="body1">Chuyên môn: {selectedUserDetail.expertise}</Typography>
-                  <Typography variant="body1">Kinh nghiệm: {selectedUserDetail.experience}</Typography>
-                  <Typography variant="body1">Giới thiệu: {selectedUserDetail.bio}</Typography>
-                  {selectedUserDetail.assignedMembers && selectedUserDetail.assignedMembers.length > 0 && (
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Các thành viên được chỉ định:</Typography>
-                      <ul>
-                        {selectedUserDetail.assignedMembers.map(member => (
-                          <li key={member.id}>{member.username} ({member.email})</li>
-                        ))}
-                      </ul>
-                    </Box>
-                  )}
-                </Box>
+              {/* Thông tin cơ bản */}
+              <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: '#1976d2' }}>
+                  📋 Thông tin cá nhân
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={6}>
+                    <Typography variant="body2" color="textSecondary">ID:</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.id}</Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="body2" color="textSecondary">Tên đăng nhập:</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.username}</Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="body2" color="textSecondary">Email:</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.email}</Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="body2" color="textSecondary">Số điện thoại:</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.phoneNumber || 'Chưa cập nhật'}</Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="body2" color="textSecondary">Địa chỉ:</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.address || 'Chưa cập nhật'}</Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="body2" color="textSecondary">Ngày tạo:</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: '500' }}>
+                      {selectedUserDetail.createdAt ? new Date(selectedUserDetail.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </Paper>
+
+              {/* Thông tin hút thuốc */}
+              {selectedUserDetail.smokingProfile && (
+                <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: '#f57c00' }}>
+                    🚬 Thông tin hút thuốc
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="textSecondary">Số điếu/ngày:</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.smokingProfile.cigarettesPerDay}</Typography>
+                    </Grid>
+                                         <Grid item xs={6}>
+                       <Typography variant="body2" color="textSecondary">Tần suất hút:</Typography>
+                       <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.smokingProfile.smokingFrequency || 'N/A'}</Typography>
+                     </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="textSecondary">Giá/gói:</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.smokingProfile.costPerPack?.toLocaleString('vi-VN')} VNĐ</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="textSecondary">Loại thuốc:</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.smokingProfile.cigaretteType || 'N/A'}</Typography>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Typography variant="body2" color="textSecondary">Lý do cai thuốc:</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.smokingProfile.quitReason || 'Chưa cập nhật'}</Typography>
+                    </Grid>
+                  </Grid>
+                </Paper>
               )}
-              {selectedUserDetail.role === 'member' && (
-                <Box sx={{ mt: 3, p: 2, border: '1px solid #eee', borderRadius: 2 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>Thông tin Thành viên:</Typography>
-                  <Typography variant="body1">Số điếu hút mỗi ngày: {selectedUserDetail.cigarettesPerDay}</Typography>
-                  <Typography variant="body1">Số năm hút: {selectedUserDetail.smokingYears}</Typography>
-                  <Typography variant="body1">Lý do cai: {selectedUserDetail.reasonToQuit}</Typography>
-                  {selectedUserDetail.assignedCoach && (
-                    <Typography variant="body1">Huấn luyện viên được chỉ định: {selectedUserDetail.assignedCoach.username} ({selectedUserDetail.assignedCoach.email})</Typography>
-                  )}
-                  {selectedUserDetail.progress && selectedUserDetail.progress.length > 0 && (
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Tiến độ:</Typography>
-                      <ul>
-                        {selectedUserDetail.progress.map(p => (
-                          <li key={p.date}>Ngày {new Date(p.date).toLocaleDateString()}: {p.cigarettesSmoked} điếu, Ghi chú: {p.note}</li>
+
+              {/* Thông tin theo role Coach */}
+              {selectedUserDetail.role === 'coach' && (
+                <>
+                  <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: '#e3f2fd' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: '#1976d2' }}>
+                      👨‍⚕️ Thông tin Huấn luyện viên
+                    </Typography>
+                    
+                    {selectedUserDetail.assignedMembers && selectedUserDetail.assignedMembers.length > 0 ? (
+                      <Box>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2 }}>
+                          Thành viên được phụ trách ({selectedUserDetail.assignedMembers.length} người):
+                        </Typography>
+                        <Grid container spacing={2}>
+                          {selectedUserDetail.assignedMembers.map(member => (
+                            <Grid item xs={12} key={member.id}>
+                              <Card variant="outlined" sx={{ p: 2 }}>
+                                <Grid container spacing={2}>
+                                  <Grid item xs={4}>
+                                    <Typography variant="body2" color="textSecondary">Tên:</Typography>
+                                    <Typography variant="body1" sx={{ fontWeight: '500' }}>{member.username}</Typography>
+                                  </Grid>
+                                  <Grid item xs={4}>
+                                    <Typography variant="body2" color="textSecondary">Email:</Typography>
+                                    <Typography variant="body1" sx={{ fontWeight: '500' }}>{member.email}</Typography>
+                                  </Grid>
+                                                                     <Grid item xs={4}>
+                                     <Typography variant="body2" color="textSecondary">Điếu/ngày:</Typography>
+                                     <Typography variant="body1" sx={{ fontWeight: '500' }}>{member.cigarettesPerDay}</Typography>
+                                   </Grid>
+                                   <Grid item xs={6}>
+                                     <Typography variant="body2" color="textSecondary">Trạng thái booking:</Typography>
+                                     <Chip 
+                                       label={member.bookingStatus || 'Chưa có'} 
+                                       size="small"
+                                       color={member.bookingStatus === 'đã xác nhận' ? 'success' : 
+                                              member.bookingStatus === 'đã hủy' ? 'error' : 'warning'}
+                                     />
+                                   </Grid>
+                                   <Grid item xs={6}>
+                                     <Typography variant="body2" color="textSecondary">Lịch hẹn:</Typography>
+                                     <Typography variant="body1" sx={{ fontWeight: '500' }}>
+                                       {member.scheduledTime ? new Date(member.scheduledTime).toLocaleDateString('vi-VN') : 'Chưa có'}
+                                     </Typography>
+                                   </Grid>
+                                   <Grid item xs={12}>
+                                     <Typography variant="body2" color="textSecondary">Lý do cai:</Typography>
+                                     <Typography variant="body1" sx={{ fontWeight: '500' }}>{member.quitReason || 'Chưa cập nhật'}</Typography>
+                                   </Grid>
+                                </Grid>
+                              </Card>
+                            </Grid>
+                          ))}
+                        </Grid>
+                      </Box>
+                    ) : (
+                      <Typography variant="body1" color="textSecondary">
+                        Chưa có thành viên được phân công
+                      </Typography>
+                    )}
+                  </Paper>
+
+                  {/* Tiến độ gần đây của members */}
+                  {selectedUserDetail.recentProgress && selectedUserDetail.recentProgress.length > 0 && (
+                    <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: '#388e3c' }}>
+                        📈 Tiến độ gần đây (7 ngày)
+                      </Typography>
+                      <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
+                        {selectedUserDetail.recentProgress.map((progress, index) => (
+                          <Card key={index} variant="outlined" sx={{ mb: 1, p: 2 }}>
+                            <Grid container spacing={2}>
+                              <Grid item xs={3}>
+                                <Typography variant="body2" color="textSecondary">Thành viên:</Typography>
+                                <Typography variant="body1" sx={{ fontWeight: '500' }}>{progress.username}</Typography>
+                              </Grid>
+                              <Grid item xs={3}>
+                                <Typography variant="body2" color="textSecondary">Ngày:</Typography>
+                                <Typography variant="body1" sx={{ fontWeight: '500' }}>
+                                  {new Date(progress.date).toLocaleDateString('vi-VN')}
+                                </Typography>
+                              </Grid>
+                              <Grid item xs={3}>
+                                <Typography variant="body2" color="textSecondary">Điếu hút:</Typography>
+                                <Typography variant="body1" sx={{ fontWeight: '500' }}>{progress.cigarettesSmoked}</Typography>
+                              </Grid>
+                              <Grid item xs={3}>
+                                <Typography variant="body2" color="textSecondary">Ghi chú:</Typography>
+                                <Typography variant="body1" sx={{ fontWeight: '500' }}>{progress.notes || 'Không có'}</Typography>
+                              </Grid>
+                            </Grid>
+                          </Card>
                         ))}
-                      </ul>
-                    </Box>
+                      </Box>
+                    </Paper>
                   )}
-                </Box>
+                </>
+              )}
+
+              {/* Thông tin theo role Member/Guest */}
+              {(selectedUserDetail.role === 'member' || selectedUserDetail.role === 'guest') && (
+                <>
+                  {/* Thông tin coach được assign */}
+                  {selectedUserDetail.assignedCoach ? (
+                    <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: '#f3e5f5' }}>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: '#7b1fa2' }}>
+                        👨‍⚕️ Huấn luyện viên phụ trách
+                      </Typography>
+                                             <Grid container spacing={2}>
+                         <Grid item xs={4}>
+                           <Typography variant="body2" color="textSecondary">Tên:</Typography>
+                           <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.assignedCoach.username}</Typography>
+                         </Grid>
+                         <Grid item xs={4}>
+                           <Typography variant="body2" color="textSecondary">Email:</Typography>
+                           <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.assignedCoach.email}</Typography>
+                         </Grid>
+                         <Grid item xs={4}>
+                           <Typography variant="body2" color="textSecondary">SĐT:</Typography>
+                           <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.assignedCoach.phoneNumber || 'N/A'}</Typography>
+                         </Grid>
+                         <Grid item xs={6}>
+                           <Typography variant="body2" color="textSecondary">Trạng thái booking:</Typography>
+                           <Chip 
+                             label={selectedUserDetail.assignedCoach.bookingStatus || 'Chưa có'} 
+                             size="small"
+                             color={selectedUserDetail.assignedCoach.bookingStatus === 'đã xác nhận' ? 'success' : 
+                                    selectedUserDetail.assignedCoach.bookingStatus === 'đã hủy' ? 'error' : 'warning'}
+                           />
+                         </Grid>
+                         <Grid item xs={6}>
+                           <Typography variant="body2" color="textSecondary">Lịch hẹn:</Typography>
+                           <Typography variant="body1" sx={{ fontWeight: '500' }}>
+                             {selectedUserDetail.assignedCoach.scheduledTime ? 
+                               new Date(selectedUserDetail.assignedCoach.scheduledTime).toLocaleString('vi-VN') : 'Chưa có'}
+                           </Typography>
+                         </Grid>
+                         {selectedUserDetail.assignedCoach.bookingNote && (
+                           <Grid item xs={12}>
+                             <Typography variant="body2" color="textSecondary">Ghi chú booking:</Typography>
+                             <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.assignedCoach.bookingNote}</Typography>
+                           </Grid>
+                         )}
+                       </Grid>
+                    </Paper>
+                  ) : (
+                    <Paper elevation={1} sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: '#fff3e0' }}>
+                      <Typography variant="body1" color="textSecondary" align="center">
+                        🔍 Chưa được phân công huấn luyện viên
+                      </Typography>
+                    </Paper>
+                  )}
+
+                  {/* Kế hoạch cai thuốc */}
+                  {selectedUserDetail.quitPlan && (
+                    <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: '#e8f5e8' }}>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: '#2e7d32' }}>
+                        🎯 Kế hoạch cai thuốc
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={6}>
+                          <Typography variant="body2" color="textSecondary">Ngày bắt đầu:</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: '500' }}>
+                            {new Date(selectedUserDetail.quitPlan.startDate).toLocaleDateString('vi-VN')}
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Typography variant="body2" color="textSecondary">Ngày kết thúc:</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: '500' }}>
+                            {new Date(selectedUserDetail.quitPlan.endDate).toLocaleDateString('vi-VN')}
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Typography variant="body2" color="textSecondary">Loại mục tiêu:</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.quitPlan.goalType}</Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Typography variant="body2" color="textSecondary">Giá trị mục tiêu:</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.quitPlan.goalValue}</Typography>
+                        </Grid>
+                        <Grid item xs={12}>
+                          <Typography variant="body2" color="textSecondary">Mô tả:</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.quitPlan.description}</Typography>
+                        </Grid>
+                      </Grid>
+                    </Paper>
+                  )}
+
+                  {/* Tiến độ cá nhân */}
+                  {selectedUserDetail.progress && selectedUserDetail.progress.length > 0 && (
+                    <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: '#1976d2' }}>
+                        📊 Tiến độ cá nhân
+                      </Typography>
+                      <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
+                        {selectedUserDetail.progress.slice(0, 10).map((progress, index) => (
+                          <Card key={index} variant="outlined" sx={{ mb: 1, p: 2 }}>
+                            <Grid container spacing={2}>
+                              <Grid item xs={4}>
+                                <Typography variant="body2" color="textSecondary">Ngày:</Typography>
+                                <Typography variant="body1" sx={{ fontWeight: '500' }}>
+                                  {new Date(progress.date).toLocaleDateString('vi-VN')}
+                                </Typography>
+                              </Grid>
+                              <Grid item xs={4}>
+                                <Typography variant="body2" color="textSecondary">Điếu hút:</Typography>
+                                <Typography variant="body1" sx={{ fontWeight: '500' }}>{progress.cigarettesSmoked}</Typography>
+                              </Grid>
+                              <Grid item xs={4}>
+                                <Typography variant="body2" color="textSecondary">Ghi chú:</Typography>
+                                <Typography variant="body1" sx={{ fontWeight: '500' }}>{progress.notes || 'Không có'}</Typography>
+                              </Grid>
+                            </Grid>
+                          </Card>
+                        ))}
+                      </Box>
+                      {selectedUserDetail.progress.length > 10 && (
+                        <Typography variant="body2" color="textSecondary" align="center" sx={{ mt: 2 }}>
+                          Hiển thị 10 bản ghi gần nhất / Tổng: {selectedUserDetail.progress.length}
+                        </Typography>
+                      )}
+                    </Paper>
+                  )}
+                </>
               )}
             </Box>
           ) : (
-            <Typography>Đang tải chi tiết người dùng...</Typography>
+            <Box display="flex" justifyContent="center" alignItems="center" p={4}>
+              <Typography>Đang tải chi tiết người dùng...</Typography>
+            </Box>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDetail}>Đóng</Button>
+        <DialogActions sx={{ borderTop: '1px solid #eee', pt: 2 }}>
+          <Button onClick={handleCloseDetail} variant="contained" color="primary">
+            Đóng
+          </Button>
         </DialogActions>
       </Dialog>
 
