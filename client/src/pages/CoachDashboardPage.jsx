@@ -84,14 +84,14 @@ const CoachDashboardPage = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="md" sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+      <Container maxWidth="md" sx={{ mt: 10, pt: 4, display: 'flex', justifyContent: 'center' }}>
         <CircularProgress />
       </Container>
     );
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: 10, pt: 4 }}>
       <Paper elevation={3} sx={{ p: 4 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: '#1976d2' }}>
           👨‍💻 Lịch hẹn và tiến độ của thành viên
