@@ -35,6 +35,11 @@ const ChatCoachPage = () => {
           headers: { Authorization: `Bearer ${token}` } // Gửi token xác thực
         });
         
+        console.log("ChatCoachPage - User Profile Response:", response.data);
+        console.log("ChatCoachPage - Current User ID:", user.id);
+        console.log("ChatCoachPage - Coach ID from URL params:", coachId);
+        console.log("ChatCoachPage - User's Assigned CoachId:", response.data.coachId);
+
         // Kiểm tra nếu người dùng không phải là thành viên Premium
         if (!response.data.isMember) {
           setError('Bạn cần là thành viên Premium để sử dụng tính năng này.');

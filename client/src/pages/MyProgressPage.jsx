@@ -69,6 +69,7 @@ const MyProgressPage = () => {
       };
       
       setUserData(fetchedUserData);
+      console.log("MyProgressPage - fetchedUserData after setState:", fetchedUserData);
     } catch (error) {
       console.error("Lỗi khi tải thông tin người dùng:", error);
       setError('Không thể tải thông tin người dùng. Vui lòng thử lại sau.');
@@ -120,11 +121,15 @@ const MyProgressPage = () => {
   const handleRequestCoach = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/users/request-coach', {}, {
+      const response = await axios.post('http://localhost:5000/api/auth/request-coach', {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSuccess('Yêu cầu hỗ trợ từ huấn luyện viên đã được gửi!');
-      fetchUserData();
+      await fetchUserData();
+      // Navigate to chat interface if coach is assigned
+      if (response.data.coach) {
+        navigate(`/chat-coach/${response.data.coach.Id}`);
+      }
     } catch (error) {
       setError(error.response?.data?.message || 'Gửi yêu cầu thất bại.');
     }
@@ -248,7 +253,7 @@ const MyProgressPage = () => {
                 </p>
                 {userData.role !== 'coach' && userData.role !== 'admin' && (
                   <p>
-                    <strong>Gói thành viên:</strong>
+                    <strong>Gói:</strong>
                     <span className={`badge ms-2 ${userData.isMember ? 'bg-success' : 'bg-warning text-dark'}`}>
                       {userData.isMember ? 'Premium' : 'Miễn phí'}
                     </span>
@@ -263,12 +268,12 @@ const MyProgressPage = () => {
                   <div className="mt-3">
                     {userData.coach ? (
                       <div className="alert alert-info">
-                        <p className="mb-1"><strong>Huấn luyện viên của bạn:</strong> {userData.coach.username}</p>
-                        <button onClick={() => navigate(`/chat-coach/${userData.coach._id}`)} className="btn btn-success me-2">Nhắn tin với Coach</button>
+                        <p className="mb-1"><strong>Huấn luyện viên của bạn:</strong> {userData.coach.Username}</p>
+                        <button onClick={() => navigate(`/chat-coach/${userData.coach.Id}`)} className="btn btn-success me-2">Nhắn tin với Coach</button>
                         <button onClick={handleCancelCoachRequest} className="btn btn-outline-danger">Hủy yêu cầu Coach</button>
                       </div>
                     ) : (
-                      <button onClick={handleRequestCoach} className="btn btn-success">Yêu cầu hỗ trợ từ Coach</button>
+                      <button onClick={handleRequestCoach} className="btn btn-success">Chat</button>
                     )}
                   </div>
                 )}

@@ -99,7 +99,17 @@ exports.getProfile = async (req, res) => {
     if (userResult.recordset.length === 0) {
       return res.status(404).json({ message: 'Không tìm thấy người dùng' });
     }
-    const user = userResult.recordset[0];
+    let user = userResult.recordset[0];
+    let coachDetails = null;
+
+    if (user.CoachId) {
+      const coachResult = await sql.query`
+        SELECT Id, Username FROM Users WHERE Id = ${user.CoachId} AND Role = 'coach'
+      `;
+      if (coachResult.recordset.length > 0) {
+        coachDetails = coachResult.recordset[0];
+      }
+    }
 
     // Lấy thông tin hút thuốc
     const smokingResult = await sql.query`
@@ -148,7 +158,7 @@ exports.getProfile = async (req, res) => {
       isMember: user.IsMember,
       createdAt: user.CreatedAt,
       smokingStatus,
-      coachId: user.CoachId
+      coach: coachDetails
     });
   } catch (error) {
     res.status(500).json({ message: 'Failed to get profile', error: error.message });
@@ -453,5 +463,64 @@ exports.getLatestProgress = async (req, res) => {
     console.error('Error getting latest progress:', error);
     console.error('Error stack for getLatestProgress:', error.stack);
     res.status(500).json({ message: 'Failed to get latest progress', error: error.message });
+  }
+};
+
+// Yêu cầu hỗ trợ từ huấn luyện viên
+exports.requestCoach = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Lấy thông tin user hiện tại
+    const userResult = await sql.query`
+      SELECT Id, Username, Email, Role, IsMember, CoachId FROM Users WHERE Id = ${userId}
+    `;
+    const user = userResult.recordset[0];
+
+    if (!user) {
+      return res.status(404).json({ message: 'Người dùng không tìm thấy.' });
+    }
+
+    if (!user.IsMember) {
+      return res.status(403).json({ message: 'Bạn cần nâng cấp lên gói Premium để yêu cầu huấn luyện viên.' });
+    }
+
+    if (user.CoachId) {
+      // Check if the assigned coach still exists and is active
+      const currentCoachResult = await sql.query`
+        SELECT Id, Username FROM Users WHERE Id = ${user.CoachId} AND Role = 'coach'
+      `;
+      if (currentCoachResult.recordset.length > 0) {
+        return res.status(400).json({ message: 'Bạn đã có một huấn luyện viên được chỉ định.', coach: currentCoachResult.recordset[0] });
+      } else {
+        // If assigned coach is no longer valid, clear CoachId and proceed to find a new one
+        await sql.query`UPDATE Users SET CoachId = NULL WHERE Id = ${userId}`;
+      }
+    }
+
+    // Tìm một huấn luyện viên có sẵn (ví dụ: huấn luyện viên có ít người dùng nhất, hoặc ngẫu nhiên)
+    const coachesResult = await sql.query`
+      SELECT Id, Username FROM Users WHERE Role = 'coach'
+    `;
+
+    if (coachesResult.recordset.length === 0) {
+      return res.status(404).json({ message: 'Hiện không có huấn luyện viên nào khả dụng.' });
+    }
+
+    // Tạm thời chọn huấn luyện viên đầu tiên có sẵn
+    const availableCoach = coachesResult.recordset[0];
+
+    // Cập nhật User với CoachId
+    await sql.query`
+      UPDATE Users
+      SET CoachId = ${availableCoach.Id}
+      WHERE Id = ${userId}
+    `;
+
+    res.status(200).json({ message: 'Yêu cầu hỗ trợ từ huấn luyện viên đã được gửi thành công.', coach: { Id: availableCoach.Id, Username: availableCoach.Username } });
+
+  } catch (error) {
+    console.error('Request Coach error:', error);
+    res.status(500).json({ message: 'Gửi yêu cầu thất bại.', error: error.message });
   }
 };

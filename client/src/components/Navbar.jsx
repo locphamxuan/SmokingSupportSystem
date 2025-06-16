@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from '../contexts/AuthContext.jsx';
 import '../style/Navbar.scss';
-import logo from "../assets/images/logo.png";
+import logo from "../assets/images/logo.jpg";
 
 const Navbar = () => {
   const [showDropdown, setShowDropdown] = useState(false);
@@ -33,7 +33,7 @@ const Navbar = () => {
           <nav className="nav">
             <Link to="/" className="nav-item">Trang chủ</Link>
             <Link to="/about" className="nav-item">Thông tin về thuốc lá </Link>
-            <Link to="/blog" className="nav-item">Blog</Link>
+            <Link to="/blog" className="nav-item">Diễn đàn</Link>
             <Link to="/leaderboard" className="nav-item">Bảng xếp hạng</Link>
             <Link to="/subscribe" className="nav-item">Mua gói</Link>
           </nav>
