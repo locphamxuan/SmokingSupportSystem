@@ -96,6 +96,10 @@ const LoginPage = () => {
 
   // Handle tab change
   const handleTabChange = (index) => {
+    if (index === 1) {
+      navigate('/register');
+      return;
+    }
     setActiveTab(index);
     setError('');
     setLoginErrors({});
@@ -178,115 +182,106 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="auth-page-wrapper d-flex align-items-center justify-content-center min-vh-100">
-      <div className="auth-container card shadow-lg rounded-lg overflow-hidden row no-gutters">
-        <div className="auth-image-half d-none d-md-block col-md-6">
-          <div className="image-overlay d-flex flex-column justify-content-center align-items-center text-white p-4">
-            <h2 className="mb-3 text-center">Chào mừng đến với hệ thống hỗ trợ cai thuốc</h2>
-            <p className="text-center">Hãy cùng chúng tôi bắt đầu hành trình sống khỏe mạnh!</p>
+    <div className="modern-auth-wrapper">
+      <div className="auth-form-container">
+        {/* User Avatar */}
+        <div className="user-avatar">
+          <div className="avatar-circle">
+            <i className="fas fa-user"></i>
           </div>
+          <div className="status-indicator"></div>
         </div>
-        <div className="auth-form-half col-md-6 p-4 d-flex flex-column justify-content-center">
-          <div className="d-flex justify-content-between mb-4">
-            <button
-              className={`btn btn-lg w-50 ${activeTab === 0 ? 'btn-success' : 'btn-outline-success'}`}
-              onClick={() => handleTabChange(0)}
+
+        {/* Tab Navigation */}
+        <div className="tab-navigation">
+          <button
+            className={`tab-btn ${activeTab === 0 ? 'active' : ''}`}
+            onClick={() => handleTabChange(0)}
+          >
+            Đăng nhập
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 1 ? 'active' : ''}`}
+            onClick={() => handleTabChange(1)}
+          >
+            Đăng ký
+          </button>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="error-message">
+            {error}
+          </div>
+        )}
+
+        {/* Login Form */}
+        <form onSubmit={handleLoginSubmit} className="login-form">
+          {/* User Type Selection */}
+          <div className="form-group">
+            <select
+              className="form-input"
+              value={userType}
+              onChange={(e) => setUserType(e.target.value)}
             >
-              Đăng nhập
-            </button>
-            <button
-              className={`btn btn-lg w-50 ${activeTab === 1 ? 'btn-success' : 'btn-outline-success'}`}
-              onClick={() => navigate('/register')} // Redirect to dedicated Register page
-            >
-              Đăng ký
-            </button>
+              <option value="member">Thành viên</option>
+              <option value="coach">Huấn luyện viên</option>
+              <option value="admin">Quản trị viên</option>
+            </select>
           </div>
 
-          {error && (
-            <div className="alert alert-danger mb-3" role="alert">
-              {error}
-            </div>
-          )}
+          {/* Email Input */}
+          <div className="form-group">
+            <input
+              type="text"
+              className={`form-input ${loginErrors.emailOrUsername ? 'error' : ''}`}
+              name="emailOrUsername"
+              placeholder="Email hoặc tên đăng nhập"
+              value={loginData.emailOrUsername}
+              onChange={handleLoginInputChange}
+              required
+            />
+            {loginErrors.emailOrUsername && (
+              <div className="field-error">{loginErrors.emailOrUsername}</div>
+            )}
+          </div>
 
-          {/* Login Form */}
-          {activeTab === 0 && (
-            <form onSubmit={handleLoginSubmit}>
-              <div className="mb-3">
-                <label htmlFor="userType" className="form-label">Loại tài khoản</label>
-                <select
-                  className="form-select"
-                  id="userType"
-                  name="userType"
-                  value={userType}
-                  onChange={(e) => setUserType(e.target.value)}
-                >
-                  <option value="member">Thành viên</option>
-                  <option value="coach">Huấn luyện viên</option>
-                  <option value="admin">Quản trị viên</option>
-                </select>
-              </div>
+          {/* Password Input */}
+          <div className="form-group">
+            <input
+              type="password"
+              className={`form-input ${loginErrors.password ? 'error' : ''}`}
+              name="password"
+              placeholder="Mật khẩu"
+              value={loginData.password}
+              onChange={handleLoginInputChange}
+              required
+            />
+            {loginErrors.password && (
+              <div className="field-error">{loginErrors.password}</div>
+            )}
+          </div>
 
-              <div className="mb-3">
-                <label htmlFor="loginEmailOrUsername" className="form-label">Email hoặc Tên đăng nhập</label>
-                <input
-                  type="text"
-                  className={`form-control ${loginErrors.emailOrUsername ? 'is-invalid' : ''}`}
-                  id="loginEmailOrUsername"
-                  name="emailOrUsername"
-                  placeholder="Nhập email hoặc tên đăng nhập"
-                  value={loginData.emailOrUsername}
-                  onChange={handleLoginInputChange}
-                  required
-                />
-                {loginErrors.emailOrUsername && <div className="invalid-feedback">{loginErrors.emailOrUsername}</div>}
-              </div>
+          {/* Submit Button */}
+          <button
+            type="submit"
+            className="submit-btn"
+            disabled={loading}
+          >
+            {loading ? (
+              <span className="spinner"></span>
+            ) : (
+              'Đăng nhập'
+            )}
+          </button>
 
-              <div className="mb-4">
-                <label htmlFor="loginPassword" className="form-label">Mật khẩu</label>
-                <input
-                  type="password"
-                  className={`form-control ${loginErrors.password ? 'is-invalid' : ''}`}
-                  id="loginPassword"
-                  name="password"
-                  placeholder="Nhập mật khẩu"
-                  value={loginData.password}
-                  onChange={handleLoginInputChange}
-                  required
-                />
-                {loginErrors.password && <div className="invalid-feedback">{loginErrors.password}</div>}
-              </div>
-
-              <button
-                type="submit"
-                className="btn btn-success w-100 py-2"
-                disabled={loading}
-              >
-                {loading ? (
-                  <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                ) : (
-                  'Đăng nhập'
-                )}
-              </button>
-
-              <div className="text-center mt-3">
-                <Link to="#" className="text-success text-decoration-none">Quên mật khẩu?</Link>
-              </div>
-            </form>
-          )}
-
-          {/* Register Form (Placeholder, actual registration handled by Register.jsx) */}
-          {activeTab === 1 && (
-            <div className="text-center">
-              <p>Vui lòng chuyển đến trang Đăng ký để tạo tài khoản mới.</p>
-              <button
-                className="btn btn-success mt-3"
-                onClick={() => navigate('/register')}
-              >
-                Đi đến trang Đăng ký
-              </button>
-            </div>
-          )}
-        </div>
+          {/* Forgot Password Link */}
+          <div className="forgot-password">
+            <Link to="#" className="forgot-link">
+              Quên mật khẩu?
+            </Link>
+          </div>
+        </form>
       </div>
     </div>
   );
