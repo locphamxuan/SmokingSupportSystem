@@ -295,23 +295,31 @@ const ProfilePage = () => {
             </div>
           </div>
         </div>
+
+        {userData.role === 'guest' ? (
+          <div className="card shadow-sm p-3 mt-3">
+            <div className="card-body">
+              <div className="row">
+                <div className="col-12">
+                  <p className="card-text">Bạn chưa được phân công huấn luyện viên.</p>
+                  <button className="btn btn-primary" onClick={() => navigate('/booking')}>Đặt lịch</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="footer bg-light text-dark py-4">
         <div className="container">
           <div className="social-icons">
-            <a href="#" aria-label="Twitter" target="_blank" rel="noopener noreferrer">
-              <i className="fab fa-twitter" style={{ fontSize: '36px' }}></i>
-            </a>
             <a href="https://www.facebook.com/loccphamxuan?locale=vi_VN" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
               <img src={facebookImage} alt="Facebook" style={{ width: '36px', height: '36px' }} />
             </a>
             <a href="https://www.instagram.com/xlocpham/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
               <img src={instagramImage} alt="Instagram" style={{ width: '36px', height: '36px' }} />
             </a>
-            <a href="#" aria-label="YouTube" target="_blank" rel="noopener noreferrer">
-              <i className="fab fa-youtube" style={{ fontSize: '36px' }}></i>
-            </a>
+           
           </div>
           <p className="copyright">
             &copy; 2024 Hỗ trợ cai nghiện. Đã đăng ký bản quyền.

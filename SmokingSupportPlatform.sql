@@ -266,3 +266,6 @@ INSERT INTO Booking (MemberId, CoachId, ScheduledTime, Status, Note, CreatedAt)
 VALUES (2, 3, '2025-07-12 14:30:00', N'đang chờ xác nhận', N'Lịch hẹn tư vấn với Xung', GETDATE());
 
 
+ALTER TABLE Progress DROP COLUMN MoneySpent;
+    ALTER TABLE Progress DROP CONSTRAINT DF__Progress__MoneyS__440B1D61;
+	        SELECT Id, Username, CoachId FROM Users WHERE Username = 'loccc';
