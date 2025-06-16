@@ -4,7 +4,7 @@ import '../style/AboutPage.scss';
 import facebookImage from '../assets/images/facebook.jpg';
 import instagramImage from '../assets/images/instragram.jpg';
 import harmEffectsImage from '../assets/images/anh11.jpg';
-import communityImage from '../assets/images/congdong.jpg';
+import communityImage from '../assets/images/comunity.jpg';
 import articleImage1 from '../assets/images/cainghienthuocla.jpg';
 import articleImage2 from '../assets/images/doiphoconthem.jpg';
 import articleImage3 from '../assets/images/loiich.jpg';
@@ -19,7 +19,7 @@ const AboutPage = () => {
       <section className="hero-section">
         <div className="container">
           <p className="knowledge-is-power">Kiến thức là sức mạnh</p>
-          <h1>Thông tin cai<br />nghiện thuốc<br />lá</h1>
+          <h1 className="title">Thông tin cai nghiện thuốc lá</h1>
           <p className="subtitle">
             Tìm hiểu về tác hại của thuốc lá, lợi ích của việc cai nghiện và các phương pháp hiệu quả để từ bỏ thuốc lá.
           </p>
@@ -224,9 +224,6 @@ const AboutPage = () => {
             </a>
             <a href="https://www.instagram.com/xlocpham/" target="_blank" rel="noopener noreferrer">
               <img src={instagramImage} alt="Instagram" />
-            </a>
-            <a href="#" target="_blank" rel="noopener noreferrer">
-              <i className="fab fa-twitter"></i>
             </a>
           </div>
           <p className="copyright">&copy; 2023 Smoking Support System. All rights reserved.</p>

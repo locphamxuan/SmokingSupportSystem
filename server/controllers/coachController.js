@@ -16,19 +16,26 @@ const coachController = {
     getAssignedMembers: async (req, res) => {
         try {
             const coachId = req.user.id;
-            console.log(`Fetching assigned members for coach ID: ${coachId}`);
+            console.log(`[getAssignedMembers] Fetching assigned members for coach ID: ${coachId}`);
             const members = await sql.query`
+                WITH RankedBookings AS (
+                    SELECT
+                        Id, MemberId, CoachId, ScheduledTime, Status,
+                        ROW_NUMBER() OVER (PARTITION BY MemberId ORDER BY CreatedAt DESC) as rn
+                    FROM Booking
+                    WHERE Status IN (N'đang chờ xác nhận', N'đã xác nhận', N'đã hủy') AND CoachId = ${coachId}
+                )
                 SELECT 
                     u.Id, 
                     u.Username, 
                     u.Email, 
                     u.PhoneNumber, 
                     u.CreatedAt,
-                    b.Id AS appointmentId, 
-                    b.ScheduledTime AS appointmentScheduledTime, 
-                    b.Status AS appointmentStatus
+                    rb.Id AS appointmentId, 
+                    rb.ScheduledTime AS appointmentScheduledTime, 
+                    rb.Status AS appointmentStatus
                 FROM Users u
-                LEFT JOIN Booking b ON u.Id = b.MemberId AND u.CoachId = b.CoachId -- Đảm bảo chỉ lấy booking của thành viên được chỉ định
+                LEFT JOIN RankedBookings rb ON u.Id = rb.MemberId AND rb.rn = 1
                 WHERE u.CoachId = ${coachId}
             `;
 
@@ -45,11 +52,11 @@ const coachController = {
                     coachId: coachId,
                     scheduledTime: member.appointmentScheduledTime,
                     status: member.appointmentStatus ? member.appointmentStatus.toLowerCase() : null,
-                    // note: null, // If you need note, fetch it too
                 } : null,
             }));
 
-            console.log('Assigned members result:', formattedMembers);
+            console.log('[getAssignedMembers] Raw SQL recordset:', JSON.stringify(members.recordset, null, 2));
+            console.log('[getAssignedMembers] Formatted members before sending:', JSON.stringify(formattedMembers, null, 2));
             res.json({ members: formattedMembers });
         } catch (error) {
             console.error('Error getting assigned members:', error);
@@ -80,7 +87,7 @@ const coachController = {
 
             // Get latest progress log
             const latestProgressResult = await sql.query`
-                SELECT TOP 1 Id, Date, Cigarettes, MoneySpent, Note
+                SELECT TOP 1 Id, Date, Cigarettes, Note
                 FROM Progress
                 WHERE UserId = ${memberId}
                 ORDER BY Date DESC

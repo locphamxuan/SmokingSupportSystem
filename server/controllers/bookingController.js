@@ -45,56 +45,26 @@ const bookingController = {
 
     bookAppointment: async (req, res) => {
         try {
-            const memberId = req.user.id;
-            const { coachId, scheduledTime, status, note } = req.body;
+            const { coachId, scheduledTime, note } = req.body;
+            const memberId = req.user.id; // Lấy userId từ token đã xác thực
 
-            // Các trạng thái hợp lệ cho lịch hẹn
-            const validStatuses = ['đang chờ xác nhận', 'đã xác nhận', 'đã hủy'];
-
-            // Kiểm tra các trường bắt buộc đã được cung cấp chưa
             if (!coachId || !scheduledTime) {
-                return res.status(400).json({ message: 'Huấn luyện viên và thời gian hẹn là bắt buộc' });
+                return res.status(400).json({ message: 'Huấn luyện viên và thời gian hẹn là bắt buộc.' });
             }
 
-            // Kiểm tra trạng thái nếu được cung cấp, đảm bảo nó hợp lệ
-            if (status && !validStatuses.includes(status)) {
-                return res.status(400).json({ message: 'Trạng thái lịch hẹn không hợp lệ.' });
-            }
-
-            // Kiểm tra xem người dùng có phải là thành viên premium và đã có huấn luyện viên chưa
-            const userCheck = await sql.query`
-                SELECT IsMember, CoachId FROM Users WHERE Id = ${memberId}
-            `;
-            const user = userCheck.recordset[0];
-
-            if (!user || !user.IsMember) {
-                return res.status(403).json({ message: 'Bạn cần là thành viên Premium để đặt lịch hẹn' });
-            }
-
-            if (user.CoachId !== parseInt(coachId)) {
-                return res.status(403).json({ message: 'Bạn chỉ có thể đặt lịch với huấn luyện viên của mình' });
-            }
-
-            // Chuyển đổi thời gian theo định dạng phù hợp với SQL Server (ISO 8601)
+            // Chuyển đổi scheduledTime thành định dạng phù hợp cho SQL Server (ví dụ: datetime)
             const formattedScheduledTime = new Date(scheduledTime).toISOString();
 
-            // Đặt trạng thái mặc định nếu không được cung cấp
-            const appointmentStatus = status || 'đang chờ xác nhận';
-
-            // Thêm lịch hẹn mới vào cơ sở dữ liệu
-            const result = await sql.query`
-                INSERT INTO Booking (MemberId, CoachId, ScheduledTime, Status, Note, CreatedAt)
-                VALUES (${memberId}, ${coachId}, ${formattedScheduledTime}, ${appointmentStatus}, ${note || null}, GETDATE());
-                SELECT SCOPE_IDENTITY() AS Id;
+            // Insert vào bảng Booking. Theo memory, tên bảng là 'Booking' (singular).
+            await sql.query`
+                INSERT INTO Booking (MemberId, CoachId, ScheduledTime, Note, Status, CreatedAt)
+                VALUES (${memberId}, ${coachId}, ${formattedScheduledTime}, ${note || null}, N'đang chờ xác nhận', GETDATE())
             `;
 
-            const bookingId = result.recordset[0].Id;
-
-            res.status(201).json({ message: 'Đặt lịch hẹn thành công', bookingId });
+            res.status(201).json({ message: 'Yêu cầu đặt lịch đã được tạo thành công.' });
         } catch (error) {
-            console.error('Book appointment error:', error);
-            console.error('Error stack for bookAppointment:', error.stack);
-            res.status(500).json({ message: 'Failed to book appointment', error: error.message });
+            console.error('Error booking appointment:', error);
+            res.status(500).json({ message: 'Lỗi khi tạo yêu cầu đặt lịch.', error: error.message });
         }
     },
 
@@ -119,7 +89,7 @@ const bookingController = {
             console.log('Booking status retrieved from DB:', booking.Status);
 
             // Kiểm tra xem lịch hẹn đã ở trạng thái 'đang chờ xác nhận' chưa
-            if (booking.Status.toLowerCase() !== 'đang chờ xác nhận') {
+            if (booking.Status !== 'đang chờ xác nhận') {
                 return res.status(400).json({ message: 'Chỉ có thể xác nhận lịch hẹn đang ở trạng thái chờ xác nhận' });
             }
 
@@ -162,8 +132,8 @@ const bookingController = {
 
             const booking = bookingCheck.recordset[0];
 
-            // Kiểm tra xem lịch hẹn đã ở trạng thái 'đang chờ xác nhận' hoặc 'đã xác nhận' chưa
-            if (!['đang chờ xác nhận', 'đã xác nhận'].includes(booking.Status.toLowerCase())) {
+            // Kiểm tra xem lịch hẹn đã ở trạng thái hợp lệ để hủy chưa
+            if (booking.Status !== 'đang chờ xác nhận' && booking.Status !== 'đã xác nhận') {
                 return res.status(400).json({ message: 'Không thể hủy lịch hẹn ở trạng thái này' });
             }
 
