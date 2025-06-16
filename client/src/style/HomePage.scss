@@ -31,6 +31,18 @@ $warning-color: #ffc107;
   font-size: 14px;
 }
 
+// Keyframes
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 // Base styles
 * {
   margin: 0;
@@ -344,10 +356,29 @@ body {
       border-radius: 12px;
       position: relative;
       overflow: hidden;
+      width: 100%;
+      height: 100vh; // Đảm bảo chiều cao đầy đủ
 
-      .hero-content {
+      .hero-slide {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.5s ease-in-out;
+
+        &.active {
+          opacity: 1;
+          visibility: visible;
+          animation: slideIn 0.8s ease-out forwards;
+        }
+      }
+
+      .hero-left-content {
         position: relative;
         z-index: 2;
+        background-color: rgba(255, 255, 255, 0.9);
 
         .hero-title {
           font-size: 24px;
@@ -370,7 +401,7 @@ body {
         }
       }
 
-      .hero-image {
+      .hero-right-image {
         position: absolute;
         right: -20px;
         top: -20px;
@@ -384,6 +415,29 @@ body {
           width: 100%;
           height: 100%;
           object-fit: cover;
+        }
+      }
+
+      .slide-dots {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 10px;
+        z-index: 3;
+
+        .dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.5);
+          cursor: pointer;
+          transition: background 0.3s ease;
+
+          &.active {
+            background: white;
+          }
         }
       }
     }
@@ -1119,13 +1173,17 @@ body {
           flex: none;
           width: 100%;
           padding-top: 2rem;
+          display: flex;
+          justify-content: center;
 
           img {
             position: static;
-            width: 80%; /* Adjust image size for mobile */
+            width: 100%; /* Adjust image size for mobile */
             height: auto;
             clip-path: none;
-            border-radius: 12px;
+            border-radius: 0;
+            display: block;
+
           }
         }
       }
@@ -1149,6 +1207,7 @@ body {
 
           h2, h3 {
             text-align: center;
+            color: green;
           }
 
           .section-description {
@@ -1297,39 +1356,49 @@ body {
 // Hero Section
 .hero-section {
   display: flex;
-  min-height: 700px; /* Adjust as needed */
-  background-color: #f0f2f5; /* Light background for the overall section */
+  padding: 4rem 0;
+  background-color: transparent;
   overflow: hidden;
   position: relative;
+  align-items: center;
+  gap: 2rem;
+  width: 100%;
+  height: 100vh; // Đảm bảo chiều cao đầy đủ
+
+  .hero-slide {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.5s ease-in-out;
+
+    &.active {
+      opacity: 1;
+      visibility: visible;
+      animation: slideIn 0.8s ease-out forwards;
+    }
+  }
 
   .hero-left-content {
-    flex: 0 0 60%; /* Take 60% of the width */
+    flex: 1.2;
+    background-color: #F8F4F1;
     background-size: cover;
-    background-position: center; /* Center the image */
+    background-position: center;
     background-repeat: no-repeat;
+    padding: 4rem 3rem;
+    border-radius: 20px;
     position: relative;
-    padding: 8rem 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-
-    &::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.6); /* Darker overlay for text readability */
-    }
+    z-index: 2;
+    background-color: rgba(255, 255, 255, 0.9);
 
     .container {
-      position: relative; /* Ensure content is above overlay */
-      z-index: 1;
+      position: static;
       text-align: left;
-      max-width: 600px; /* Limit content width */
-      margin-left: 10%;
+      max-width: 100%;
+      margin-left: 0;
+      padding: 0;
     }
 
     .hero-logo {
@@ -1342,82 +1411,84 @@ body {
     }
 
     h1 {
-      color: white;
-      font-size: 3.5rem;
+      color: #0B1221;
+      font-size: 3.2rem;
+      font-weight: 700;
+      line-height: 1.05;
       margin-bottom: 1.5rem;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-      line-height: 1.1;
     }
 
     .subtitle {
-      font-size: 1.25rem;
-      max-width: 800px;
-      margin: 0 auto 2rem;
-      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+      font-size: 1.1rem;
+      max-width: 500px;
+      margin: 0 0 2rem 0;
+      color: #333;
+      line-height: 1.6;
     }
 
     .features {
       display: flex;
-      flex-direction: column; /* Stack features vertically */
-      align-items: flex-start;
-      gap: 1rem; /* Reduced gap */
+      flex-wrap: wrap;
+      gap: 2rem;
       margin-bottom: 3rem;
+      flex-direction: row;
+      align-items: center;
 
       .feature {
         display: flex;
         align-items: center;
-        gap: 0.8rem; /* Slightly larger gap for icon and text */
+        gap: 0.5rem;
         font-size: 1.1rem;
-        color: #e0e0e0; /* Lighter color for features */
+        color: #333;
 
-        .feature-icon {
-          font-size: 1.5rem;
-          color: #8bc34a; /* Green color for icons */
+        i {
+          font-size: 1.2rem;
+          color: #4CAF50;
         }
       }
     }
 
     .cta-buttons {
       display: flex;
-      justify-content: flex-start; /* Align buttons to the left */
+      justify-content: flex-start;
       gap: 1.5rem;
 
       .btn {
-        padding: 1rem 2.5rem;
-        border-radius: 8px;
-        font-weight: 500;
+        padding: 0.8rem 2rem;
+        border-radius: 50px;
+        font-weight: 600;
         text-decoration: none;
         transition: all 0.3s ease;
 
         &.btn-primary {
-          background-color: #8bc34a; /* Green primary button */
+          background-color: #6aaa6d;
           color: white;
-          box-shadow: 0 2px 4px rgba(139, 195, 74, 0.2);
-          display: flex;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+          display: inline-flex;
           align-items: center;
           gap: 0.5rem;
 
           &:hover {
-            background-color: #7cb342;
+            background-color: darken(#6aaa6d, 10%);
             transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(139, 195, 74, 0.3);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
           }
 
           .arrow {
-            font-size: 1.2rem;
+            font-size: 1rem;
           }
         }
 
         &.btn-secondary {
-          background-color: transparent; /* Transparent background */
-          color: #333; /* Dark text color */
-          border: 1px solid #ccc; /* Light border */
-          box-shadow: none; /* No shadow */
+          background-color: transparent;
+          color: #333;
+          border: 1px solid #ccc;
+          box-shadow: none;
 
           &:hover {
-            background-color: #f0f0f0; /* Light hover background */
+            background-color: #f0f0f0;
             transform: translateY(-2px);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
           }
         }
       }
@@ -1425,24 +1496,21 @@ body {
   }
 
   .hero-right-image {
-    flex: 1; /* Take remaining width */
+    flex: 1;
     display: flex;
-    justify-content: flex-start; /* Align image to the left within its container */
+    justify-content: center;
     align-items: center;
+    padding: 0;
+    background-color: white;
+    border-radius: 20px;
+    overflow: hidden;
     position: relative;
-    overflow: hidden; /* Hide overflowing parts */
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 
     img {
-      width: 100%; /* Adjust as needed */
+      width: 100%;
       height: 100%;
       object-fit: cover;
-      border-radius: 12px;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-      position: absolute;
-      left: -20%; /* Pull image partly outside to the left */
-      top: 0;
-      height: 100%;
-      clip-path: polygon(20% 0, 100% 0, 100% 100%, 0% 100%); /* Cut off right edge */
     }
   }
 }
@@ -1497,49 +1565,49 @@ body {
 
 // Solutions Section
 .solutions-section {
-  text-align: left; /* Align text to the left */
+  text-align: left;
 
   .solutions-content-wrapper {
     display: flex;
     gap: 3rem;
-    align-items: center; /* Vertically align items */
+    align-items: center;
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 2rem;
   }
 
   .solutions-left-content {
-    flex: 2; /* Take more space */
-    padding-right: 2rem; /* Add some spacing to the right */
+    flex: 2;
+    padding-right: 2rem;
 
     h2 {
-      text-align: left; /* Align section title to the left */
+      text-align: left;
       font-size: 2.5rem;
       margin-bottom: 0.5rem;
       color: #333;
     }
 
     h3 {
-      text-align: left; /* Align subtitle to the left */
+      text-align: left;
       font-size: 1.75rem;
       margin-bottom: 1.5rem;
       color: #333;
     }
 
     .section-description {
-      max-width: none; /* Remove max-width */
-      margin: 0 0 2.5rem 0; /* Adjust margin */
+      max-width: none;
+      margin: 0 0 2.5rem 0;
       font-size: 1.1rem;
       color: #666;
     }
 
     .solutions-grid {
-      display: flex; /* Use flex for vertical stacking of cards */
+      display: flex;
       flex-direction: column;
       gap: 1.5rem;
 
       .solution-card {
-        display: flex; /* Align icon and text horizontally */
+        display: flex;
         align-items: flex-start;
         padding: 1.5rem;
         background: white;
@@ -1552,14 +1620,14 @@ body {
         }
 
         .solution-icon {
-          font-size: 2rem; /* Smaller icon size */
-          margin-right: 1rem; /* Space between icon and text */
-          color: #8bc34a; /* Green icon color */
-          flex-shrink: 0; /* Prevent icon from shrinking */
+          font-size: 2rem;
+          margin-right: 1rem;
+          color: #8bc34a;
+          flex-shrink: 0;
         }
 
         h4 {
-          color: #333; /* Darker title color */
+          color: #333;
           font-size: 1.2rem;
           margin-bottom: 0.5rem;
         }
@@ -1573,39 +1641,39 @@ body {
   }
 
   .solutions-right-image {
-    flex: 1; /* Take remaining space */
-    background-color: #8bc34a; /* Green background */
-    border-radius: 12px; /* Rounded corners */
+    flex: 1;
+    background-color: #8bc34a;
+    border-radius: 12px;
     overflow: hidden;
     display: flex;
     justify-content: center;
     align-items: center;
     position: relative;
-    height: 550px; /* Fixed height for the image container */
+    height: 550px;
 
     img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       border-radius: 12px;
-      transform: scale(1.1); /* Slightly zoom in the image */
+      transform: scale(1.1);
     }
   }
 }
 
 // Steps Section
 .steps-section {
-  background-color: #f0fff0; /* Light green background for entire section */
-  padding: 0; /* Remove overall section padding as inner content will handle it */
+  background-color: #f0fff0;
+  padding: 0;
 
   .steps-content-wrapper {
     display: flex;
-    min-height: 600px; /* Adjust as needed for image height */
+    min-height: 600px;
   }
 
   .steps-left-image {
-    flex: 0 0 45%; /* Take 45% width for the image */
-    background-color: #eadfc6; /* Background color from the image */
+    flex: 0 0 45%;
+    background-color: #eadfc6;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1619,48 +1687,48 @@ body {
   }
 
   .steps-right-content {
-    flex: 1; /* Take remaining space */
-    background-color: #f0fff0; /* Light green background for steps */
+    flex: 1;
+    background-color: #f0fff0;
     padding: 5rem 2rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
 
     h2 {
-      text-align: left; /* Align title to the left */
+      text-align: left;
       margin-bottom: 3rem;
       color: #333;
     }
 
     .steps-grid {
       display: flex;
-      flex-direction: column; /* Stack steps vertically */
-      gap: 2.5rem; /* Space between steps */
-      margin-top: 0; 
+      flex-direction: column;
+      gap: 2.5rem;
+      margin-top: 0;
     }
 
     .step-card {
-      background: none; /* No background */
-      padding: 0; /* No padding */
+      background: none;
+      padding: 0;
       border-radius: 0;
-      box-shadow: none; /* No shadow */
+      box-shadow: none;
       position: relative;
       transition: none;
-      display: flex; /* Align number and text horizontally */
+      display: flex;
       align-items: flex-start;
-      gap: 1.5rem; /* Space between number and text */
+      gap: 1.5rem;
 
       .step-number {
         font-size: 2.5rem;
         font-weight: 700;
-        color: #6aaa6d; /* Darker green for numbers */
+        color: #6aaa6d;
         margin-bottom: 0;
-        opacity: 1; /* Full opacity */
-        flex-shrink: 0; /* Prevent shrinking */
+        opacity: 1;
+        flex-shrink: 0;
       }
 
       p {
-        color: #333; /* Darker text color */
+        color: #333;
         line-height: 1.8;
         font-size: 1.1rem;
       }
@@ -1670,7 +1738,7 @@ body {
 
 // Testimonials Section
 .testimonials-section {
-  background-color: #f0fff0; /* Light green background */
+  background-color: #f0fff0;
   padding: 5rem 0;
   text-align: center;
 
@@ -1697,7 +1765,7 @@ body {
       border-radius: 50%;
       object-fit: cover;
       margin-bottom: 1.5rem;
-      border: 4px solid #8bc34a; /* Green border around avatar */
+      border: 4px solid #8bc34a;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     }
 
@@ -1707,7 +1775,7 @@ body {
       line-height: 1.7;
       margin-bottom: 0;
       max-width: 700px;
-      font-style: normal; /* Remove italic style */
+      font-style: normal;
     }
   }
 
@@ -1720,7 +1788,7 @@ body {
     .author-button {
       background-color: white;
       border: 1px solid #e0e0e0;
-      border-radius: 25px; /* Pill shape */
+      border-radius: 25px;
       padding: 0.8rem 1.5rem;
       font-size: 1rem;
       color: #333;
@@ -1734,7 +1802,7 @@ body {
       }
 
       &.active {
-        background-color: #8bc34a; /* Green for active button */
+        background-color: #8bc34a;
         color: white;
         border-color: #8bc34a;
         box-shadow: 0 2px 5px rgba(139, 195, 74, 0.3);
@@ -1771,18 +1839,18 @@ body {
       }
 
       img {
-        width: 120px; /* Fixed width for circular images */
-        height: 120px; /* Fixed height for circular images */
-        border-radius: 50%; /* Make images circular */
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
         object-fit: cover;
-        margin: 0 auto 1.5rem; /* Center and add margin below */
-        display: block; /* Ensure margin auto works */
-        border: 3px solid #f0f0f0; /* Light border */
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for image */
+        margin: 0 auto 1.5rem;
+        display: block;
+        border: 3px solid #f0f0f0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
 
       h3 {
-        color: #2563eb; /* Blue color for names */
+        color: #2563eb;
         margin-bottom: 0.5rem;
         font-size: 1.3rem;
       }
@@ -1800,10 +1868,10 @@ body {
 
 // Footer Section
 .footer {
-  background-color: #f8f9fa; /* Light background as per image */
+  background-color: #f8f9fa;
   padding: 3rem 0;
   text-align: center;
-  border-top: 1px solid #e0e0e0; /* Subtle top border */
+  border-top: 1px solid #e0e0e0;
 
   .social-icons {
     display: flex;
@@ -1812,12 +1880,12 @@ body {
     margin-bottom: 1.5rem;
 
     a {
-      color: #34495e; /* Darker color for icons */
+      color: #34495e;
       font-size: 1.8rem;
       transition: color 0.3s ease;
 
       &:hover {
-        color: #2563eb; /* Blue hover effect */
+        color: #2563eb;
       }
     }
   }

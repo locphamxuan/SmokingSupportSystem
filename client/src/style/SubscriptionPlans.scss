@@ -1,0 +1,283 @@
+// Variables
+$primary-color: #4CAF50;
+$secondary-color: #f39c12;
+$text-color: #333;
+$light-text: #666;
+$border-color: #e0e0e0;
+$background-light: #f8f9fa;
+$white: #ffffff;
+$success-color: #28a745;
+$warning-color: #ffc107;
+$premium-gradient: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+$free-gradient: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+$premium-button-gradient: linear-gradient(45deg, $primary-color 0%, darken($primary-color, 10%) 100%);
+$premium-button-hover-gradient: linear-gradient(45deg, darken($primary-color, 10%) 0%, darken($primary-color, 20%) 100%);
+
+// Mixins
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin card-shadow {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+}
+
+@mixin button-base {
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  padding: 1rem 2.5rem;
+  font-size: 1.1rem;
+}
+
+@mixin premium-card {
+  background: $premium-gradient;
+  color: $white;
+  border: none;
+  @include card-shadow;
+  padding: 2rem;
+  height: 100%;
+
+  h4, h3, p {
+    color: $white;
+  }
+
+  .fas {
+    color: $white;
+  }
+}
+
+@mixin free-card {
+  background: $free-gradient;
+  border: 1px solid $border-color;
+  @include card-shadow;
+  padding: 2rem;
+  height: 100%;
+
+  h4, h3, p {
+    color: $text-color;
+  }
+
+  .fas {
+    color: $primary-color;
+  }
+}
+
+.homepage {
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  section {
+    padding: 5rem 0;
+  }
+
+  h1, h2, h3, h4 {
+    color: $text-color;
+    margin-bottom: 1rem;
+  }
+
+  h2 {
+    font-size: 2.5rem;
+    font-weight: 600;
+    text-align: center;
+    @media (max-width: 768px) {
+      font-size: 2rem;
+    }
+  }
+
+  h3 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    @media (max-width: 768px) {
+      font-size: 1.5rem;
+    }
+  }
+
+  p {
+    color: $light-text;
+    line-height: 1.6;
+  }
+
+  .subscription-plans-section {
+    background-color: $background-light;
+
+    // Premium Status Card
+    .premium-status-card {
+      padding: 3rem 2rem;
+      border-radius: 20px;
+      @include card-shadow;
+      background: linear-gradient(135deg, #8BC34A 0%, #689F38 100%);
+
+      .fa-award {
+        color: $white;
+        margin-bottom: 1.5rem;
+        font-size: 5rem;
+        @media (max-width: 768px) {
+          font-size: 4rem;
+        }
+      }
+
+      h2 {
+        font-size: 2.5rem;
+        line-height: 1.2;
+        color: $white;
+        margin-bottom: 1rem;
+        @media (max-width: 768px) {
+          font-size: 2rem;
+        }
+      }
+
+      p {
+        font-size: 1.1rem;
+        line-height: 1.6;
+        color: $white;
+        margin-bottom: 2.5rem;
+        @media (max-width: 768px) {
+          font-size: 1rem;
+        }
+      }
+
+      .btn {
+        @include button-base;
+        background-color: #689F38;
+        border-color: #689F38;
+        color: $white;
+        &:hover {
+          background-color: darken(#689F38, 10%) !important;
+          border-color: darken(#689F38, 10%) !important;
+          transform: scale(1.05);
+        }
+      }
+    }
+
+    // Active Premium Plan Card
+    .col-12.col-md-8 .card {
+      @include premium-card;
+    }
+
+    // Free Plan Card
+    .col-12.col-md-6.col-lg-5:first-child .card {
+      @include free-card;
+
+      .fas {
+        color: $primary-color;
+      }
+    }
+
+    // Premium Plan Card
+    .col-12.col-md-6.col-lg-5:last-child .card {
+      background: linear-gradient(135deg, #A5D6A7 0%, #81C784 100%);
+      border: 2px solid $primary-color;
+      @include card-shadow;
+      padding: 2rem;
+      height: 100%;
+
+      h4, h3, p {
+        color: $text-color;
+      }
+
+      .fas {
+        color: $primary-color !important;
+      }
+    }
+
+    // Common Card Styles
+    .card {
+      .card-body {
+        text-align: center;
+      }
+
+      h4 {
+        font-size: 1.8rem;
+        font-weight: bold;
+        margin-bottom: 1rem;
+        @media (max-width: 768px) {
+          font-size: 1.5rem;
+        }
+      }
+
+      h3 {
+        font-size: 3rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+        @media (max-width: 768px) {
+          font-size: 2.5rem;
+        }
+
+        .text-muted {
+          font-size: 1rem;
+          font-weight: normal;
+        }
+      }
+
+      p {
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      hr {
+        margin: 1.5rem 0;
+        border-color: rgba($border-color, 0.3);
+      }
+
+      .list-unstyled {
+        li {
+          font-size: 1.1rem;
+          padding: 0.5rem 0;
+          display: flex;
+          align-items: center;
+          @media (max-width: 768px) {
+            font-size: 1rem;
+          }
+
+          .fas {
+            font-size: 1.5rem;
+            margin-right: 0.75rem;
+            @media (max-width: 768px) {
+              font-size: 1.2rem;
+            }
+          }
+        }
+      }
+
+      // Button Styles
+      .btn {
+        @include button-base;
+        @media (max-width: 768px) {
+          padding: 0.8rem 2rem;
+          font-size: 1rem;
+        }
+
+        &.btn-outline-secondary {
+          border-color: #ccc;
+          color: #666;
+          opacity: 0.7;
+          cursor: not-allowed;
+          &:hover {
+            background-color: transparent !important;
+            color: #666 !important;
+            transform: none !important;
+          }
+        }
+
+        &.btn-lg:not(.btn-outline-secondary) {
+          background: $premium-button-gradient;
+          border-color: $primary-color;
+          color: $white;
+          &:hover {
+            background: $premium-button-hover-gradient !important;
+            transform: scale(1.05);
+          }
+        }
+      }
+    }
+  }
+} 
