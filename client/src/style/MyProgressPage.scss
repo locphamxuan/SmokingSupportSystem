@@ -6,6 +6,62 @@ $border-color: #dee2e6;
 $text-color: #212529;
 $white: #ffffff;
 
+// My Progress Page specific styles
+.my-progress-wrapper {
+  min-height: 100vh;
+  background-color: $light-bg;
+  padding-top: 130px; // Increased top padding to prevent navbar overlap
+  padding-bottom: 2rem;
+  
+  .my-progress-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+}
+
+// Alert styles with improved positioning
+.alert {
+  border: none;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 10; // Ensure alerts are visible
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  &-success {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: darken($primary-color, 10%);
+    border-left: 4px solid $primary-color;
+  }
+
+  &-danger {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+    border-left: 4px solid #dc3545;
+  }
+
+  &-info {
+    background-color: rgba(23, 162, 184, 0.1);
+    color: #17a2b8;
+    border-left: 4px solid #17a2b8;
+  }
+
+  .btn-close {
+    padding: 0.5rem;
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    color: inherit;
+    opacity: 0.7;
+    
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
 // Main container styles
 .container {
   max-width: 1200px;
@@ -13,21 +69,25 @@ $white: #ffffff;
   padding: 2rem 1rem;
 }
 
-// Card styles
+// Card styles with improved spacing
 .card {
   border: none;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease-in-out;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  overflow: hidden;
 
   &:hover {
-    transform: translateY(-2px);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
   }
 
   .card-header {
-    border-radius: 8px 8px 0 0;
-    padding: 1rem;
+    border-radius: 0;
+    padding: 1.25rem;
     font-size: 1.1rem;
+    font-weight: 600;
+    border-bottom: none;
   }
 
   .card-body {
@@ -37,80 +97,103 @@ $white: #ffffff;
 
 // Form styles
 .form-control, .form-select {
-  border: 1px solid $border-color;
-  border-radius: 4px;
-  padding: 0.5rem;
-  transition: border-color 0.2s ease-in-out;
+  border: 2px solid $border-color;
+  border-radius: 8px;
+  padding: 0.75rem;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
 
   &:focus {
     border-color: $primary-color;
-    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    box-shadow: 0 0 0 0.25rem rgba(40, 167, 69, 0.15);
+    outline: none;
   }
 }
 
 .form-label {
-  font-weight: 500;
+  font-weight: 600;
   color: $text-color;
   margin-bottom: 0.5rem;
+  font-size: 0.9rem;
 }
 
-// Button styles
+// Button styles with improved design
 .btn {
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  font-weight: 500;
-  transition: all 0.2s ease-in-out;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  font-size: 0.9rem;
 
   &-success {
-    background-color: $primary-color;
+    background: linear-gradient(135deg, $primary-color, darken($primary-color, 8%));
     border-color: $primary-color;
     color: $white;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
 
     &:hover {
-      background-color: darken($primary-color, 10%);
-      border-color: darken($primary-color, 10%);
+      background: linear-gradient(135deg, darken($primary-color, 8%), darken($primary-color, 15%));
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
     }
   }
 
   &-outline-success {
     color: $primary-color;
     border-color: $primary-color;
+    background: transparent;
 
     &:hover {
       background-color: $primary-color;
       color: $white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
     }
+  }
+
+  &-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
   }
 }
 
 // Progress bar styles
 .progress {
-  height: 10px;
-  border-radius: 5px;
-  background-color: $light-bg;
+  height: 12px;
+  border-radius: 6px;
+  background-color: #e9ecef;
   margin: 1rem 0;
+  overflow: hidden;
 
   .progress-bar {
-    background-color: $primary-color;
-    border-radius: 5px;
+    background: linear-gradient(90deg, $primary-color, lighten($primary-color, 10%));
+    border-radius: 6px;
+    transition: width 0.6s ease;
   }
 }
 
 // List group styles
 .list-group {
-  border-radius: 4px;
+  border-radius: 8px;
   overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 
   .list-group-item {
-    border: 1px solid $border-color;
-    padding: 0.75rem 1rem;
+    border: 1px solid #e9ecef;
+    padding: 1rem;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: #f8f9fa;
+    }
 
     &:first-child {
-      border-top: none;
+      border-top: 1px solid #e9ecef;
     }
 
     &:last-child {
-      border-bottom: none;
+      border-bottom: 1px solid #e9ecef;
     }
   }
 }
@@ -118,56 +201,39 @@ $white: #ffffff;
 // Badge styles
 .badge {
   padding: 0.5em 0.75em;
-  font-weight: 500;
-  border-radius: 4px;
-}
-
-// Alert styles
-.alert {
-  border: none;
-  border-radius: 4px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-
-  &-success {
-    background-color: rgba(40, 167, 69, 0.1);
-    color: darken($primary-color, 10%);
-  }
-
-  &-danger {
-    background-color: rgba(220, 53, 69, 0.1);
-    color: #dc3545;
-  }
-
-  &-info {
-    background-color: rgba(23, 162, 184, 0.1);
-    color: #17a2b8;
-  }
+  font-weight: 600;
+  border-radius: 6px;
+  font-size: 0.8em;
 }
 
 // Footer styles
 .footer {
-  background-color: $light-bg;
-  padding: 2rem 0;
-  margin-top: auto;
+  background-color: $white;
+  padding: 3rem 0 2rem;
+  margin-top: 4rem;
+  border-top: 1px solid $border-color;
 
   .social-icons {
     display: flex;
     justify-content: center;
-    gap: 1.5rem;
-    margin-bottom: 1rem;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
 
     a {
       color: $text-color;
-      transition: color 0.2s ease-in-out;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
 
       &:hover {
         color: $primary-color;
+        transform: translateY(-2px);
       }
 
       img {
         border-radius: 50%;
-        transition: transform 0.2s ease-in-out;
+        transition: transform 0.3s ease;
 
         &:hover {
           transform: scale(1.1);
@@ -180,26 +246,66 @@ $white: #ffffff;
     text-align: center;
     color: $secondary-color;
     margin: 0;
+    font-size: 0.9rem;
   }
 }
 
 // Responsive styles
 @media (max-width: 768px) {
-  .container {
-    padding: 1rem;
+  .my-progress-wrapper {
+    padding-top: 110px; // Increased top padding for mobile
+    
+    .my-progress-container {
+      padding: 0 0.5rem;
+    }
   }
 
   .card {
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
   }
 
   .btn {
     width: 100%;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
   }
 
-  .social-icons {
-    gap: 1rem;
+  .col-md-6 {
+    margin-bottom: 2rem !important;
+  }
+
+  .footer {
+    margin-top: 2rem;
+    padding: 2rem 0 1rem;
+    
+    .social-icons {
+      gap: 1.5rem;
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .my-progress-wrapper {
+    padding-top: 100px; // Increased for small mobile
+  }
+  
+  .card {
+    .card-header {
+      padding: 1rem;
+      font-size: 1rem;
+    }
+    
+    .card-body {
+      padding: 1rem;
+    }
+  }
+  
+  .btn {
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
   }
 }
 

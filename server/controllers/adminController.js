@@ -33,8 +33,11 @@ const adminController = {
     getUserDetail: async (req, res) => {
         try {
             const userId = req.params.id;
+            console.log('Getting user detail for ID:', userId);
+            
+            // Lấy thông tin user cơ bản
             const userResult = await sql.query`
-                SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address
+                SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address, CreatedAt, CoachId
                 FROM Users WHERE Id = ${userId}
             `;
             
@@ -43,32 +46,131 @@ const adminController = {
             }
             
             const user = userResult.recordset[0];
-            const profileResult = await sql.query`
-                SELECT * FROM SmokingProfiles WHERE UserId = ${userId}
-            `;
+            const userRole = user.Role || (user.IsMember ? 'member' : 'guest');
             
-            const profile = profileResult.recordset[0];
+            console.log('User found:', { id: user.Id, username: user.Username, role: userRole });
+            
+            // Lấy thông tin cơ bản
             const userDetail = {
                 id: user.Id,
                 username: user.Username,
                 email: user.Email,
                 phoneNumber: user.PhoneNumber || "",
                 address: user.Address || "",
-                role: user.Role || 'guest',
+                role: userRole,
                 isMember: user.IsMember,
-                smokingStatus: profile ? {
-                    cigarettesPerDay: profile.cigarettesPerDay || 0,
-                    costPerPack: profile.costPerPack || 0,
-                    smokingFrequency: profile.smokingFrequency || '',
-                    healthStatus: profile.healthStatus || '',
-                    cigaretteType: profile.cigaretteType || '',
-                    quitReason: profile.QuitReason || ''
-                } : {}
+                createdAt: user.CreatedAt
             };
+
+            // Lấy thông tin profile hút thuốc (với try-catch riêng)
+            try {
+                console.log('Fetching smoking profile for user:', userId);
+                const profileResult = await sql.query`
+                    SELECT * FROM SmokingProfiles WHERE UserId = ${userId}
+                `;
+                
+                if (profileResult.recordset.length > 0) {
+                    const profile = profileResult.recordset[0];
+                    userDetail.smokingProfile = {
+                        cigarettesPerDay: profile.cigarettesPerDay || 0,
+                        costPerPack: profile.costPerPack || 0,
+                        smokingFrequency: profile.smokingFrequency || '',
+                        healthStatus: profile.healthStatus || '',
+                        cigaretteType: profile.cigaretteType || '',
+                        quitReason: profile.QuitReason || ''
+                    };
+                    console.log('Smoking profile found:', userDetail.smokingProfile);
+                } else {
+                    console.log('No smoking profile found for user:', userId);
+                    userDetail.smokingProfile = null;
+                }
+            } catch (profileError) {
+                console.log('SmokingProfiles table error:', profileError.message);
+                userDetail.smokingProfile = null;
+            }
+
+            // Lấy thông tin chi tiết theo role (với try-catch riêng)
+            if (userRole === 'coach') {
+                try {
+                    console.log('Fetching assigned members for coach:', userId);
+                    // Lấy members được assign cho coach này
+                    const assignedMembersResult = await sql.query`
+                        SELECT DISTINCT u.Id, u.Username, u.Email, u.PhoneNumber
+                        FROM Users u
+                        WHERE u.CoachId = ${userId}
+                    `;
+                    
+                    userDetail.assignedMembers = assignedMembersResult.recordset.map(member => ({
+                        id: member.Id,
+                        username: member.Username,
+                        email: member.Email,
+                        phoneNumber: member.PhoneNumber || 'N/A',
+                        cigarettesPerDay: 0,
+                        quitReason: 'Chưa cập nhật',
+                        bookingStatus: 'Chưa có',
+                        scheduledTime: null
+                    }));
+                    console.log('Assigned members found:', userDetail.assignedMembers.length);
+                } catch (coachError) {
+                    console.log('Error getting coach data:', coachError.message);
+                    userDetail.assignedMembers = [];
+                }
+                
+                userDetail.recentProgress = [];
+                
+            } else if (userRole === 'member' || userRole === 'guest') {
+                try {
+                    console.log('Fetching coach info for user:', userId, 'CoachId:', user.CoachId);
+                    // Lấy thông tin coach từ CoachId trong Users table
+                    if (user.CoachId) {
+                        const coachResult = await sql.query`
+                            SELECT Id, Username, Email, PhoneNumber
+                            FROM Users 
+                            WHERE Id = ${user.CoachId}
+                        `;
+                        
+                        if (coachResult.recordset.length > 0) {
+                            const coach = coachResult.recordset[0];
+                            userDetail.assignedCoach = {
+                                id: coach.Id,
+                                username: coach.Username,
+                                email: coach.Email,
+                                phoneNumber: coach.PhoneNumber || 'N/A',
+                                bookingStatus: 'Đã phân công',
+                                scheduledTime: null,
+                                bookingNote: 'Được phân công bởi hệ thống'
+                            };
+                            console.log('Coach found:', userDetail.assignedCoach);
+                        } else {
+                            console.log('Coach not found for CoachId:', user.CoachId);
+                            userDetail.assignedCoach = null;
+                        }
+                    } else {
+                        console.log('No coach assigned to user:', userId);
+                        userDetail.assignedCoach = null;
+                    }
+                } catch (memberError) {
+                    console.log('Error getting member data:', memberError.message);
+                    userDetail.assignedCoach = null;
+                }
+
+                // Khởi tạo các field mặc định
+                userDetail.progress = [];
+                userDetail.quitPlan = null;
+            }
+
+            console.log('Returning user detail:', JSON.stringify(userDetail, null, 2));
             res.json(userDetail);
+            
         } catch (error) {
             console.error('Error getting user detail:', error);
-            res.status(500).json({ message: 'Error getting user detail' });
+            console.error('Error details:', {
+                message: error.message,
+                stack: error.stack,
+                code: error.code,
+                number: error.number
+            });
+            res.status(500).json({ message: 'Error getting user detail', error: error.message });
         }
     },
 
