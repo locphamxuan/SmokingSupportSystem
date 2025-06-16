@@ -19,4 +19,6 @@ router.get('/quit-plan', authenticateToken, authController.getQuitPlan);
 router.post('/progress', authenticateToken, authController.addProgress);
 router.get('/progress/latest', authenticateToken, authController.getLatestProgress);
 
+router.post('/request-coach', authenticateToken, authController.requestCoach);
+
 module.exports = router;
