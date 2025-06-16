@@ -56,29 +56,64 @@ const MyProgressPage = () => {
         return;
       }
 
-      const response = await axios.get('http://localhost:5000/api/auth/profile', {
+      // Fetch user profile
+      const profileResponse = await axios.get('http://localhost:5000/api/auth/profile', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
+      console.log("MyProgressPage - Raw User Profile Response:", profileResponse.data); // DEBUG: Log raw data
+
       const fetchedUserData = {
-        ...response.data,
-        smokingStatus: {
-          cigarettesPerDay: response.data.smokingStatus?.cigarettesPerDay || 0,
-          costPerPack: response.data.smokingStatus?.costPerPack || 0,
-          smokingFrequency: response.data.smokingStatus?.smokingFrequency || '',
-          healthStatus: response.data.smokingStatus?.healthStatus || '',
-          cigaretteType: response.data.smokingStatus?.cigaretteType || '',
-          quitReason: response.data.smokingStatus?.quitReason || '',
-          dailyLog: {
-            cigarettes: response.data.smokingStatus?.dailyLog?.cigarettes || 0,
-            feeling: response.data.smokingStatus?.dailyLog?.feeling || ''
-          }
-        },
-        quitPlan: response.data.quitPlan || null,
-        achievements: response.data.achievements || [],
-        isMember: response.data.isMember || false,
-        coach: response.data.coach || null,
+        ...profileResponse.data,
+        smokingStatus: profileResponse.data.smokingStatus || {}, // Ensure smokingStatus is an object
+        quitPlan: null, // Initialize as null, will be fetched separately
+        achievements: profileResponse.data.achievements || [],
+        isMember: profileResponse.data.isMember || false,
+        coach: profileResponse.data.coach || null,
       };
+
+      // Explicitly set default values for smokingStatus properties
+      fetchedUserData.smokingStatus = {
+        cigarettesPerDay: fetchedUserData.smokingStatus.cigarettesPerDay || 0,
+        costPerPack: fetchedUserData.smokingStatus.costPerPack || 0,
+        smokingFrequency: fetchedUserData.smokingStatus.smokingFrequency || '',
+        healthStatus: fetchedUserData.smokingStatus.healthStatus || '',
+        cigaretteType: fetchedUserData.smokingStatus.cigaretteType || '',
+        quitReason: fetchedUserData.smokingStatus.quitReason || '',
+        dailyLog: fetchedUserData.smokingStatus.dailyLog || {},
+      };
+
+      // Explicitly set default values for dailyLog properties
+      fetchedUserData.smokingStatus.dailyLog = {
+        cigarettes: fetchedUserData.smokingStatus.dailyLog.cigarettes || 0,
+        feeling: fetchedUserData.smokingStatus.dailyLog.feeling || '',
+      };
+
+      // Fetch quit plan if available
+      try {
+        const quitPlanResponse = await axios.get('http://localhost:5000/api/auth/quit-plan', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        fetchedUserData.quitPlan = {
+          id: quitPlanResponse.data.quitPlan.id,
+          startDate: quitPlanResponse.data.quitPlan.startDate || '',
+          targetDate: quitPlanResponse.data.quitPlan.targetDate || '',
+          planType: quitPlanResponse.data.quitPlan.planType || '',
+          initialCigarettes: quitPlanResponse.data.quitPlan.initialCigarettes || 0,
+          dailyReduction: quitPlanResponse.data.quitPlan.dailyReduction || 0,
+          milestones: quitPlanResponse.data.quitPlan.milestones || [],
+          currentProgress: quitPlanResponse.data.quitPlan.currentProgress || 0,
+          planDetail: quitPlanResponse.data.quitPlan.planDetail || '',
+          status: quitPlanResponse.data.quitPlan.status || 'active',
+          createdAt: quitPlanResponse.data.quitPlan.createdAt || null,
+        };
+      } catch (quitPlanError) {
+        // It's okay if no quit plan exists (404), log other errors
+        if (quitPlanError.response && quitPlanError.response.status !== 404) {
+          console.error("Lỗi khi tải kế hoạch cai thuốc:", quitPlanError);
+        }
+        fetchedUserData.quitPlan = null; // Ensure it's null if not found or error
+      }
       
       setUserData(fetchedUserData);
       console.log("MyProgressPage - fetchedUserData after setState:", fetchedUserData);
@@ -102,12 +137,16 @@ const MyProgressPage = () => {
   }, [user, navigate]);
 
   const handleUpdateSmokingStatus = async (field, value) => {
+    // Cập nhật trạng thái cục bộ trước
+    const updatedSmokingStatus = { ...userData.smokingStatus, [field]: value };
+    setUserData(prev => ({ ...prev, smokingStatus: updatedSmokingStatus }));
+
     try {
       const token = localStorage.getItem('token');
-      await axios.put('http://localhost:5000/api/auth/smoking-status', { [field]: value }, {
+      // Gửi toàn bộ đối tượng đã cập nhật
+      await axios.put('http://localhost:5000/api/auth/smoking-status', updatedSmokingStatus, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setUserData(prev => ({ ...prev, smokingStatus: { ...prev.smokingStatus, [field]: value } }));
       setSuccess('Cập nhật thành công!');
     } catch (error) {
       setError(error.response?.data?.message || 'Cập nhật thất bại.');
@@ -117,7 +156,11 @@ const MyProgressPage = () => {
   const handleUpdateDailyLog = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put('http://localhost:5000/api/auth/daily-log', userData.smokingStatus.dailyLog, {
+      await axios.put('http://localhost:5000/api/auth/daily-log', {
+        cigarettes: userData.smokingStatus.dailyLog.cigarettes,
+        note: userData.smokingStatus.dailyLog.feeling,
+        planId: userData.quitPlan?.id || null // Include PlanId, if available
+      }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSuccess('Nhật ký đã được cập nhật!');
@@ -164,7 +207,16 @@ const MyProgressPage = () => {
   const handleJoinQuitPlan = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/auth/join-quit-plan', {}, {
+      // Gửi yêu cầu POST để tạo kế hoạch cai thuốc mặc định
+      await axios.post('http://localhost:5000/api/auth/quit-plan', {
+        startDate: new Date().toISOString().slice(0, 10),
+        targetDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().slice(0, 10), // 1 month from now
+        planType: 'suggested',
+        initialCigarettes: userData.smokingStatus.cigarettesPerDay || 0,
+        dailyReduction: 0, // Default to 0, user can change later
+        milestones: [],
+        planDetail: 'Kế hoạch cai thuốc mặc định do hệ thống gợi ý'
+      }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSuccess('Bạn đã tham gia kế hoạch cai thuốc!');
@@ -174,12 +226,14 @@ const MyProgressPage = () => {
     }
   };
 
-
-
   const handleUpdateQuitPlan = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put('http://localhost:5000/api/auth/quit-plan', userData.quitPlan, {
+      // Gửi yêu cầu POST để cập nhật kế hoạch cai thuốc
+      await axios.post('http://localhost:5000/api/auth/quit-plan', {
+        ...userData.quitPlan,
+        initialCigarettes: Number(userData.quitPlan.initialCigarettes) // Ensure it's a number
+      }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSuccess('Kế hoạch cai thuốc đã được cập nhật!');
@@ -292,10 +346,22 @@ const MyProgressPage = () => {
                       <div className="alert alert-info">
                         <p className="mb-1"><strong>Huấn luyện viên của bạn:</strong> {userData.coach.Username}</p>
                         <button onClick={() => navigate(`/chat-coach/${userData.coach.Id}`)} className="btn btn-success me-2">Nhắn tin với Coach</button>
-                        <button onClick={handleCancelCoachRequest} className="btn btn-outline-danger">Hủy yêu cầu Coach</button>
+                        {!userData.coach.bookingStatus && (
+                          <button onClick={() => navigate('/booking')} className="btn btn-info">Đặt lịch</button>
+                        )}
+                        {userData.coach.bookingStatus && (
+                          <p className="mt-2 mb-0">Trạng thái lịch hẹn: <strong>{userData.coach.bookingStatus}</strong></p>
+                        )}
                       </div>
                     ) : (
-                      <button onClick={handleRequestCoach} className="btn btn-success">Chat</button>
+                      <div className="alert alert-warning">
+                        <p className="mb-1">Bạn chưa được phân công huấn luyện viên.</p>
+                        {!userData.isMember ? (
+                          <p className="mb-0">Vui lòng nâng cấp tài khoản để yêu cầu huấn luyện viên.</p>
+                        ) : (
+                          <button onClick={() => navigate('/booking')} className="btn btn-info">Đặt lịch</button>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
@@ -355,6 +421,33 @@ const MyProgressPage = () => {
                         }))}
                         min="0"
                       />
+                    </div>
+                    <div className="mb-3">
+                      <label htmlFor="dailyReduction" className="form-label">Số điếu giảm mỗi ngày (dự kiến)</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        id="dailyReduction"
+                        value={userData.quitPlan.dailyReduction}
+                        onChange={(e) => setUserData(prev => ({
+                          ...prev,
+                          quitPlan: { ...prev.quitPlan, dailyReduction: Number(e.target.value) }
+                        }))}
+                        min="0"
+                      />
+                    </div>
+                    <div className="mb-3">
+                      <label htmlFor="planDetail" className="form-label">Chi tiết kế hoạch</label>
+                      <textarea
+                        className="form-control"
+                        id="planDetail"
+                        rows="3"
+                        value={userData.quitPlan.planDetail}
+                        onChange={(e) => setUserData(prev => ({
+                          ...prev,
+                          quitPlan: { ...prev.quitPlan, planDetail: e.target.value }
+                        }))}
+                      ></textarea>
                     </div>
                     <p className="fw-bold mt-3 mb-1">Tiến độ hiện tại: {userData.quitPlan.currentProgress.toFixed(2)}%</p>
                     <div className="progress" style={{ height: '10px' }}>
@@ -520,10 +613,8 @@ const MyProgressPage = () => {
       <footer className="footer">
         <div className="container">
           <div className="social-icons">
-            <a href="#" aria-label="Twitter" target="_blank" rel="noopener noreferrer"><i className="fab fa-twitter" style={{ fontSize: '36px' }}></i></a>
             <a href="https://www.facebook.com/loccphamxuan?locale=vi_VN" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><img src={facebookImage} alt="Facebook" style={{ width: '36px', height: '36px' }} /></a>
             <a href="https://www.instagram.com/xlocpham/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><img src={instagramImage} alt="Instagram" style={{ width: '36px', height: '36px' }} /></a>
-            <a href="#" aria-label="YouTube" target="_blank" rel="noopener noreferrer"><i className="fab fa-youtube" style={{ fontSize: '36px' }}></i></a>
           </div>
           <p className="copyright">
             &copy; 2024 Hỗ trợ cai nghiện. Đã đăng ký bản quyền.

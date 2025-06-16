@@ -54,8 +54,14 @@ const SubscriptionPlans = () => {
       });
       
       if (response.data && response.data.user) {
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-        setUser(response.data.user);
+        // Ensure isMember is a boolean
+        const updatedUser = {
+          ...response.data.user,
+          isMember: !!response.data.user.isMember
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+        console.log('[SubscriptionPlans] User state after successful upgrade:', updatedUser); // DEBUG
         setSuccess('Nâng cấp tài khoản thành công!');
         setTimeout(() => {
           navigate('/profile');
@@ -80,7 +86,12 @@ const SubscriptionPlans = () => {
     let currentUser = null;
     try {
       if (userStr && userStr !== 'undefined') {
-        currentUser = JSON.parse(userStr);
+        const parsedUser = JSON.parse(userStr);
+        // Ensure isMember is a boolean when initializing from localStorage
+        currentUser = {
+          ...parsedUser,
+          isMember: !!parsedUser.isMember
+        };
       }
     } catch (e) {
       currentUser = null;
@@ -97,9 +108,13 @@ const SubscriptionPlans = () => {
     }
 
     setUser(currentUser);
+    console.log('[SubscriptionPlans] Initial user state:', currentUser); // DEBUG
   }, [navigate]);
 
   const isPremiumMember = user && (user.role === 'member' || user.isMember);
+  console.log('[SubscriptionPlans] isPremiumMember:', isPremiumMember); // DEBUG
+  console.log('[SubscriptionPlans] User role:', user?.role); // DEBUG
+  console.log('[SubscriptionPlans] User isMember:', user?.isMember); // DEBUG
 
   if (!user) {
     return null;
@@ -233,7 +248,7 @@ const SubscriptionPlans = () => {
             </div>
           )}
 
-          {paymentOpen && <Payment handlePaymentSuccess={handlePaymentSuccess} />}
+          {paymentOpen && <Payment open={paymentOpen} onClose={() => setPaymentOpen(false)} onSuccess={handlePaymentSuccess} />}
         </div>
       </section>
 

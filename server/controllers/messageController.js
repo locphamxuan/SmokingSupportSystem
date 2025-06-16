@@ -15,19 +15,16 @@ const messageController = {
                 SELECT IsMember, CoachId, Role FROM Users WHERE Id = ${userId}
             `;
             const user = userCheck.recordset[0];
-            console.log(`SendMessage Debug: UserId: ${userId}, ReceiverId: ${receiverId}, UserRole: ${user.Role}, IsMember: ${user.IsMember}, UserCoachId: ${user.CoachId}`);
 
-            // Người dùng có thể gửi tin nhắn cho coach nếu là thành viên premium
-            // Coach có thể gửi tin nhắn cho member được gán cho họ
+            // Kiểm tra quyền gửi tin nhắn
             if (user.Role === 'user' || user.Role === 'member') {
-                if (!user || !user.IsMember) {
+                if (!user.IsMember) {
                     return res.status(403).json({ message: 'Bạn cần là thành viên Premium để sử dụng tính năng này' });
                 }
                 if (user.CoachId !== parseInt(receiverId)) {
                     return res.status(403).json({ message: 'Bạn chỉ có thể gửi tin nhắn cho huấn luyện viên của mình' });
                 }
             } else if (user.Role === 'coach') {
-                // Coach gửi tin nhắn cho member
                 const memberCheck = await sql.query`
                     SELECT CoachId FROM Users WHERE Id = ${receiverId}
                 `;
@@ -36,7 +33,6 @@ const messageController = {
                     return res.status(403).json({ message: 'Bạn không có quyền gửi tin nhắn cho thành viên này.' });
                 }
             } else {
-                console.log(`SendMessage Debug: User role not allowed for sending messages: ${user.Role}`);
                 return res.status(403).json({ message: 'Tài khoản của bạn không được phép gửi tin nhắn.' });
             }
 
@@ -95,14 +91,19 @@ const messageController = {
             `;
             const user = userCheck.recordset[0];
 
-            // For regular users, ensure they are members and assigned to the correct coach
-            if (!user || (user.Role !== 'user' && user.Role !== 'member') || !user.IsMember) {
-                return res.status(403).json({ message: 'Bạn cần là thành viên Premium để sử dụng tính năng này' });
+            if (!user) {
+                console.error(`Error: User with ID ${userId} not found in DB when checking coachId.`);
+                return res.status(404).json({ message: 'Không tìm thấy người dùng.' });
             }
 
-            if (user.CoachId !== parseInt(coachId)) {
-                console.log('User CoachId:', user.CoachId);
-                console.log('Requested CoachId:', parseInt(coachId));
+            console.log(`Debug: getMessages - User ID from token: ${userId}`);
+            console.log(`Debug: getMessages - Coach ID from URL params: ${coachId} (type: ${typeof coachId})`);
+            console.log(`Debug: getMessages - User.CoachId from DB: ${user.CoachId} (type: ${typeof user.CoachId})`);
+            console.log(`Debug: getMessages - Parsed coach ID from URL params: ${parseInt(coachId)}`);
+            console.log(`Debug: getMessages - Parsed User.CoachId from DB: ${parseInt(user.CoachId)}`);
+            console.log(`Debug: getMessages - Result of comparison: ${parseInt(user.CoachId) !== parseInt(coachId)}`);
+
+            if (parseInt(user.CoachId) !== parseInt(coachId)) {
                 return res.status(403).json({ message: 'Bạn không có quyền chat với huấn luyện viên này' });
             }
 
@@ -142,16 +143,14 @@ const messageController = {
 
     getCoachMessagesWithMember: async (req, res) => {
         try {
-            const coachId = req.user.id; // The logged-in user is the coach
+            const coachId = req.user.id;
             const { memberId } = req.params;
-            console.log(`[Backend] getCoachMessagesWithMember - Coach ID: ${coachId}, Member ID: ${memberId}`);
 
             // Verify if the logged-in user is actually a coach
             const coachCheck = await sql.query`
                 SELECT Role FROM Users WHERE Id = ${coachId}
             `;
             const coachUser = coachCheck.recordset[0];
-            console.log(`[Backend] Coach User Check Result:`, coachUser);
             if (!coachUser || coachUser.Role !== 'coach') {
                 return res.status(403).json({ message: 'Bạn không có quyền truy cập này.' });
             }
@@ -161,7 +160,6 @@ const messageController = {
                 SELECT CoachId FROM Users WHERE Id = ${memberId}
             `;
             const member = memberCheck.recordset[0];
-            console.log(`[Backend] Member Check Result (for member ${memberId}):`, member);
             if (!member || member.CoachId !== coachId) {
                 return res.status(403).json({ message: 'Thành viên này không được chỉ định cho bạn.' });
             }
@@ -185,7 +183,6 @@ const messageController = {
                    OR (m.SenderId = ${memberId} AND m.ReceiverId = ${coachId})
                 ORDER BY m.SentAt ASC
             `;
-            console.log(`[Backend] Messages Query Result:`, messages.recordset);
 
             // Mark messages sent by the member to this coach as read
             await sql.query`
