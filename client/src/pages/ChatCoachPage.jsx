@@ -3,8 +3,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, Typography, Button, TextField, Box, IconButton, CircularProgress, Alert, Paper } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faArrowLeft, faPaperPlane, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import '../style/ChatCoachPage.scss';
+import facebookImage from '../assets/images/facebook.jpg';
+import instagramImage from '../assets/images/instragram.jpg';
 
 const ChatCoachPage = () => {
   // Lấy coachId từ URL params
@@ -38,7 +42,7 @@ const ChatCoachPage = () => {
         console.log("ChatCoachPage - User Profile Response:", response.data);
         console.log("ChatCoachPage - Current User ID:", user.id);
         console.log("ChatCoachPage - Coach ID from URL params:", coachId);
-        console.log("ChatCoachPage - User's Assigned CoachId:", response.data.coachId);
+        console.log("ChatCoachPage - User's Assigned CoachId:", response.data.coach?.Id);
 
         // Kiểm tra nếu người dùng không phải là thành viên Premium
         if (!response.data.isMember) {
@@ -47,7 +51,7 @@ const ChatCoachPage = () => {
         }
         
         // Kiểm tra nếu huấn luyện viên được chỉ định không khớp
-        if (response.data.coachId !== parseInt(coachId)) {
+        if (!response.data.coach || response.data.coach.Id !== parseInt(coachId)) {
           setError('Bạn không có quyền chat với huấn luyện viên này.');
           return;
         }
@@ -110,131 +114,150 @@ const ChatCoachPage = () => {
     }
   };
 
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
   // Hiển thị giao diện lỗi nếu có lỗi
   if (error) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
-        <Card sx={{ maxWidth: 500, width: '100%', p: 2 }}>
-          <CardContent>
-            <Box display="flex" alignItems="center" mb={2}>
-              <IconButton onClick={() => navigate(-1)} color="primary">
-                <ArrowBackIcon />
-              </IconButton>
-              <Typography variant="h5" sx={{ ml: 1, fontWeight: 600 }}>
-                Trò chuyện với Huấn luyện viên
-              </Typography>
-            </Box>
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {error}
-            </Alert>
-          </CardContent>
-        </Card>
-      </Box>
+      <div className="chat-coach-wrapper">
+        <div className="container">
+          <div className="row justify-content-center">
+            <div className="col-md-8">
+              <div className="chat-card">
+                <div className="chat-header">
+                  <button className="back-button btn btn-link" onClick={() => navigate(-1)}>
+                    <FontAwesomeIcon icon={faArrowLeft} />
+                    <span>Quay lại</span>
+                  </button>
+                  <h5 className="mb-0">Trò chuyện với Huấn luyện viên</h5>
+                </div>
+                <div className="alert alert-danger m-3" role="alert">
+                  {error}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
-      <Card sx={{ maxWidth: 500, width: '100%', p: 2 }}>
-        <CardContent>
-          <Box display="flex" alignItems="center" mb={2}>
-            <IconButton onClick={() => navigate(-1)} color="primary">
-              <ArrowBackIcon />
-            </IconButton>
-            <Typography variant="h5" sx={{ ml: 1, fontWeight: 600 }}>
-              Trò chuyện với Huấn luyện viên
-            </Typography>
-          </Box>
-          
-          {/* Hiển thị CircularProgress khi đang tải tin nhắn */}
-          {loading ? (
-            <Box display="flex" justifyContent="center" alignItems="center" height={300}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            /* Hộp hiển thị tin nhắn */
-            <Box sx={{ 
-              border: '1px solid #e0e0e0', 
-              borderRadius: 2, 
-              height: 300, 
-              overflowY: 'auto', 
-              mb: 2, 
-              bgcolor: '#fafafa', 
-              p: 1 
-            }}>
-              {messages.length === 0 ? (
-                <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-                  <Typography color="textSecondary">
-                    Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện!
-                  </Typography>
-                </Box>
+    <div className="chat-coach-wrapper">
+      <div className="container">
+        <div className="row justify-content-center">
+          <div className="col-md-8">
+            <div className="chat-card">
+              <div className="chat-header">
+                <button className="back-button btn btn-link" onClick={() => navigate(-1)}>
+                  <FontAwesomeIcon icon={faArrowLeft} />
+                  <span>Quay lại</span>
+                </button>
+                <h5 className="mb-0">Trò chuyện với Huấn luyện viên</h5>
+              </div>
+              
+              {/* Hiển thị CircularProgress khi đang tải tin nhắn */}
+              {loading ? (
+                <div className="loading-spinner">
+                  <FontAwesomeIcon icon={faSpinner} spin size="2x" />
+                </div>
               ) : (
-                messages.map((message) => (
-                  <Box
-                    key={message.Id}
-                    sx={{
-                      display: 'flex',
-                      // Căn chỉnh tin nhắn (của mình sang phải, của người khác sang trái)
-                      justifyContent: message.SenderId === user.id ? 'flex-end' : 'flex-start',
-                      mb: 2
-                    }}
-                  >
-                    <Paper
-                      elevation={1}
-                      sx={{
-                        p: 2,
-                        maxWidth: '70%',
-                        backgroundColor: message.SenderId === user.id ? 'primary.main' : 'grey.100',
-                        color: message.SenderId === user.id ? 'white' : 'text.primary',
-                        borderRadius: 2
-                      }}
-                    >
-                      <Typography variant="body1" sx={{ mb: 0.5 }}>
-                        {message.Content}
-                      </Typography>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
-                        <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                          {/* Hiển thị tên người gửi */}
-                          {message.SenderId === user.id ? 'Bạn' : message.SenderName}
-                        </Typography>
-                        <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                          {/* Hiển thị thời gian gửi */}
-                          {new Date(message.SentAt).toLocaleString()}
-                        </Typography>
-                      </Box>
-                    </Paper>
-                  </Box>
-                ))
+                /* Hộp hiển thị tin nhắn */
+                <div className="chat-messages">
+                  {messages.length === 0 ? (
+                    <div className="text-center text-muted py-5">
+                      Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện!
+                    </div>
+                  ) : (
+                    messages.map((message) => (
+                      <div
+                        key={message.Id}
+                        className={`message ${message.SenderId === user.id ? 'sent' : 'received'}`}
+                      >
+                        <div className="message-content">
+                          {message.Content}
+                        </div>
+                        <div className="message-info">
+                          <span>{message.SenderId === user.id ? 'Bạn' : message.SenderName}</span>
+                          <span>{new Date(message.SentAt).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  {/* Element rỗng để cuộn đến cuối */}
+                  <div ref={messagesEndRef} />
+                </div>
               )}
-              {/* Element rỗng để cuộn đến cuối */}
-              <div ref={messagesEndRef} />
-            </Box>
-          )}
-          
-          {/* Phần nhập tin nhắn và nút gửi */}
-          <Box display="flex" gap={1}>
-            <TextField
-              value={content}
-              onChange={e => setContent(e.target.value)}
-              placeholder="Nhập tin nhắn..."
-              fullWidth
-              size="small"
-              disabled={sending}
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) sendMessage(); }}
-            />
-            <Button 
-              variant="contained" 
-              color="primary" 
-              onClick={sendMessage} 
-              disabled={sending || !content.trim()}
-              sx={{ fontWeight: 600 }}
+              
+              {/* Phần nhập tin nhắn và nút gửi */}
+              <div className="chat-input">
+                <div className="input-group">
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={content}
+                    onChange={e => setContent(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Nhập tin nhắn..."
+                    disabled={sending}
+                  />
+                  <button
+                    className="btn btn-primary"
+                    onClick={sendMessage}
+                    disabled={sending || !content.trim()}
+                  >
+                    {sending ? (
+                      <FontAwesomeIcon icon={faSpinner} spin />
+                    ) : (
+                      <FontAwesomeIcon icon={faPaperPlane} />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer className="footer bg-light text-dark py-4">
+        <div className="container">
+          <div className="social-icons">
+            <a
+              href="https://www.facebook.com/loccphamxuan?locale=vi_VN"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Facebook"
             >
-              {sending ? <CircularProgress size={24} color="inherit" /> : 'Gửi'}
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
-    </Box>
+              <img
+                src={facebookImage}
+                alt="Facebook"
+                style={{ width: "36px", height: "36px" }}
+              />
+            </a>
+            <a
+              href="https://www.instagram.com/xlocpham/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram"
+            >
+              <img
+                src={instagramImage}
+                alt="Instagram"
+                style={{ width: "36px", height: "36px" }}
+              />
+            </a>
+          </div>
+          <p className="copyright">
+            &copy; 2024 Hỗ trợ cai nghiện. Đã đăng ký bản quyền.
+          </p>
+        </div>
+      </footer>
+    </div>
   );
 };
 
