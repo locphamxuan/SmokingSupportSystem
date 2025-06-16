@@ -1,11 +1,25 @@
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  Container, Paper, Typography, Box, TextField, Button, List, ListItem, ListItemText,
-  CircularProgress, Alert, Snackbar
-} from '@mui/material';
-import SendIcon from '@mui/icons-material/Send';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
+import 'bootstrap/dist/css/bootstrap.min.css';
+
+// CSS cho scrollbar
+const scrollbarStyles = `
+  .chat-messages::-webkit-scrollbar {
+    width: 6px;
+  }
+  .chat-messages::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+  }
+  .chat-messages::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+  }
+  .chat-messages::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+  }
+`;
 
 const CoachChatPage = () => {
   const { memberId } = useParams();
@@ -16,19 +30,52 @@ const CoachChatPage = () => {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [memberData, setMemberData] = useState(null);
+  const [user, setUser] = useState(null);
   
-  let user = null;
-  try {
-    const userStr = localStorage.getItem('user');
-    if (userStr && userStr !== 'undefined') {
-      user = JSON.parse(userStr);
-    }
-  } catch (e) {
-    console.error("Error parsing user from localStorage:", e);
-  }
-
   const token = localStorage.getItem('token');
   const messagesEndRef = useRef(null);
+
+  // Initialize user state
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr && userStr !== 'undefined') {
+        setUser(JSON.parse(userStr));
+      }
+    } catch (e) {
+      console.error("Error parsing user from localStorage:", e);
+    }
+  }, []);
+
+  // Use useCallback to wrap fetchMessages to avoid dependency issues
+  const fetchMessages = useCallback(async () => {
+    try {
+      console.log('Fetching messages for member:', memberId);
+      const response = await axios.get(`http://localhost:5000/api/messages/member/${memberId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      console.log('Messages response:', response.data);
+      if (response.data && Array.isArray(response.data.messages)) {
+        setMessages(response.data.messages);
+        setError('');
+      } else {
+        console.error('Invalid messages data format:', response.data);
+        setError('Định dạng dữ liệu tin nhắn không hợp lệ.');
+      }
+    } catch (error) {
+      console.error('Chi tiết lỗi khi tải tin nhắn:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      if (error.response?.status === 401) {
+        setError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+        navigate('/login');
+      } else {
+        setError(error.response?.data?.message || 'Không thể tải tin nhắn. Vui lòng thử lại sau.');
+      }
+    }
+  }, [memberId, token, navigate]);
 
   useEffect(() => {
     const checkAccessAndFetchData = async () => {
@@ -70,7 +117,7 @@ const CoachChatPage = () => {
         console.log('memberData set to:', currentMember);
         
         await fetchMessages();
-        setLoading(false); // Set loading to false after all data is fetched successfully
+        setLoading(false);
       } catch (error) {
         console.error('Lỗi kiểm tra quyền truy cập hoặc tải dữ liệu:', error);
         setError(error.response?.data?.message || 'Không thể tải dữ liệu.');
@@ -82,40 +129,14 @@ const CoachChatPage = () => {
       navigate('/login');
       return;
     }
-    checkAccessAndFetchData();
+    
+    if (user) {
+      checkAccessAndFetchData();
 
-    const interval = setInterval(fetchMessages, 5000);
-    return () => clearInterval(interval);
-  }, [memberId, navigate, token]);
-
-  const fetchMessages = async () => {
-    try {
-      console.log('Fetching messages for member:', memberId);
-      const response = await axios.get(`http://localhost:5000/api/messages/member/${memberId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      console.log('Messages response:', response.data);
-      if (response.data && Array.isArray(response.data.messages)) {
-        setMessages(response.data.messages);
-        setError('');
-      } else {
-        console.error('Invalid messages data format:', response.data);
-        setError('Định dạng dữ liệu tin nhắn không hợp lệ.');
-      }
-    } catch (error) {
-      console.error('Chi tiết lỗi khi tải tin nhắn:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      });
-      if (error.response?.status === 401) {
-        setError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-        navigate('/login');
-      } else {
-        setError(error.response?.data?.message || 'Không thể tải tin nhắn. Vui lòng thử lại sau.');
-      }
+      const interval = setInterval(fetchMessages, 5000);
+      return () => clearInterval(interval);
     }
-  };
+  }, [memberId, navigate, token, fetchMessages, user]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -142,96 +163,276 @@ const CoachChatPage = () => {
     }
   };
 
-  const handleCloseSnackbar = () => {
+  // Hàm xử lý Enter để gửi tin nhắn
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const handleCloseAlert = () => {
     setError('');
   };
 
   if (loading) {
     return (
-      <Container maxWidth="md" sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
-        <CircularProgress />
-      </Container>
+      <div className="container-sm" style={{ marginTop: '120px', paddingTop: '20px' }}>
+        <div className="card shadow-lg border-0" style={{ borderRadius: '15px' }}>
+          <div className="card-body text-center p-4">
+            <div className="spinner-border text-success" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+            <h6 className="mt-3 text-muted">Đang tải dữ liệu...</h6>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container-sm" style={{ marginTop: '120px', paddingTop: '20px' }}>
+        <div className="card shadow-lg border-0" style={{ borderRadius: '15px' }}>
+          <div className="card-body text-center p-4">
+            <div className="d-flex align-items-center justify-content-center mb-3">
+              <button 
+                onClick={() => navigate('/coach/dashboard')} 
+                className="btn btn-success me-3 rounded-circle"
+                style={{ width: '40px', height: '40px' }}
+              >
+                <i className="fas fa-arrow-left"></i>
+              </button>
+              <h5 className="fw-bold text-success mb-0">Chat với thành viên</h5>
+            </div>
+            <div className="alert alert-danger" role="alert">
+              {error}
+              <button 
+                type="button" 
+                className="btn-close ms-2" 
+                onClick={handleCloseAlert}
+                aria-label="Close"
+              ></button>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Container maxWidth="md" sx={{ mt: 4 }}>
-      <Paper elevation={3} sx={{ p: 4, display: 'flex', flexDirection: 'column', height: '70vh' }}>
-        <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, color: '#1976d2' }}>
-          Chat với thành viên: {memberData?.Username || 'Đang tải...'}
-        </Typography>
-        <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2, border: '1px solid #e0e0e0', borderRadius: 1, mb: 2 }}>
-          <List>
-            {messages.map((msg) => (
-              <ListItem
-                key={msg.Id}
-                sx={{
-                  justifyContent: msg.SenderId === parseInt(memberId) ? 'flex-start' : 'flex-end',
-                  pr: msg.SenderId === parseInt(memberId) ? 0 : 2,
-                  pl: msg.SenderId === parseInt(memberId) ? 2 : 0,
-                }}
-              >
-                <Paper
-                  variant="outlined"
-                  sx={{
-                    p: 1.5,
-                    maxWidth: '70%',
-                    bgcolor: msg.SenderId === parseInt(memberId) ? '#e0e0e0' : '#1976d2',
-                    color: msg.SenderId === parseInt(memberId) ? 'text.primary' : 'white',
-                    borderRadius: '20px',
-                    borderBottomLeftRadius: msg.SenderId === parseInt(memberId) ? '0px' : '20px',
-                    borderBottomRightRadius: msg.SenderId === parseInt(memberId) ? '20px' : '0px',
-                    wordBreak: 'break-word',
-                  }}
+    <>
+      <style>{scrollbarStyles}</style>
+      <div className="container-sm pb-3" style={{ marginTop: '120px', paddingTop: '20px' }}>
+        <div 
+          className="card shadow-lg border-0 overflow-hidden"
+          style={{ 
+            borderRadius: '15px',
+            height: 'calc(100vh - 180px)',
+            background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)'
+          }}
+        >
+        {/* Header */}
+        <div 
+          className="card-header border-bottom-0"
+          style={{ 
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            borderBottom: '1px solid rgba(0,0,0,0.1)'
+          }}
+        >
+          <div className="d-flex align-items-center justify-content-between">
+            <div className="d-flex align-items-center">
+                              <button 
+                  onClick={() => navigate('/coach/dashboard')} 
+                  className="btn btn-success btn-sm me-2 rounded-circle"
+                  style={{ width: '35px', height: '35px' }}
                 >
-                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                    {msg.SenderId === parseInt(memberId) ? msg.SenderName : 'Bạn'}
-                  </Typography>
-                  <Typography variant="body1">
-                    {msg.Content}
-                  </Typography>
-                  <Typography variant="caption" display="block" sx={{ mt: 0.5, textAlign: 'right', color: msg.SenderId === parseInt(memberId) ? 'text.secondary' : 'rgba(255, 255, 255, 0.7)' }}>
-                    {new Date(msg.SentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(msg.SentAt).toLocaleDateString()}
-                  </Typography>
-                </Paper>
-              </ListItem>
-            ))}
-            <div ref={messagesEndRef} />
-          </List>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <TextField
-            fullWidth
-            variant="outlined"
-            placeholder="Nhập tin nhắn..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                handleSendMessage();
-              }
-            }}
-            disabled={sending}
-          />
-          <Button
-            variant="contained"
-            endIcon={<SendIcon />}
-            onClick={handleSendMessage}
-            disabled={sending}
-          >
-            Gửi
-          </Button>
-        </Box>
-      </Paper>
-      {error && (
-        <Snackbar open={!!error} autoHideDuration={6000} onClose={handleCloseSnackbar}>
-          <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
-            {error}
-          </Alert>
-        </Snackbar>
-      )}
-    </Container>
-  );
-};
+                  <i className="fas fa-arrow-left"></i>
+                </button>
+              <div 
+                className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2"
+                style={{ width: '35px', height: '35px' }}
+              >
+                <i className="fas fa-user"></i>
+              </div>
+              <div>
+                <h6 className="fw-bold mb-0 lh-1">
+                  {memberData?.Username || 'Thành viên'}
+                </h6>
+                <span 
+                  className="badge bg-success text-white"
+                  style={{ fontSize: '0.7rem' }}
+                >
+                  Thành viên Premium
+                </span>
+              </div>
+            </div>
+            <span className="badge bg-warning text-white fw-bold">
+              <i className="fas fa-user-tie me-1"></i>
+              Huấn luyện viên
+            </span>
+          </div>
+        </div>
+
+                 {/* Chat Area */}
+         <div 
+           className="card-body p-0 d-flex flex-column"
+           style={{ 
+             backgroundColor: 'rgba(255, 255, 255, 0.1)',
+             flex: 1,
+             minHeight: 0
+           }}
+         >
+           <div 
+             className="flex-grow-1 p-3 overflow-auto chat-messages"
+             style={{ 
+               height: 'calc(100% - 140px)',
+               scrollbarWidth: 'thin',
+               scrollbarColor: 'rgba(255,255,255,0.3) rgba(255,255,255,0.1)',
+               overflowY: 'auto',
+               overflowX: 'hidden'
+             }}
+           >
+            {messages.length === 0 ? (
+              <div className="d-flex justify-content-center align-items-center h-100 flex-column">
+                <div 
+                  className="rounded-circle bg-white text-success d-flex align-items-center justify-content-center mb-3"
+                  style={{ width: '50px', height: '50px' }}
+                >
+                  <i className="fas fa-user fa-lg"></i>
+                </div>
+                <h6 className="text-white mb-2" style={{ opacity: 0.9 }}>
+                  Chưa có tin nhắn nào
+                </h6>
+                <p className="text-white mb-0" style={{ opacity: 0.7 }}>
+                  Hãy bắt đầu cuộc trò chuyện để hỗ trợ!
+                </p>
+              </div>
+            ) : (
+              <div>
+                {messages.map((msg) => (
+                  <div
+                    key={msg.Id}
+                    className={`d-flex mb-3 ${msg.SenderId === parseInt(memberId) ? 'justify-content-start' : 'justify-content-end'}`}
+                  >
+                    <div
+                      className={`d-flex align-items-end ${msg.SenderId === parseInt(memberId) ? 'flex-row' : 'flex-row-reverse'}`}
+                      style={{ maxWidth: '75%' }}
+                    >
+                      <div 
+                        className={`rounded-circle text-white d-flex align-items-center justify-content-center mx-2 ${msg.SenderId === parseInt(memberId) ? 'bg-primary' : 'bg-success'}`}
+                        style={{ width: '28px', height: '28px', minWidth: '28px' }}
+                      >
+                        <i className={`fas ${msg.SenderId === parseInt(memberId) ? 'fa-user' : 'fa-user-tie'} fa-xs`}></i>
+                      </div>
+                      <div
+                        className="card shadow-sm border-0"
+                        style={{
+                          backgroundColor: msg.SenderId === parseInt(memberId) ? 'white' : '#4CAF50',
+                          color: msg.SenderId === parseInt(memberId) ? '#333' : 'white',
+                          borderRadius: msg.SenderId === parseInt(memberId) ? '15px 15px 15px 5px' : '15px 15px 5px 15px'
+                        }}
+                      >
+                        <div className="card-body p-2">
+                          <div className="fw-bold mb-1" style={{ fontSize: '0.75rem' }}>
+                            {msg.SenderId === parseInt(memberId) ? msg.SenderName : 'Bạn (HLV)'}
+                          </div>
+                          <div className="mb-1" style={{ fontSize: '0.9rem', lineHeight: 1.4 }}>
+                            {msg.Content}
+                          </div>
+                          <div 
+                            style={{ 
+                              opacity: 0.7,
+                              fontSize: '0.7rem'
+                            }}
+                          >
+                            {new Date(msg.SentAt).toLocaleTimeString([], { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })} - {new Date(msg.SentAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
+          </div>
+        </div>
+
+                 {/* Input Area */}
+         <div 
+           className="card-footer border-top-0 position-relative"
+           style={{ 
+             backgroundColor: 'rgba(255, 255, 255, 0.95)',
+             borderTop: '1px solid rgba(0,0,0,0.1)',
+             flexShrink: 0,
+             padding: '15px'
+           }}
+         >
+           <div className="d-flex gap-2 align-items-end">
+             <div className="flex-grow-1">
+               <textarea
+                 value={newMessage}
+                 onChange={(e) => setNewMessage(e.target.value)}
+                 placeholder="Nhập tin nhắn hỗ trợ cho thành viên..."
+                 className="form-control border-1"
+                 rows="2"
+                 disabled={sending}
+                 onKeyPress={handleKeyPress}
+                 style={{
+                   borderRadius: '20px',
+                   border: '1px solid #e0e0e0',
+                   resize: 'none',
+                   minHeight: '60px',
+                   maxHeight: '120px'
+                 }}
+                 onFocus={(e) => e.target.style.borderColor = '#4CAF50'}
+                 onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+               />
+             </div>
+             <button 
+               onClick={handleSendMessage} 
+               disabled={sending || !newMessage.trim()}
+               className="btn btn-success rounded-circle d-flex align-items-center justify-content-center"
+               style={{ width: '45px', height: '45px', minWidth: '45px' }}
+             >
+               {sending ? (
+                 <div className="spinner-border spinner-border-sm" role="status">
+                   <span className="visually-hidden">Loading...</span>
+                 </div>
+               ) : (
+                 <i className="fas fa-paper-plane"></i>
+               )}
+             </button>
+                      </div>
+         </div>
+       </div>
+
+       {/* Error Toast */}
+       {error && (
+         <div className="position-fixed bottom-0 end-0 p-3" style={{ zIndex: 11 }}>
+           <div className="toast show" role="alert">
+             <div className="toast-header bg-danger text-white">
+               <strong className="me-auto">Lỗi</strong>
+               <button 
+                 type="button" 
+                 className="btn-close btn-close-white" 
+                 onClick={handleCloseAlert}
+                 aria-label="Close"
+               ></button>
+             </div>
+             <div className="toast-body">
+               {error}
+             </div>
+           </div>
+         </div>
+       )}
+      </div>
+    </>
+   );
+ };
 
 export default CoachChatPage; 

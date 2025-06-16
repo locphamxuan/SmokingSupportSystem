@@ -32,18 +32,18 @@ const ProfilePage = () => {
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
   
-  // Safely parse user from localStorage
-  let user = null;
-  try {
-    const userStr = localStorage.getItem("user");
-    if (userStr && userStr !== 'undefined') {
-      user = JSON.parse(userStr);
-    }
-  } catch (error) {
-    console.error("Error parsing user from localStorage:", error);
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-  }
+  // Safely parse user from localStorage - commented out as not used
+  // let user = null;
+  // try {
+  //   const userStr = localStorage.getItem("user");
+  //   if (userStr && userStr !== 'undefined') {
+  //     user = JSON.parse(userStr);
+  //   }
+  // } catch (error) {
+  //   console.error("Error parsing user from localStorage:", error);
+  //   localStorage.removeItem("user");
+  //   localStorage.removeItem("token");
+  // }
 
   const fetchUserData = useCallback(async () => {
     try {
@@ -90,11 +90,11 @@ const ProfilePage = () => {
     fetchUserData();
   }, [fetchUserData]);
 
-  useEffect(() => {
-    if (user && user.role === "admin") {
-      navigate("/admin/users");
-    }
-  }, [user, navigate]);
+  // useEffect(() => {
+  //   if (user && user.role === "admin") {
+  //     navigate("/admin/users");
+  //   }
+  // }, [user, navigate]);
 
 
 

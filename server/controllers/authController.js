@@ -138,6 +138,26 @@ exports.getProfile = async (req, res) => {
       dailyLog
     };
 
+    // Lấy thông tin coach nếu có
+    let coach = null;
+    if (user.CoachId) {
+      const coachResult = await sql.query`
+        SELECT Id, Username, Email, PhoneNumber
+        FROM Users 
+        WHERE Id = ${user.CoachId}
+      `;
+      
+      if (coachResult.recordset.length > 0) {
+        const coachData = coachResult.recordset[0];
+        coach = {
+          id: coachData.Id,
+          username: coachData.Username,
+          email: coachData.Email,
+          phoneNumber: coachData.PhoneNumber || 'N/A'
+        };
+      }
+    }
+
     res.json({
       id: user.Id,
       username: user.Username,
@@ -148,7 +168,8 @@ exports.getProfile = async (req, res) => {
       isMember: user.IsMember,
       createdAt: user.CreatedAt,
       smokingStatus,
-      coachId: user.CoachId
+      coachId: user.CoachId,
+      coach: coach
     });
   } catch (error) {
     res.status(500).json({ message: 'Failed to get profile', error: error.message });

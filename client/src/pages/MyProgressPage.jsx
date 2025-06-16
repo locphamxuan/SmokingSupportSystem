@@ -202,9 +202,11 @@ const MyProgressPage = () => {
 
   if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center vh-100">
-        <div className="spinner-border text-success" role="status">
-          <span className="visually-hidden">Loading...</span>
+      <div className="my-progress-wrapper">
+        <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
+          <div className="spinner-border text-success" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
         </div>
       </div>
     );
@@ -286,7 +288,7 @@ const MyProgressPage = () => {
                     {userData.coach ? (
                       <div className="alert alert-info">
                         <p className="mb-1"><strong>Huấn luyện viên của bạn:</strong> {userData.coach.username}</p>
-                        <button onClick={() => navigate(`/chat-coach/${userData.coach._id}`)} className="btn btn-success me-2">Nhắn tin với Coach</button>
+                        <button onClick={() => navigate(`/chat-coach/${userData.coach.id}`)} className="btn btn-success me-2">Nhắn tin với Coach</button>
                         <button onClick={handleCancelCoachRequest} className="btn btn-outline-danger">Hủy yêu cầu Coach</button>
                       </div>
                     ) : (
