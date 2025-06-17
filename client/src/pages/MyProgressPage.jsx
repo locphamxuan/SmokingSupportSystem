@@ -177,14 +177,14 @@ const MyProgressPage = () => {
   const handleRequestCoach = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:5000/api/auth/request-coach', {}, {
+      const response = await axios.post('http://localhost:5000/api/users/request-coach', {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSuccess('Yêu cầu hỗ trợ từ huấn luyện viên đã được gửi!');
+      setSuccess('Huấn luyện viên đã được phân công cho bạn!');
       await fetchUserData();
       // Navigate to chat interface if coach is assigned
-      if (response.data.coach) {
-        navigate(`/chat-coach/${response.data.coach.Id}`);
+      if (response.data.coachId) {
+        navigate(`/chat-coach/${response.data.coachId}`);
       }
     } catch (error) {
       setError(error.response?.data?.message || 'Gửi yêu cầu thất bại.');
@@ -341,31 +341,73 @@ const MyProgressPage = () => {
                   </p>
                 )}
                 
+                {/* DEBUG: Coach Data */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="mt-2 p-2 bg-light border rounded">
+                    <small className="text-muted">
+                      <strong>DEBUG:</strong> Coach data: {JSON.stringify(userData.coach)} | 
+                      isMember: {String(userData.isMember)} | 
+                      coachId: {userData.coachId}
+                    </small>
+                  </div>
+                )}
+
                 {/* Coach Request/Chat */}
-                {userData.isMember && userData.role !== 'coach' && userData.role !== 'admin' && (
+                {userData.role !== 'coach' && userData.role !== 'admin' && (
                   <div className="mt-3">
-                    {userData.coach ? (
+                    {userData.coach || userData.coachId ? (
                       <div className="alert alert-info">
-                        <p className="mb-1"><strong>Huấn luyện viên của bạn:</strong> {userData.coach.Username}</p>
-                        <button onClick={() => navigate(`/chat-coach/${userData.coach.Id}`)} className="btn btn-success me-2">Nhắn tin với Coach</button>
-                        {!userData.coach.bookingStatus && (
-                          <button onClick={() => navigate('/booking')} className="btn btn-info">Đặt lịch</button>
+                        <h6 className="alert-heading mb-2">
+                          <i className="fas fa-user-tie me-2"></i>Huấn luyện viên của bạn
+                        </h6>
+                        <p className="mb-2">
+                          <strong>Tên:</strong> {userData.coach?.Username || userData.coach?.Name || `Coach ID: ${userData.coachId}`}
+                        </p>
+                        <div className="d-flex flex-wrap gap-2">
+                          <button 
+                            onClick={() => navigate(`/chat-coach/${userData.coach?.Id || userData.coach?.id || userData.coachId}`)} 
+                            className="btn btn-success"
+                          >
+                            <i className="fas fa-comments me-2"></i>Nhắn tin với Coach
+                          </button>
+                          <button onClick={() => navigate('/booking')} className="btn btn-info">
+                            <i className="fas fa-calendar-plus me-2"></i>Đặt lịch hẹn
+                          </button>
+                          <button onClick={handleCancelCoachRequest} className="btn btn-outline-danger">
+                            <i className="fas fa-times me-2"></i>Hủy yêu cầu Coach
+                          </button>
+                        </div>
+                        {userData.coach?.bookingStatus && (
+                          <p className="mt-2 mb-0">
+                            <strong>Trạng thái lịch hẹn:</strong> 
+                            <span className="badge bg-primary ms-2">{userData.coach.bookingStatus}</span>
+                          </p>
                         )}
-                        {userData.coach.bookingStatus && (
-                          <p className="mt-2 mb-0">Trạng thái lịch hẹn: <strong>{userData.coach.bookingStatus}</strong></p>
-                        )}
-                        <p className="mb-1"><strong>Huấn luyện viên của bạn:</strong> {userData.coach.username}</p>
-                        <button onClick={() => navigate(`/chat-coach/${userData.coach.id}`)} className="btn btn-success me-2">Nhắn tin với Coach</button>
-                        <button onClick={handleCancelCoachRequest} className="btn btn-outline-danger">Hủy yêu cầu Coach</button>
+                      </div>
+                    ) : userData.isMember ? (
+                      <div className="alert alert-warning">
+                        <h6 className="alert-heading mb-2">
+                          <i className="fas fa-exclamation-triangle me-2"></i>Chưa có huấn luyện viên
+                        </h6>
+                        <p className="mb-2">Bạn chưa được phân công huấn luyện viên. Hãy yêu cầu hỗ trợ để được kết nối với coach chuyên nghiệp.</p>
+                        <div className="d-flex flex-wrap gap-2">
+                          <button onClick={handleRequestCoach} className="btn btn-success">
+                            <i className="fas fa-user-plus me-2"></i>Yêu cầu Coach
+                          </button>
+                          <button onClick={() => navigate('/booking')} className="btn btn-info">
+                            <i className="fas fa-calendar-plus me-2"></i>Đặt lịch hẹn
+                          </button>
+                        </div>
                       </div>
                     ) : (
-                      <div className="alert alert-warning">
-                        <p className="mb-1">Bạn chưa được phân công huấn luyện viên.</p>
-                        {!userData.isMember ? (
-                          <p className="mb-0">Vui lòng nâng cấp tài khoản để yêu cầu huấn luyện viên.</p>
-                        ) : (
-                          <button onClick={() => navigate('/booking')} className="btn btn-info">Đặt lịch</button>
-                        )}
+                      <div className="alert alert-secondary">
+                        <h6 className="alert-heading mb-2">
+                          <i className="fas fa-crown me-2"></i>Nâng cấp Premium
+                        </h6>
+                        <p className="mb-2">Để được hỗ trợ từ huấn luyện viên chuyên nghiệp, vui lòng nâng cấp lên gói Premium.</p>
+                        <button onClick={() => navigate('/subscribe')} className="btn btn-warning">
+                          <i className="fas fa-star me-2"></i>Nâng cấp ngay
+                        </button>
                       </div>
                     )}
                   </div>

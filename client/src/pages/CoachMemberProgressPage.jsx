@@ -46,7 +46,7 @@ const CoachMemberProgressPage = () => {
 
   if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center vh-100">
+      <div className="d-flex justify-content-center align-items-center vh-100" style={{ paddingTop: '100px' }}>
         <div className="spinner-border text-primary" role="status">
           <span className="visually-hidden">Loading...</span>
         </div>
@@ -56,7 +56,7 @@ const CoachMemberProgressPage = () => {
 
   if (error || !memberData) {
     return (
-      <div className="container mt-4">
+      <div className="container mt-4" style={{ paddingTop: '100px' }}>
         <div className="alert alert-danger alert-dismissible fade show" role="alert">
           {error || 'Không tìm thấy dữ liệu tiến trình cho thành viên này.'}
           <button type="button" className="btn-close" data-bs-dismiss="alert" aria-label="Close" onClick={handleCloseSnackbar}></button>
@@ -68,7 +68,7 @@ const CoachMemberProgressPage = () => {
   const { smokingProfile, latestProgress, quitPlan } = memberData;
 
   return (
-    <div className="coach-member-progress-wrapper">
+    <div className="coach-member-progress-wrapper" style={{ paddingTop: '100px' }}>
       <div className="container mt-4 mb-4">
         <div className="d-flex justify-content-between align-items-center mb-4">
           <button onClick={handleBack} className="btn btn-outline-secondary">

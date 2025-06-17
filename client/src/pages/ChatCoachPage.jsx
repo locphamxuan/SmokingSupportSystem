@@ -3,8 +3,9 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, Typography, Button, TextField, Box, IconButton, CircularProgress, Alert, Paper } from '@mui/material';
+import { Card, CardContent, Typography, Button, TextField, Box, IconButton, CircularProgress, Alert, Paper, Container, Avatar } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import SendIcon from '@mui/icons-material/Send';
 
 const ChatCoachPage = () => {
   // Lấy coachId từ URL params
@@ -118,128 +119,186 @@ const ChatCoachPage = () => {
   // Hiển thị giao diện lỗi nếu có lỗi
   if (error) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
-        <Card sx={{ maxWidth: 500, width: '100%', p: 2 }}>
-          <CardContent>
-            <Box display="flex" alignItems="center" mb={2}>
-              <IconButton onClick={() => navigate(-1)} color="primary">
-                <ArrowBackIcon />
-              </IconButton>
-              <Typography variant="h5" sx={{ ml: 1, fontWeight: 600 }}>
-                Trò chuyện với Huấn luyện viên
-              </Typography>
-            </Box>
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {error}
-            </Alert>
-          </CardContent>
-        </Card>
-      </Box>
+      <Container maxWidth="md" sx={{ py: 4, mt: '80px' }}>
+        <Paper elevation={3} sx={{ p: 4, maxWidth: 600, mx: 'auto' }}>
+          <Box display="flex" alignItems="center" mb={3}>
+            <IconButton onClick={() => navigate(-1)} color="primary" sx={{ mr: 2 }}>
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography variant="h5" sx={{ fontWeight: 600, color: '#1976d2' }}>
+              Trò chuyện với Huấn luyện viên
+            </Typography>
+          </Box>
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {error}
+          </Alert>
+        </Paper>
+      </Container>
     );
   }
 
   return (
-    <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
-      <Card sx={{ maxWidth: 500, width: '100%', p: 2 }}>
-        <CardContent>
-          <Box display="flex" alignItems="center" mb={2}>
-            <IconButton onClick={() => navigate(-1)} color="primary">
-              <ArrowBackIcon />
-            </IconButton>
-            <Typography variant="h5" sx={{ ml: 1, fontWeight: 600 }}>
-              Trò chuyện với Huấn luyện viên
+    <Container maxWidth="lg" sx={{ py: 4, px: 2, mt: '80px' }}>
+      <Paper elevation={3} sx={{ height: '600px', display: 'flex', flexDirection: 'column', overflow: 'hidden', maxWidth: '1000px', mx: 'auto' }}>
+        {/* Header */}
+        <Box sx={{ 
+          p: 2.5, 
+          borderBottom: '1px solid #e0e0e0', 
+          bgcolor: '#f8f9fa',
+          display: 'flex',
+          alignItems: 'center'
+        }}>
+          <IconButton onClick={() => navigate(-1)} color="primary" sx={{ mr: 2 }}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Avatar sx={{ bgcolor: '#1976d2', mr: 2, width: 35, height: 35 }}>
+            {coachInfo?.Name?.charAt(0) || 'H'}
+          </Avatar>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: '#1976d2', fontSize: '1.1rem' }}>
+              {coachInfo?.Name || 'Huấn luyện viên'}
+            </Typography>
+            <Typography variant="body2" color="textSecondary" sx={{ fontSize: '0.8rem' }}>
+              Huấn luyện viên chuyên nghiệp
             </Typography>
           </Box>
-          
-          {/* Hiển thị CircularProgress khi đang tải tin nhắn */}
+        </Box>
+
+        {/* Messages Area */}
+        <Box sx={{ 
+          flex: 1, 
+          overflowY: 'auto', 
+          p: 2,
+          bgcolor: '#f5f7fa',
+          minHeight: 0
+        }}>
           {loading ? (
-            <Box display="flex" justifyContent="center" alignItems="center" height={300}>
-              <CircularProgress />
+            <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+              <CircularProgress size={35} />
+            </Box>
+          ) : messages.length === 0 ? (
+            <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+              <Box textAlign="center">
+                <Typography color="textSecondary" variant="h6" sx={{ mb: 1, fontSize: '1rem' }}>
+                  Chưa có tin nhắn nào
+                </Typography>
+                <Typography color="textSecondary" variant="body2" sx={{ fontSize: '0.85rem' }}>
+                  Hãy bắt đầu cuộc trò chuyện với huấn luyện viên của bạn!
+                </Typography>
+              </Box>
             </Box>
           ) : (
-            /* Hộp hiển thị tin nhắn */
-            <Box sx={{ 
-              border: '1px solid #e0e0e0', 
-              borderRadius: 2, 
-              height: 300, 
-              overflowY: 'auto', 
-              mb: 2, 
-              bgcolor: '#fafafa', 
-              p: 1 
-            }}>
-              {messages.length === 0 ? (
-                <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-                  <Typography color="textSecondary">
-                    Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện!
-                  </Typography>
-                </Box>
-              ) : (
-                messages.map((message) => (
-                  <Box
-                    key={message.Id}
+            <Box sx={{ maxWidth: '100%' }}>
+              {messages.map((message) => (
+                <Box
+                  key={message.Id}
+                  sx={{
+                    display: 'flex',
+                    justifyContent: message.SenderId === user.id ? 'flex-end' : 'flex-start',
+                    mb: 1.5
+                  }}
+                >
+                  <Paper
+                    elevation={2}
                     sx={{
-                      display: 'flex',
-                      // Căn chỉnh tin nhắn (của mình sang phải, của người khác sang trái)
-                      justifyContent: message.SenderId === user.id ? 'flex-end' : 'flex-start',
-                      mb: 2
+                      p: 1.5,
+                      maxWidth: '65%',
+                      minWidth: '80px',
+                      backgroundColor: message.SenderId === user.id ? '#1976d2' : '#ffffff',
+                      color: message.SenderId === user.id ? 'white' : 'text.primary',
+                      borderRadius: 2.5,
+                      borderTopLeftRadius: message.SenderId === user.id ? 15 : 4,
+                      borderTopRightRadius: message.SenderId === user.id ? 4 : 15,
+                      borderBottomLeftRadius: 15,
+                      borderBottomRightRadius: 15,
+                      position: 'relative',
+                      wordBreak: 'break-word'
                     }}
                   >
-                    <Paper
-                      elevation={1}
-                      sx={{
-                        p: 2,
-                        maxWidth: '70%',
-                        backgroundColor: message.SenderId === user.id ? 'primary.main' : 'grey.100',
-                        color: message.SenderId === user.id ? 'white' : 'text.primary',
-                        borderRadius: 2
-                      }}
-                    >
-                      <Typography variant="body1" sx={{ mb: 0.5 }}>
-                        {message.Content}
+                    <Typography variant="body2" sx={{ mb: 0.5, lineHeight: 1.4, fontSize: '0.9rem' }}>
+                      {message.Content}
+                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          opacity: 0.8,
+                          fontWeight: 500,
+                          fontSize: '0.65rem'
+                        }}
+                      >
+                        {message.SenderId === user.id ? 'Bạn' : message.SenderName}
                       </Typography>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
-                        <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                          {/* Hiển thị tên người gửi */}
-                          {message.SenderId === user.id ? 'Bạn' : message.SenderName}
-                        </Typography>
-                        <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                          {/* Hiển thị thời gian gửi */}
-                          {new Date(message.SentAt).toLocaleString()}
-                        </Typography>
-                      </Box>
-                    </Paper>
-                  </Box>
-                ))
-              )}
-              {/* Element rỗng để cuộn đến cuối */}
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          opacity: 0.7,
+                          fontSize: '0.65rem'
+                        }}
+                      >
+                        {new Date(message.SentAt).toLocaleDateString('vi-VN')} {new Date(message.SentAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      </Typography>
+                    </Box>
+                  </Paper>
+                </Box>
+              ))}
               <div ref={messagesEndRef} />
             </Box>
           )}
-          
-          {/* Phần nhập tin nhắn và nút gửi */}
-          <Box display="flex" gap={1}>
+        </Box>
+        
+        {/* Input Area */}
+        <Box sx={{ 
+          p: 2.5, 
+          borderTop: '1px solid #e0e0e0',
+          bgcolor: '#ffffff'
+        }}>
+          <Box display="flex" gap={1.5} alignItems="flex-end">
             <TextField
               value={content}
               onChange={e => setContent(e.target.value)}
-              placeholder="Nhập tin nhắn..."
+              placeholder="Nhập tin nhắn của bạn..."
+              multiline
+              maxRows={3}
               fullWidth
               size="small"
+              variant="outlined"
               disabled={sending}
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) sendMessage(); }}
+              onKeyDown={e => { 
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage();
+                }
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2.5,
+                  bgcolor: '#f8f9fa',
+                  fontSize: '0.9rem'
+                }
+              }}
             />
             <Button 
               variant="contained" 
               color="primary" 
               onClick={sendMessage} 
               disabled={sending || !content.trim()}
-              sx={{ fontWeight: 600 }}
+              endIcon={sending ? <CircularProgress size={16} color="inherit" /> : <SendIcon sx={{ fontSize: 16 }} />}
+              sx={{ 
+                fontWeight: 600,
+                borderRadius: 2.5,
+                px: 2.5,
+                py: 1.2,
+                minWidth: '80px',
+                fontSize: '0.85rem'
+              }}
             >
-              {sending ? <CircularProgress size={24} color="inherit" /> : 'Gửi'}
+              {sending ? 'Gửi...' : 'Gửi'}
             </Button>
           </Box>
-        </CardContent>
-      </Card>
-    </Box>
+        </Box>
+      </Paper>
+    </Container>
   );
 };
 
