@@ -162,6 +162,40 @@ const BlogPage = () => {
                       <span className="text-dark">{effect}</span> 
                     </div>
                   </ListGroupItem>
+=======
+    <Box sx={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      minHeight: '100vh',
+      paddingTop: '80px' // Thêm padding-top để tránh navbar che khuất
+    }}>
+      <Box sx={{ flexGrow: 1 }}>
+        <Container maxWidth="lg">
+          <Box sx={{ my: 4 }}>
+           
+
+            {/* Benefits Section */}
+            <Box sx={{ mb: 6 }}>
+              <Typography variant="h4" component="h2" gutterBottom align="center" sx={{ mb: 4, color: '#1976d2' }}>
+                Lợi ích của việc cai nghiện thuốc lá
+              </Typography>
+              <Grid container spacing={3}>
+                {benefitsData.map((benefit, index) => (
+                  <Grid item xs={12} md={6} key={index}>
+                    <Card sx={{ height: '100%', transition: '0.3s', '&:hover': { transform: 'translateY(-4px)', boxShadow: 4 } }}>
+                      <CardContent>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                          {benefit.icon}
+                          <Typography variant="h6" component="h3" sx={{ ml: 2, fontWeight: 'bold' }}>
+                            {benefit.title}
+                          </Typography>
+                        </Box>
+                        <Typography variant="body1" color="text.secondary">
+                          {benefit.description}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
                 ))}
               </ListGroup>
             </div>
