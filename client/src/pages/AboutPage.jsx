@@ -215,20 +215,6 @@ const AboutPage = () => {
           </div>
         </div>
       </section>
-
-      <footer className="footer">
-        <div className="container">
-          <div className="social-icons">
-            <a href="https://www.facebook.com/loccphamxuan?locale=vi_VN" target="_blank" rel="noopener noreferrer">
-              <img src={facebookImage} alt="Facebook" />
-            </a>
-            <a href="https://www.instagram.com/xlocpham/" target="_blank" rel="noopener noreferrer">
-              <img src={instagramImage} alt="Instagram" />
-            </a>
-          </div>
-          <p className="copyright">&copy; 2023 Smoking Support System. All rights reserved.</p>
-        </div>
-      </footer>
     </div>
   );
 };
