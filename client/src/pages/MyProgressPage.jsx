@@ -6,6 +6,19 @@ import '../style/MyProgressPage.scss'; // Assuming you'll create this file for c
 import facebookImage from '../assets/images/facebook.jpg'; // Import Facebook image for footer
 import instagramImage from '../assets/images/instragram.jpg'; // Import Instagram image for footer
 
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
 const MyProgressPage = () => {
   const [userData, setUserData] = useState({
     username: '',
@@ -30,6 +43,7 @@ const MyProgressPage = () => {
     isMember: false,
     coach: null,
   });
+  const [smokingHistory, setSmokingHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -114,6 +128,28 @@ const MyProgressPage = () => {
         }
         fetchedUserData.quitPlan = null; // Ensure it's null if not found or error
       }
+
+      // Fetch user badges
+      try {
+        const badgesResponse = await axios.get('http://localhost:5000/api/auth/badges', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        fetchedUserData.achievements = badgesResponse.data.badges || [];
+      } catch (badgesError) {
+        console.error("Lỗi khi tải huy hiệu:", badgesError);
+        fetchedUserData.achievements = [];
+      }
+
+      // Fetch smoking progress history
+      try {
+        const historyResponse = await axios.get('http://localhost:5000/api/auth/progress/history', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setSmokingHistory(historyResponse.data.history || []);
+      } catch (historyError) {
+        console.error("Lỗi khi tải lịch sử hút thuốc:", historyError);
+        setSmokingHistory([]);
+      }
       
       setUserData(fetchedUserData);
       console.log("MyProgressPage - fetchedUserData after setState:", fetchedUserData);
@@ -156,7 +192,7 @@ const MyProgressPage = () => {
   const handleUpdateDailyLog = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put('http://localhost:5000/api/auth/daily-log', {
+      const response = await axios.put('http://localhost:5000/api/auth/daily-log', {
         cigarettes: userData.smokingStatus.dailyLog.cigarettes,
         note: userData.smokingStatus.dailyLog.feeling,
         planId: userData.quitPlan?.id || null // Include PlanId, if available
@@ -164,6 +200,14 @@ const MyProgressPage = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSuccess('Nhật ký đã được cập nhật!');
+      // If new badges were awarded, update the achievements state
+      if (response.data.newBadges && response.data.newBadges.length > 0) {
+        setUserData(prev => ({
+          ...prev,
+          achievements: [...prev.achievements, ...response.data.newBadges]
+        }));
+      }
+      fetchUserData(); // Re-fetch all user data including updated progress and potentially new badges
     } catch (error) {
       setError(error.response?.data?.message || 'Cập nhật nhật ký thất bại.');
     }
@@ -369,6 +413,83 @@ const MyProgressPage = () => {
             </div>
           </div>
 
+          {/* Thông tin Cai thuốc (Smoking Profile) */}
+          <div className="col-md-6 mb-4">
+            <div className="card shadow-sm h-100">
+              <div className="card-header bg-success text-white fw-bold">Thông tin Cai thuốc</div>
+              <div className="card-body">
+                <div className="mb-3">
+                  <label htmlFor="cigarettesPerDay" className="form-label">Số điếu thuốc/ngày</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    id="cigarettesPerDay"
+                    value={userData.smokingStatus.cigarettesPerDay}
+                    onChange={(e) => handleUpdateSmokingStatus('cigarettesPerDay', Number(e.target.value))}
+                    min="0"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="costPerPack" className="form-label">Giá mỗi gói thuốc (VNĐ)</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    id="costPerPack"
+                    value={userData.smokingStatus.costPerPack}
+                    onChange={(e) => handleUpdateSmokingStatus('costPerPack', Number(e.target.value))}
+                    min="0"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="smokingFrequency" className="form-label">Tần suất hút thuốc</label>
+                  <select
+                    className="form-select"
+                    id="smokingFrequency"
+                    value={userData.smokingStatus.smokingFrequency}
+                    onChange={(e) => handleUpdateSmokingStatus('smokingFrequency', e.target.value)}
+                  >
+                    <option value="">Chọn tần suất</option>
+                    <option value="daily">Hàng ngày</option>
+                    <option value="weekly">Hàng tuần</option>
+                    <option value="occasionally">Thỉnh thoảng</option>
+                  </select>
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="healthStatus" className="form-label">Tình trạng sức khỏe liên quan</label>
+                  <textarea
+                    className="form-control"
+                    id="healthStatus"
+                    rows="3"
+                    value={userData.smokingStatus.healthStatus}
+                    onChange={(e) => handleUpdateSmokingStatus('healthStatus', e.target.value)}
+                  ></textarea>
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="cigaretteType" className="form-label">Loại thuốc lá</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="cigaretteType"
+                    value={userData.smokingStatus.cigaretteType}
+                    onChange={(e) => handleUpdateSmokingStatus('cigaretteType', e.target.value)}
+                  />
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="quitReason" className="form-label">Lý do cai thuốc</label>
+                  <textarea
+                    className="form-control"
+                    id="quitReason"
+                    rows="3"
+                    value={userData.smokingStatus.quitReason}
+                    onChange={(e) => handleUpdateSmokingStatus('quitReason', e.target.value)}
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div> {/* End of first row (Account Info & Smoking Profile) */}
+
+        <div className="row">
           {/* Kế hoạch Cai thuốc */}
           <div className="col-md-6 mb-4">
             <div className="card shadow-sm h-100">
@@ -449,13 +570,13 @@ const MyProgressPage = () => {
                         }))}
                       ></textarea>
                     </div>
-                    <p className="fw-bold mt-3 mb-1">Tiến độ hiện tại: {userData.quitPlan.currentProgress.toFixed(2)}%</p>
+                    <p className="fw-bold mt-3 mb-1">Tiến độ hiện tại: {(typeof userData.quitPlan.currentProgress === 'number' ? userData.quitPlan.currentProgress : 0).toFixed(2)}%</p>
                     <div className="progress" style={{ height: '10px' }}>
                       <div 
                         className="progress-bar bg-success"
                         role="progressbar"
-                        style={{ width: `${userData.quitPlan.currentProgress}%` }}
-                        aria-valuenow={userData.quitPlan.currentProgress}
+                        style={{ width: `${(typeof userData.quitPlan.currentProgress === 'number' ? userData.quitPlan.currentProgress : 0)}%` }}
+                        aria-valuenow={(typeof userData.quitPlan.currentProgress === 'number' ? userData.quitPlan.currentProgress : 0)}
                         aria-valuemin="0"
                         aria-valuemax="100"
                       ></div>
@@ -482,13 +603,12 @@ const MyProgressPage = () => {
             </div>
           </div>
 
-          {/* Nhật ký và Thành tích */}
+          {/* Nhật ký hàng ngày (Daily Log) */}
           <div className="col-md-6 mb-4">
             <div className="card shadow-sm h-100">
-              <div className="card-header bg-success text-white fw-bold">Nhật ký và Thành tích</div>
+              <div className="card-header bg-success text-white fw-bold">Nhật ký hàng ngày</div>
               <div className="card-body">
-                {/* Daily Log */}
-                <h6 className="mb-2">Nhật ký hàng ngày</h6>
+                {/* Daily Log Inputs */}
                 <div className="mb-3">
                   <label htmlFor="cigarettesDaily" className="form-label">Số điếu hút hôm nay</label>
                   <input
@@ -511,19 +631,90 @@ const MyProgressPage = () => {
                   ></textarea>
                 </div>
                 <button onClick={handleUpdateDailyLog} className="btn btn-success btn-sm">Cập nhật Nhật ký</button>
+              </div>
+            </div>
+          </div>
+        </div> {/* End of second row (Quit Plan & Daily Log) */}
 
-                <hr className="my-4" />
+        <div className="row">
+          {/* Biểu đồ tiến độ hút thuốc */}
+          <div className="col-md-6 mb-4">
+            <div className="card shadow-sm h-100">
+              <div className="card-header bg-success text-white fw-bold">Biểu đồ tiến độ hút thuốc</div>
+              <div className="card-body">
+                {smokingHistory.length > 0 ? (
+                  <Line
+                    data={{
+                      labels: smokingHistory.map(entry => new Date(entry.Date).toLocaleDateString()),
+                      datasets: [
+                        {
+                          label: 'Số điếu hút mỗi ngày',
+                          data: smokingHistory.map(entry => entry.Cigarettes),
+                          borderColor: 'rgb(75, 192, 192)',
+                          tension: 0.1,
+                        },
+                        userData.quitPlan && userData.quitPlan.dailyReduction > 0 && {
+                          label: 'Mục tiêu giảm dần',
+                          data: smokingHistory.map((entry, index) => {
+                            const startDate = new Date(userData.quitPlan.startDate);
+                            const currentDate = new Date(entry.Date);
+                            const daysPassed = Math.floor((currentDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+                            return Math.max(0, userData.quitPlan.initialCigarettes - (userData.quitPlan.dailyReduction * daysPassed));
+                          }),
+                          borderColor: 'rgb(255, 99, 132)',
+                          tension: 0.1,
+                          borderDash: [5, 5],
+                        },
+                      ].filter(Boolean),
+                    }}
+                    options={{
+                      responsive: true,
+                      plugins: {
+                        legend: {
+                          position: 'top',
+                        },
+                        title: {
+                          display: true,
+                          text: 'Lịch sử số điếu thuốc hút hàng ngày',
+                        },
+                      },
+                      scales: {
+                        x: {
+                          title: {
+                            display: true,
+                            text: 'Ngày',
+                          },
+                        },
+                        y: {
+                          title: {
+                            display: true,
+                            text: 'Số điếu thuốc',
+                          },
+                          min: 0,
+                        },
+                      },
+                    }}
+                  />
+                ) : (
+                  <p className="text-secondary">Chưa có dữ liệu lịch sử hút thuốc để hiển thị biểu đồ.</p>
+                )}
+              </div>
+            </div>
+          </div>
 
-                {/* Achievements */}
-                <h6 className="mb-2">Thành tích của bạn</h6>
+          {/* Thành tích của bạn */}
+          <div className="col-md-6 mb-4">
+            <div className="card shadow-sm h-100">
+              <div className="card-header bg-success text-white fw-bold">Thành tích của bạn</div>
+              <div className="card-body">
                 <ul className="list-group">
                   {userData.achievements.length === 0 ? (
                     <li className="list-group-item text-secondary">Bạn chưa có thành tích nào. Hãy tiếp tục cố gắng!</li>
                   ) : (
                     userData.achievements.map((achievement, index) => (
                       <li key={index} className="list-group-item d-flex justify-content-between align-items-center">
-                        {achievement.title}
-                        <span className="badge bg-success">{achievement.date}</span>
+                        {achievement.Name}
+                        <span className="badge bg-success">{new Date(achievement.AwardedAt).toLocaleDateString()}</span>
                       </li>
                     ))
                   )}
@@ -531,83 +722,9 @@ const MyProgressPage = () => {
               </div>
             </div>
           </div>
+        </div> {/* End of third row (Chart & Achievements) */}
 
-          {/* Thông tin Cai thuốc */}
-          <div className="col-md-6 mb-4">
-            <div className="card shadow-sm h-100">
-              <div className="card-header bg-success text-white fw-bold">Thông tin Cai thuốc</div>
-              <div className="card-body">
-                <div className="mb-3">
-                  <label htmlFor="cigarettesPerDay" className="form-label">Số điếu thuốc/ngày</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    id="cigarettesPerDay"
-                    value={userData.smokingStatus.cigarettesPerDay}
-                    onChange={(e) => handleUpdateSmokingStatus('cigarettesPerDay', Number(e.target.value))}
-                    min="0"
-                  />
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="costPerPack" className="form-label">Giá mỗi gói thuốc (VNĐ)</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    id="costPerPack"
-                    value={userData.smokingStatus.costPerPack}
-                    onChange={(e) => handleUpdateSmokingStatus('costPerPack', Number(e.target.value))}
-                    min="0"
-                  />
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="smokingFrequency" className="form-label">Tần suất hút thuốc</label>
-                  <select
-                    className="form-select"
-                    id="smokingFrequency"
-                    value={userData.smokingStatus.smokingFrequency}
-                    onChange={(e) => handleUpdateSmokingStatus('smokingFrequency', e.target.value)}
-                  >
-                    <option value="">Chọn tần suất</option>
-                    <option value="daily">Hàng ngày</option>
-                    <option value="weekly">Hàng tuần</option>
-                    <option value="occasionally">Thỉnh thoảng</option>
-                  </select>
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="healthStatus" className="form-label">Tình trạng sức khỏe liên quan</label>
-                  <textarea
-                    className="form-control"
-                    id="healthStatus"
-                    rows="3"
-                    value={userData.smokingStatus.healthStatus}
-                    onChange={(e) => handleUpdateSmokingStatus('healthStatus', e.target.value)}
-                  ></textarea>
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="cigaretteType" className="form-label">Loại thuốc lá</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="cigaretteType"
-                    value={userData.smokingStatus.cigaretteType}
-                    onChange={(e) => handleUpdateSmokingStatus('cigaretteType', e.target.value)}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="quitReason" className="form-label">Lý do cai thuốc</label>
-                  <textarea
-                    className="form-control"
-                    id="quitReason"
-                    rows="3"
-                    value={userData.smokingStatus.quitReason}
-                    onChange={(e) => handleUpdateSmokingStatus('quitReason', e.target.value)}
-                  ></textarea>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      </div> {/* End of my-progress-container */}
 
       {/* Footer from HomePage */}
       <footer className="footer">

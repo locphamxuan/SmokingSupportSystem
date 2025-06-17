@@ -19,7 +19,16 @@ router.post('/quit-plan', authenticateToken, authController.createOrUpdateQuitPl
 router.get('/quit-plan', authenticateToken, authController.getQuitPlan);
 router.put('/daily-log', authenticateToken, authController.addProgress);
 router.post('/progress', authenticateToken, authController.addProgress);
-router.get('/progress/latest', authenticateToken, authController.getLatestProgress);
 router.get('/coaches', authenticateToken, authController.getAllCoaches);
+router.get('/badges', authenticateToken, authController.getUserBadges);
+router.get('/progress/history', authenticateToken, authController.getSmokingProgressHistory);
+
+// Blog Posts routes
+router.get('/posts', authController.getAllPosts); // Publicly accessible to view posts
+router.post('/posts', authenticateToken, authController.createPost); // Requires authentication to create a post
+
+// Comment routes
+router.get('/posts/:postId/comments', authController.getCommentsForPost); // Publicly accessible to view comments
+router.post('/posts/:postId/comments', authenticateToken, authController.addComment); // Requires authentication to add a comment
 
 module.exports = router;
