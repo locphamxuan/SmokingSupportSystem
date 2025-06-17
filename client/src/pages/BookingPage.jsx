@@ -15,29 +15,48 @@ const BookingPage = () => {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    const fetchCoaches = async () => {
+    const fetchUserAndCoaches = async () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
           navigate('/login');
           return;
         }
-        const response = await axios.get('http://localhost:5000/api/auth/coaches', {
+
+        // First, get user profile to check assigned coach
+        const profileResponse = await axios.get('http://localhost:5000/api/auth/profile', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setCoaches(response.data.coaches);
-        if (response.data.coaches.length > 0) {
-          setSelectedCoachId(response.data.coaches[0].Id); // Select the first coach by default
+
+        console.log("BookingPage - User Profile:", profileResponse.data);
+
+        // If user has assigned coach, use that coach
+        if (profileResponse.data.coachId) {
+          setSelectedCoachId(profileResponse.data.coachId);
+          // Set the coach info for display
+          setCoaches([{
+            Id: profileResponse.data.coachId,
+            Username: profileResponse.data.coach?.Username || `Coach ID: ${profileResponse.data.coachId}`
+          }]);
+        } else {
+          // If no assigned coach, get all coaches
+          const response = await axios.get('http://localhost:5000/api/auth/coaches', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setCoaches(response.data.coaches);
+          if (response.data.coaches.length > 0) {
+            setSelectedCoachId(response.data.coaches[0].Id);
+          }
         }
       } catch (err) {
-        console.error('Lỗi khi tải danh sách huấn luyện viên:', err);
-        setError(err.response?.data?.message || 'Không thể tải danh sách huấn luyện viên.');
+        console.error('Lỗi khi tải thông tin:', err);
+        setError(err.response?.data?.message || 'Không thể tải thông tin.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCoaches();
+    fetchUserAndCoaches();
   }, [navigate]);
 
   const handleSubmit = async (e) => {
@@ -50,19 +69,29 @@ const BookingPage = () => {
         setError('Vui lòng chọn một huấn luyện viên.');
         return;
       }
-      await axios.post('http://localhost:5000/api/booking/book-appointment', {
+      
+      console.log("BookingPage - Submitting booking with:", {
+        coachId: parseInt(selectedCoachId),
+        scheduledTime,
+        note
+      });
+
+      const response = await axios.post('http://localhost:5000/api/booking/book-appointment', {
         coachId: parseInt(selectedCoachId),
         scheduledTime,
         note
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
+
+      console.log("BookingPage - Booking response:", response.data);
       setSuccess('Lịch hẹn của bạn đã được gửi thành công!');
       setTimeout(() => {
         navigate('/my-progress');
       }, 2000);
     } catch (err) {
       console.error('Lỗi khi đặt lịch hẹn:', err);
+      console.error('Error details:', err.response?.data);
       setError(err.response?.data?.message || 'Không thể đặt lịch hẹn. Vui lòng thử lại.');
     }
   };
@@ -116,12 +145,13 @@ const BookingPage = () => {
 
         <form onSubmit={handleSubmit} className="booking-form">
           <div className="mb-3">
-            <label htmlFor="coachSelect" className="form-label">Chọn Huấn luyện viên</label>
+            <label htmlFor="coachSelect" className="form-label">Huấn luyện viên được chỉ định</label>
             <select
               className="form-select"
               id="coachSelect"
               value={selectedCoachId}
               onChange={(e) => setSelectedCoachId(e.target.value)}
+              disabled={coaches.length === 1} // Disable if only one coach (assigned coach)
               required
             >
               {coaches.map((coach) => (
@@ -130,6 +160,11 @@ const BookingPage = () => {
                 </option>
               ))}
             </select>
+            {coaches.length === 1 && (
+              <small className="form-text text-muted">
+                Đây là huấn luyện viên được phân công cho bạn.
+              </small>
+            )}
           </div>
           <div className="mb-3">
             <label htmlFor="scheduledTime" className="form-label">Thời gian hẹn</label>

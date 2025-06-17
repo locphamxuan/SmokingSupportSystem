@@ -4,6 +4,7 @@ const authRoutes = require('./routes/authRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const userRoutes = require('./routes/userRoutes');
 require('dotenv').config();
 const { connectDB } = require('./db');
 const coachRoutes = require('./routes/coachRoutes');
@@ -23,6 +24,7 @@ connectDB();
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 console.log('Setting up /api/bookings route...');
 app.use('/api/booking', bookingRoutes);
 app.use('/api/messages', messageRoutes);

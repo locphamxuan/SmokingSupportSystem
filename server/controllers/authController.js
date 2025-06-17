@@ -178,8 +178,6 @@ exports.getProfile = async (req, res) => {
       dailyLog
     };
 
-    console.log(`[getProfile] Final smokingStatus object before sending:`, smokingStatus); // DEBUG
-
     res.json({
       id: user.Id,
       username: user.Username,
@@ -190,7 +188,7 @@ exports.getProfile = async (req, res) => {
       isMember: user.IsMember,
       createdAt: user.CreatedAt,
       smokingStatus,
-      coach: coachDetails
+      coachId: user.CoachId
     });
   } catch (error) {
     console.error('[getProfile] Failed to get profile:', error); // DEBUG
