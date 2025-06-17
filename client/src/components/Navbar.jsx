@@ -58,20 +58,24 @@ const Navbar = () => {
               </div>
 
               <div className="dropdown-menu" style={{ display: showDropdown ? 'flex' : 'none' }}>
-                <Link to="/profile" className="dropdown-item" onClick={() => console.log('Clicked Hồ sơ cá nhân')}>
+                <Link to="/profile" className="dropdown-item" onClick={() => setShowDropdown(false)}>
                   Hồ sơ cá nhân
                 </Link>
-                <Link to="/my-progress" className="dropdown-item" onClick={() => console.log('Clicked Theo dõi quá trình')}>
-                  Theo dõi quá trình
-                </Link>
-                {/* Removed conditional rendering for admin and coach links for debugging */}
+                {/* Chỉ hiển thị "Theo dõi quá trình" cho member và guest, KHÔNG cho admin và coach */}
+                {!isAdmin && !isCoach && (
+                  <Link to="/my-progress" className="dropdown-item" onClick={() => setShowDropdown(false)}>
+                    Theo dõi quá trình
+                  </Link>
+                )}
+                {/* Menu riêng cho Admin */}
                 {isAdmin && (
-                  <Link to="/admin/users" className="dropdown-item" onClick={() => console.log('Clicked Quản lý tài khoản')}>
+                  <Link to="/admin/users" className="dropdown-item" onClick={() => setShowDropdown(false)}>
                     Quản lý tài khoản
                   </Link>
                 )}
+                {/* Menu riêng cho Coach */}
                 {isCoach && (
-                  <Link to="/coach/dashboard" className="dropdown-item" onClick={() => console.log('Clicked Lịch tư vấn')}>
+                  <Link to="/coach/dashboard" className="dropdown-item" onClick={() => setShowDropdown(false)}>
                     Lịch tư vấn
                   </Link>
                 )}
