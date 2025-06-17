@@ -249,12 +249,12 @@ const HomePage = () => {
             <div className="expert-card">
               <img src={expertImage2} alt="Nguyễn Văn Nam" />
               <h3>Nguyễn Văn Nam</h3>
-              <p>Bác sĩ tâm lý</p>
+              <p>Chuyên gia tư vấn cai ngiện</p>
             </div>
             <div className="expert-card">
               <img src={expertImage3} alt="Trần Thị Mai" />
               <h3>Trần Thị Mai</h3>
-              <p>Điều phối viên cộng đồng</p>
+              <p>Chuyên gia tư vấn cai ngiện</p>
             </div>
           </div>
         </div>

@@ -67,6 +67,9 @@ const apiService = {
     // Đặt lịch hẹn
     createBooking: (data) => api.post('/booking', data),
     getBookings: () => api.get('/booking'),
+
+    // Huy hiệu
+    getUserBadges: () => api.get('/auth/badges'),
 };
 
 module.exports = apiService; 
