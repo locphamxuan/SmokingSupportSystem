@@ -23,7 +23,7 @@ CREATE TABLE Badges (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     Name NVARCHAR(100) NOT NULL,
     Description NVARCHAR(255),
-    Type NVARCHAR(50), -- 'days', 'money', 'health'
+    BadgeType NVARCHAR(50), -- 'days', 'money'
     Requirement NVARCHAR(255)
 );
 GO
@@ -206,11 +206,17 @@ VALUES (2, 10, 25000, N'Ngày 2 lần', N'Bình thường', N'Vì sức khỏe')
 GO
 
 -- Dữ liệu mẫu cho Badges
-INSERT INTO Badges (Name, Description, Type, Requirement)
+INSERT INTO Badges (Name, Description, BadgeType, Requirement)
 VALUES 
 (N'1 ngày không hút thuốc', N'Chúc mừng bạn đã không hút thuốc 1 ngày!', 'days', '1'),
-(N'1 tuần không hút thuốc', N'Bạn đã vượt qua 7 ngày không hút thuốc!', 'days', '7'),
-(N'Tiết kiệm 100k', N'Bạn đã tiết kiệm được 100,000đ!', 'money', '100000');
+(N'3 ngày không hút thuốc', N'Bạn đã vượt qua 3 ngày không hút thuốc!', 'days', '3'),
+(N'7 ngày không hút thuốc', N'Bạn đã vượt qua 7 ngày không hút thuốc!', 'days', '7'),
+(N'14 ngày không hút thuốc', N'Bạn đã vượt qua 14 ngày không hút thuốc!', 'days', '14'),
+(N'30 ngày không hút thuốc', N'Bạn đã vượt qua 30 ngày không hút thuốc!', 'days', '30'),
+(N'Tiết kiệm 100k', N'Bạn đã tiết kiệm được 100,000đ!', 'money', '100000'),
+(N'Tiết kiệm 200k', N'Bạn đã tiết kiệm được 200,000đ!', 'money', '200000'),
+(N'Tiết kiệm 500k', N'Bạn đã tiết kiệm được 500,000đ!', 'money', '500000'),
+(N'Tiết kiệm 1 triệu', N'Bạn đã tiết kiệm được 1,000,000đ!', 'money', '1000000');
 GO
 
 -- Dữ liệu mẫu cho Blogs
