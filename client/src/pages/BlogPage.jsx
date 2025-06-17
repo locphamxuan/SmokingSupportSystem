@@ -78,7 +78,8 @@ const BlogPage = () => {
     <Box sx={{ 
       display: 'flex', 
       flexDirection: 'column', 
-      minHeight: '100vh'
+      minHeight: '100vh',
+      paddingTop: '80px' // Thêm padding-top để tránh navbar che khuất
     }}>
       <Box sx={{ flexGrow: 1 }}>
         <Container maxWidth="lg">

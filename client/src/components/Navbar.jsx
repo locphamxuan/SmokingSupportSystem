@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from '../contexts/AuthContext.jsx';
 import '../style/Navbar.scss';
-import logo from "../assets/images/logo.png";
+import logo from "../assets/images/logo.jpg";
 
 const Navbar = () => {
   const [showDropdown, setShowDropdown] = useState(false);
@@ -33,9 +33,11 @@ const Navbar = () => {
           <nav className="nav">
             <Link to="/" className="nav-item">Trang chủ</Link>
             <Link to="/about" className="nav-item">Thông tin về thuốc lá </Link>
-            <Link to="/blog" className="nav-item">Blog</Link>
+            <Link to="/blog" className="nav-item">Diễn đàn</Link>
             <Link to="/leaderboard" className="nav-item">Bảng xếp hạng</Link>
-            <Link to="/subscribe" className="nav-item">Mua gói</Link>
+            {!isAdmin && !isCoach && (
+              <Link to="/subscribe" className="nav-item">Mua gói</Link>
+            )}
           </nav>
         </div>
 
@@ -56,20 +58,24 @@ const Navbar = () => {
               </div>
 
               <div className="dropdown-menu" style={{ display: showDropdown ? 'flex' : 'none' }}>
-                <Link to="/profile" className="dropdown-item" onClick={() => console.log('Clicked Hồ sơ cá nhân')}>
+                <Link to="/profile" className="dropdown-item" onClick={() => setShowDropdown(false)}>
                   Hồ sơ cá nhân
                 </Link>
-                <Link to="/my-progress" className="dropdown-item" onClick={() => console.log('Clicked Theo dõi quá trình')}>
-                  Theo dõi quá trình
-                </Link>
-                {/* Removed conditional rendering for admin and coach links for debugging */}
+                {/* Chỉ hiển thị "Theo dõi quá trình" cho member và guest, KHÔNG cho admin và coach */}
+                {!isAdmin && !isCoach && (
+                  <Link to="/my-progress" className="dropdown-item" onClick={() => setShowDropdown(false)}>
+                    Theo dõi quá trình
+                  </Link>
+                )}
+                {/* Menu riêng cho Admin */}
                 {isAdmin && (
-                  <Link to="/admin/users" className="dropdown-item" onClick={() => console.log('Clicked Quản lý tài khoản')}>
+                  <Link to="/admin/users" className="dropdown-item" onClick={() => setShowDropdown(false)}>
                     Quản lý tài khoản
                   </Link>
                 )}
+                {/* Menu riêng cho Coach */}
                 {isCoach && (
-                  <Link to="/coach/dashboard" className="dropdown-item" onClick={() => console.log('Clicked Lịch tư vấn')}>
+                  <Link to="/coach/dashboard" className="dropdown-item" onClick={() => setShowDropdown(false)}>
                     Lịch tư vấn
                   </Link>
                 )}

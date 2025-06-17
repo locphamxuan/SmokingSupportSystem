@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material';
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
+import './App.css';
 import Navbar from './components/Navbar.jsx'; 
 import HomePage from './pages/HomePage.jsx';
 import BlogPage from './pages/BlogPage.jsx'; 
@@ -18,6 +19,7 @@ import SubscriptionPlans from './pages/SubscriptionPlans.jsx';
 import AchievementsPage from './pages/AchievementsPage.jsx'; 
 import CoachChatPage from './pages/CoachChatPage.jsx';
 import AboutPage from './pages/AboutPage.jsx';
+import BookingPage from './pages/BookingPage.jsx';
 
 const theme = createTheme({
   palette: {
@@ -141,6 +143,14 @@ const AppRoutes = () => {
               <AchievementsPage />
             </ProtectedRoute>
           } 
+        />
+        <Route
+          path="/booking"
+          element={
+            <ProtectedRoute allowedRoles={['member', 'guest']}>
+              <BookingPage />
+            </ProtectedRoute>
+          }
         />
 
         {/* Route dự phòng cho các đường dẫn không khớp */}

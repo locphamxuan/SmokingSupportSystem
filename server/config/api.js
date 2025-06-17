@@ -65,8 +65,8 @@ const apiService = {
     getAllCoaches: () => api.get('/admin/coaches'),
 
     // Đặt lịch hẹn
-    createBooking: (data) => api.post('/bookings', data),
-    getBookings: () => api.get('/bookings'),
+    createBooking: (data) => api.post('/booking', data),
+    getBookings: () => api.get('/booking'),
 };
 
 module.exports = apiService; 
