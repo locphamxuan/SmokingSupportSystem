@@ -21,6 +21,7 @@ import AchievementsPage from './pages/AchievementsPage.jsx';
 import CoachChatPage from './pages/CoachChatPage.jsx';
 import AboutPage from './pages/AboutPage.jsx';
 import BookingPage from './pages/BookingPage.jsx';
+import CreatePostPage from './pages/CreatePostPage.jsx';
 
 const theme = createTheme({
   palette: {
@@ -73,8 +74,22 @@ const AppRoutes = () => {
         <Route path="/blog" element={<BlogPage />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/about" element={<AboutPage />} />
-        
-        {/* Protected routes */}
+
+        {/* Các route công khai cho đăng nhập/đăng ký - chuyển hướng nếu đã đăng nhập */}
+        <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} />
+        <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
+          
+        {/* Route for creating a new post */}
+        <Route
+          path="/create-post"
+          element={
+            <ProtectedRoute allowedRoles={['member', 'coach', 'admin', 'guest']}> 
+              <CreatePostPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Các route được bảo vệ */}
         <Route 
           path="/profile" 
           element={

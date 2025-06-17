@@ -176,6 +176,54 @@ components:
           properties:
             appointment: # This will be the field for appointment details
               $ref: '#/components/schemas/Booking' # Reference to the Booking schema
+    Badge:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        badgeType:
+          type: string
+          enum: [days, money]
+        requirement:
+          type: string
+        awardedAt:
+          type: string
+          format: date-time
+    Blog:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        title:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [draft, published, archived]
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+        blogId:
+          type: integer
+        userId:
+          type: integer
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
 
   securitySchemes:
     BearerAuth:
@@ -413,6 +461,36 @@ paths:
                 properties:
                   progress:
                     $ref: '#/components/schemas/Progress'
+
+  /auth/progress/history:
+    get:
+      tags:
+        - Progress
+      summary: Get user's smoking progress history (daily cigarette count)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Smoking progress history retrieved successfully
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  history:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        Date:
+                          type: string
+                          format: date
+                        Cigarettes:
+                          type: integer
+        '401':
+          description: Unauthorized
+        '500':
+          description: Server error
 
   /smoking-profiles:
     post:
@@ -685,4 +763,149 @@ paths:
                   members:
                     type: array
                     items:
-                      $ref: '#/components/schemas/MemberWithAppointment' 
+                      $ref: '#/components/schemas/MemberWithAppointment'
+
+  /auth/badges:
+    get:
+      tags:
+        - Badges
+      summary: Get user's badges
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User's badges retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  badges:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Badge'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Server error
+
+  /auth/posts:
+    get:
+      tags:
+        - Blog Posts
+      summary: Get all blog posts
+      responses:
+        '200':
+          description: List of blog posts retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Blog'
+        '500':
+          description: Server error
+    post:
+      tags:
+        - Blog Posts
+      summary: Create a new blog post
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - content
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+      responses:
+        '201':
+          description: Blog post created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  post:
+                    $ref: '#/components/schemas/Blog'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '500':
+          description: Server error
+
+  /auth/posts/{postId}/comments:
+    get:
+      tags:
+        - Blog Posts
+      summary: Get comments for a specific blog post
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema:
+            type: integer
+          description: The ID of the blog post to retrieve comments for.
+      responses:
+        '200':
+          description: List of comments retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comment'
+        '500':
+          description: Server error
+    post:
+      tags:
+        - Blog Posts
+      summary: Add a new comment to a blog post
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema:
+            type: integer
+          description: The ID of the blog post to add a comment to.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+      responses:
+        '201':
+          description: Comment added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  comment:
+                    $ref: '#/components/schemas/Comment'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '500':
+          description: Server error 
