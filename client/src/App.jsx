@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider, createTheme } from '@mui/material';
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
 import './App.css';
+import MainLayout from './layouts/MainLayout'; // Thêm import MainLayout
 import Navbar from './components/Navbar.jsx'; 
 import HomePage from './pages/HomePage.jsx';
 import BlogPage from './pages/BlogPage.jsx'; 
@@ -56,24 +57,24 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   return children;
 };
 
-// App Routes Component
+// Cập nhật AppRoutes Component
 const AppRoutes = () => {
   const { isAuthenticated } = useAuth();
 
   return (
-    <>
-      <Navbar />
-      <Routes>
+    <Routes>
+      {/* Public routes */}
+      <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} />
+      <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
+
+      {/* Routes with MainLayout */}
+      <Route element={<MainLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/blog" element={<BlogPage />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/about" element={<AboutPage />} />
-
-        {/* Các route công khai cho đăng nhập/đăng ký - chuyển hướng nếu đã đăng nhập */}
-        <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} />
-        <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
-          
-        {/* Các route được bảo vệ */}
+        
+        {/* Protected routes */}
         <Route 
           path="/profile" 
           element={
@@ -116,9 +117,7 @@ const AppRoutes = () => {
         />
         <Route 
           path="/coach/chat/:memberId" 
-          element={
-            <CoachChatPage />
-          } 
+          element={<CoachChatPage />} 
         />
         <Route 
           path="/coach/member/:memberId/progress" 
@@ -153,10 +152,10 @@ const AppRoutes = () => {
           }
         />
 
-        {/* Route dự phòng cho các đường dẫn không khớp */}
+        {/* Fallback route */}
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </>
+      </Route>
+    </Routes>
   );
 };
 
