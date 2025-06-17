@@ -246,34 +246,61 @@ const adminController = {
     },
 
     deleteUser: async (req, res) => {
+        const transaction = new sql.Transaction();
+        
         try {
             const userId = req.params.id;
-            
-            const checkUser = await sql.query`SELECT Id FROM Users WHERE Id = ${userId}`;
-            if (checkUser.recordset.length === 0) {
+            await transaction.begin();
+
+            // Check if user exists
+            const userCheck = await new sql.Request(transaction)
+                .input('userId', sql.Int, userId)
+                .query('SELECT Id, Role FROM Users WHERE Id = @userId');
+                
+            if (userCheck.recordset.length === 0) {
+                await transaction.rollback();
                 return res.status(404).json({ message: 'User not found' });
             }
-            
-            // Delete related records
-            await sql.query`DELETE FROM UserBadges WHERE UserId = ${userId}`;
-            await sql.query`DELETE FROM Comments WHERE UserId = ${userId}`;
-            await sql.query`DELETE FROM Blogs WHERE UserId = ${userId}`;
-            await sql.query`DELETE FROM Feedbacks WHERE UserId = ${userId}`;
-            await sql.query`DELETE FROM QuitPlans WHERE UserId = ${userId}`;
-            await sql.query`DELETE FROM Progress WHERE UserId = ${userId}`;
-            await sql.query`DELETE FROM Notifications WHERE UserId = ${userId}`;
-            await sql.query`DELETE FROM UserStatistics WHERE UserId = ${userId}`;
-            await sql.query`DELETE FROM Rankings WHERE UserId = ${userId}`;
-            await sql.query`DELETE FROM SmokingDailyLog WHERE UserId = ${userId}`;
-            await sql.query`DELETE FROM SmokingProfiles WHERE UserId = ${userId}`;
-            
-            // Delete user
-            await sql.query`DELETE FROM Users WHERE Id = ${userId}`;
-            
+
+            // Update any users that reference this user as their coach
+            await new sql.Request(transaction)
+                .input('userId', sql.Int, userId)
+                .query('UPDATE Users SET CoachId = NULL WHERE CoachId = @userId');
+
+            // Delete related records in correct order (handling foreign key constraints)
+            const deleteQueries = [
+                'DELETE FROM SmokingDailyLog WHERE UserId = @userId',
+                'DELETE FROM Messages WHERE SenderId = @userId OR ReceiverId = @userId',
+                'DELETE FROM Progress WHERE UserId = @userId',
+                'DELETE FROM UserBadges WHERE UserId = @userId',
+                'DELETE FROM Comments WHERE UserId = @userId',
+                'DELETE FROM Reports WHERE UserId = @userId',
+                'DELETE FROM Rankings WHERE UserId = @userId',
+                'DELETE FROM UserStatistics WHERE UserId = @userId',
+                'DELETE FROM Notifications WHERE UserId = @userId',
+                'DELETE FROM SmokingProfiles WHERE UserId = @userId',
+                'DELETE FROM QuitPlans WHERE UserId = @userId OR CoachId = @userId',
+                'DELETE FROM Booking WHERE MemberId = @userId OR CoachId = @userId',
+                'DELETE FROM Blogs WHERE UserId = @userId',
+                'DELETE FROM Users WHERE Id = @userId'
+            ];
+
+            for (const query of deleteQueries) {
+                await new sql.Request(transaction)
+                    .input('userId', sql.Int, userId)
+                    .query(query);
+            }
+
+            await transaction.commit();
             res.json({ message: 'User deleted successfully' });
+
         } catch (error) {
             console.error('Delete user error:', error);
-            res.status(500).json({ message: 'Delete failed', error: error.message });
+            await transaction.rollback();
+            res.status(500).json({ 
+                message: 'Failed to delete user', 
+                error: error.message 
+            });
         }
     },
 

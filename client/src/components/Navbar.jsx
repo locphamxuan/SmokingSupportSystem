@@ -4,6 +4,9 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 import '../style/Navbar.scss';
 import logo from "../assets/images/logo.jpg";
 
+
+
+
 const Navbar = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const navigate = useNavigate();
@@ -65,6 +68,10 @@ const Navbar = () => {
                     </Link>
                     <Link to="/my-progress" className="dropdown-item" onClick={() => console.log('Clicked Theo dõi quá trình')}>
                       Theo dõi quá trình
+                    </Link>
+                    {/* New menu item for creating a post - now links to a new page */}
+                    <Link to="/create-post" className="dropdown-item" onClick={() => setShowDropdown(false)}>
+                      Tạo bài đăng mới
                     </Link>
                   </>
                 )}
