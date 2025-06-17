@@ -467,6 +467,44 @@ exports.getQuitPlan = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy kế hoạch cai thuốc' });
     }
     const plan = result.recordset[0];
+
+    // Tính toán tiến độ dựa trên ngày
+    const startDate = new Date(plan.StartDate);
+    const targetDate = new Date(plan.TargetDate);
+    const today = new Date();
+
+    const totalDurationMs = targetDate.getTime() - startDate.getTime();
+    const elapsedDurationMs = today.getTime() - startDate.getTime();
+
+    let progressPercentage = 0;
+    if (totalDurationMs > 0) {
+      progressPercentage = (elapsedDurationMs / totalDurationMs) * 100;
+      if (progressPercentage > 100) progressPercentage = 100; // Cap at 100%
+      if (progressPercentage < 0) progressPercentage = 0; // Ensure not negative
+    }
+
+    // Tùy chỉnh tiến độ dựa trên số điếu thuốc giảm nếu có
+    if (plan.InitialCigarettes && plan.DailyReduction && plan.DailyReduction > 0) {
+        const daysPassed = Math.floor(elapsedDurationMs / (1000 * 60 * 60 * 24));
+        const expectedCigarettesToday = Math.max(0, plan.InitialCigarettes - (plan.DailyReduction * daysPassed));
+
+        // Lấy số điếu thuốc thực tế hút hôm nay
+        const latestProgressResult = await sql.query`
+            SELECT TOP 1 Cigarettes FROM Progress WHERE UserId = ${userId} ORDER BY Date DESC
+        `;
+        const actualCigarettesToday = latestProgressResult.recordset.length > 0 
+            ? latestProgressResult.recordset[0].Cigarettes 
+            : plan.InitialCigarettes; // Nếu chưa có nhật ký, coi như vẫn hút số ban đầu
+        
+        // Tính toán độ lệch so với mục tiêu và điều chỉnh phần trăm tiến độ
+        // Ví dụ đơn giản: nếu hút ít hơn mục tiêu, tiến độ tăng thêm; nếu hút nhiều hơn, tiến độ giảm
+        if (expectedCigarettesToday > 0) {
+            const reductionRatio = (expectedCigarettesToday - actualCigarettesToday) / expectedCigarettesToday;
+            progressPercentage += (reductionRatio * 20); // Điều chỉnh 20% tùy theo mức độ quan trọng bạn muốn
+            progressPercentage = Math.max(0, Math.min(100, progressPercentage)); // Giữ trong khoảng 0-100%
+        }
+    }
+
     res.json({
       quitPlan: {
         id: plan.Id,
@@ -476,7 +514,7 @@ exports.getQuitPlan = async (req, res) => {
         initialCigarettes: plan.InitialCigarettes || 0,
         dailyReduction: plan.DailyReduction || 0,
         milestones: JSON.parse(plan.Milestones || '[]'), // Ensure milestones is an array
-        currentProgress: plan.CurrentProgress,
+        currentProgress: progressPercentage, // Gửi về dưới dạng số nguyên thủy
         planDetail: plan.PlanDetail || '',
         status: plan.Status || 'active', // Ensure status is returned
         createdAt: plan.CreatedAt || null, // Ensure createdAt is returned
@@ -488,7 +526,88 @@ exports.getQuitPlan = async (req, res) => {
   }
 };
 
-// Thêm nhật ký tiến trình
+// Kiểm tra và trao huy hiệu dựa trên tiến độ
+const checkAndAwardBadges = async (userId) => {
+  try {
+    // Lấy thông tin hồ sơ hút thuốc của người dùng
+    const smokingProfileResult = await sql.query`
+      SELECT cigarettesPerDay, costPerPack FROM SmokingProfiles WHERE UserId = ${userId}
+    `;
+    const { cigarettesPerDay: initialCigarettesPerDay, costPerPack } = smokingProfileResult.recordset[0] || { cigarettesPerDay: 0, costPerPack: 0 };
+
+    // Lấy thông tin tiến độ của người dùng
+    const progressResult = await sql.query`
+      SELECT 
+        COUNT(CASE WHEN Cigarettes = 0 THEN 1 END) as daysWithoutSmoking,
+        SUM(CASE WHEN Cigarettes < ${initialCigarettesPerDay} THEN (${initialCigarettesPerDay} - Cigarettes) ELSE 0 END) as reducedCigarettes
+      FROM Progress 
+      WHERE UserId = ${userId}
+    `;
+    
+    const { daysWithoutSmoking, reducedCigarettes } = progressResult.recordset[0];
+    const moneySaved = reducedCigarettes * (costPerPack / 20.0);
+
+    console.log(`[checkAndAwardBadges] User ${userId}: daysWithoutSmoking = ${daysWithoutSmoking}, moneySaved = ${moneySaved.toFixed(2)} VND`);
+    
+    // Lấy danh sách huy hiệu chưa được trao
+    const badgesResult = await sql.query`
+      SELECT b.* 
+      FROM Badges b
+      WHERE NOT EXISTS (
+        SELECT 1 FROM UserBadges ub 
+        WHERE ub.UserId = ${userId} AND ub.BadgeId = b.Id
+      )
+    `;
+    
+    const newBadges = [];
+    
+    // Kiểm tra từng huy hiệu
+    for (const badge of badgesResult.recordset) {
+      console.log(`[checkAndAwardBadges] Processing badge:`, badge); // Thêm log này
+      let shouldAward = false;
+      const requirementValue = parseInt(badge.Requirement);
+
+      if (isNaN(requirementValue)) {
+        console.warn(`[checkAndAwardBadges] Invalid Requirement for badge ${badge.Name}: ${badge.Requirement}`);
+        continue; // Skip this badge if requirement is not a valid number
+      }
+      
+      if (badge.Type === 'days' && daysWithoutSmoking >= requirementValue) {
+        shouldAward = true;
+        console.log(`[checkAndAwardBadges] Badge '${badge.Name}' (days) met: ${daysWithoutSmoking} >= ${requirementValue}`);
+      } else if (badge.Type === 'money' && moneySaved >= requirementValue) {
+        shouldAward = true;
+        console.log(`[checkAndAwardBadges] Badge '${badge.Name}' (money) met: ${moneySaved.toFixed(2)} >= ${requirementValue}`);
+      } else {
+        console.log(`[checkAndAwardBadges] Badge '${badge.Name}' not met. Type: ${badge.Type}, Required: ${requirementValue}, Current: ${badge.Type === 'days' ? daysWithoutSmoking : moneySaved.toFixed(2)}`);
+      }
+      
+      if (shouldAward) {
+        // Trao huy hiệu
+        await sql.query`
+          INSERT INTO UserBadges (UserId, BadgeId, AwardedAt)
+          VALUES (${userId}, ${badge.Id}, GETDATE())
+        `;
+        
+        // Thêm thông báo
+        await sql.query`
+          INSERT INTO Notifications (UserId, Message, Type, CreatedAt)
+          VALUES (${userId}, ${`Chúc mừng! Bạn đã nhận được huy hiệu "${badge.Name}"!`}, 'badge', GETDATE())
+        `;
+        
+        newBadges.push(badge);
+        console.log(`[checkAndAwardBadges] Awarded badge: ${badge.Name}`);
+      }
+    }
+    
+    return newBadges;
+  } catch (error) {
+    console.error('Error checking badges:', error);
+    throw error;
+  }
+};
+
+// Cập nhật hàm addProgress để kiểm tra huy hiệu
 exports.addProgress = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -504,9 +623,10 @@ exports.addProgress = async (req, res) => {
     `;
     console.log('[addProgress] Existing progress for today:', existingProgress.recordset);
 
+    let progressId;
     if (existingProgress.recordset.length > 0) {
       // Update existing entry
-      const progressId = existingProgress.recordset[0].Id;
+      progressId = existingProgress.recordset[0].Id;
       await sql.query`
         UPDATE Progress
         SET Cigarettes = ${cigarettes},
@@ -514,16 +634,24 @@ exports.addProgress = async (req, res) => {
         WHERE Id = ${progressId}
       `;
       console.log('[addProgress] Updated existing progress entry.');
-      res.status(200).json({ message: 'Nhật ký đã được cập nhật thành công!' });
     } else {
       // Insert new entry
-      await sql.query`
+      const insertResult = await sql.query`
         INSERT INTO Progress (UserId, PlanId, Date, Cigarettes, Note)
-        VALUES (${userId}, ${planId || null}, ${today}, ${cigarettes}, ${note || null})
+        VALUES (${userId}, ${planId || null}, ${today}, ${cigarettes}, ${note || null});
+        SELECT SCOPE_IDENTITY() AS Id;
       `;
+      progressId = insertResult.recordset[0].Id;
       console.log('[addProgress] Inserted new progress entry.');
-      res.status(201).json({ message: 'Nhật ký đã được thêm thành công!' });
     }
+
+    // Kiểm tra và trao huy hiệu
+    const newBadges = await checkAndAwardBadges(userId);
+
+    res.status(201).json({ 
+      message: 'Nhật ký đã được thêm thành công!',
+      newBadges: newBadges.length > 0 ? newBadges : undefined
+    });
 
   } catch (error) {
     console.error('[addProgress] Error adding/updating progress:', error);
@@ -531,28 +659,23 @@ exports.addProgress = async (req, res) => {
   }
 };
 
-// Lấy nhật ký tiến trình mới nhất
-exports.getLatestProgress = async (req, res) => {
+// Thêm API endpoint để lấy danh sách huy hiệu của người dùng
+exports.getUserBadges = async (req, res) => {
   try {
     const userId = req.user.id;
-    console.log('Fetching latest progress for user ID:', userId);
-    const result = await sql.query`
-      SELECT TOP 1 Id, Date, Cigarettes, MoneySpent, Note
-      FROM Progress
-      WHERE UserId = ${userId}
-      ORDER BY Date DESC
+    
+    const badgesResult = await sql.query`
+      SELECT b.*, ub.AwardedAt
+      FROM UserBadges ub
+      JOIN Badges b ON ub.BadgeId = b.Id
+      WHERE ub.UserId = ${userId}
+      ORDER BY ub.AwardedAt DESC
     `;
-    console.log('Progress query result:', result.recordset);
-    if (result.recordset.length === 0) {
-      console.log('No progress found for user ID:', userId);
-      return res.status(404).json({ message: 'Không tìm thấy nhật ký tiến trình' });
-    }
-    console.log('Latest progress found:', result.recordset[0]);
-    res.json({ progress: result.recordset[0] });
+    
+    res.json({ badges: badgesResult.recordset });
   } catch (error) {
-    console.error('Error getting latest progress:', error);
-    console.error('Error stack for getLatestProgress:', error.stack);
-    res.status(500).json({ message: 'Failed to get latest progress', error: error.message });
+    console.error('Error getting user badges:', error);
+    res.status(500).json({ message: 'Failed to get user badges', error: error.message });
   }
 };
 
@@ -566,5 +689,122 @@ exports.getAllCoaches = async (req, res) => {
   } catch (error) {
     console.error('Error fetching coaches:', error);
     res.status(500).json({ message: 'Failed to retrieve coaches', error: error.message });
+  }
+};
+
+// Lấy lịch sử tiến trình hút thuốc
+exports.getSmokingProgressHistory = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const result = await sql.query`
+      SELECT Date, Cigarettes
+      FROM Progress
+      WHERE UserId = ${userId}
+      ORDER BY Date ASC
+    `;
+    res.json({ history: result.recordset });
+  } catch (error) {
+    console.error('Error getting smoking progress history:', error);
+    res.status(500).json({ message: 'Failed to get smoking progress history', error: error.message });
+  }
+};
+
+// === Blog and Comment Functions ===
+
+// Lấy tất cả các bài đăng Blog
+exports.getAllPosts = async (req, res) => {
+  try {
+    const posts = await sql.query`
+      SELECT b.Id, b.Title, b.Content, b.CreatedAt, b.Status, u.Username AS Author
+      FROM Blogs b
+      JOIN Users u ON b.UserId = u.Id
+      WHERE b.Status = 'published'
+      ORDER BY b.CreatedAt DESC
+    `;
+    res.status(200).json(posts.recordset);
+  } catch (error) {
+    console.error('Error getting all posts:', error);
+    res.status(500).json({ message: 'Failed to retrieve posts', error: error.message });
+  }
+};
+
+// Tạo bài đăng Blog mới
+exports.createPost = async (req, res) => {
+  try {
+    const userId = req.user.id; // Lấy userId từ token đã xác thực
+    const { title, content } = req.body;
+
+    if (!title || !content) {
+      return res.status(400).json({ message: 'Title and content are required' });
+    }
+
+    const result = await sql.query`
+      INSERT INTO Blogs (UserId, Title, Content, Status, CreatedAt)
+      VALUES (${userId}, ${title}, ${content}, 'published', GETDATE());
+      SELECT SCOPE_IDENTITY() AS Id;
+    `;
+
+    const newPostId = result.recordset[0].Id;
+    const newPost = await sql.query`
+      SELECT b.Id, b.Title, b.Content, b.CreatedAt, b.Status, u.Username AS Author
+      FROM Blogs b
+      JOIN Users u ON b.UserId = u.Id
+      WHERE b.Id = ${newPostId}
+    `;
+
+    res.status(201).json({ message: 'Bài đăng đã được tạo thành công!', post: newPost.recordset[0] });
+  } catch (error) {
+    console.error('Error creating post:', error);
+    res.status(500).json({ message: 'Failed to create post', error: error.message });
+  }
+};
+
+// Lấy tất cả bình luận cho một bài đăng cụ thể
+exports.getCommentsForPost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const comments = await sql.query`
+      SELECT c.Id, c.Content, c.CreatedAt, u.Username AS Author
+      FROM Comments c
+      JOIN Users u ON c.UserId = u.Id
+      WHERE c.BlogId = ${postId}
+      ORDER BY c.CreatedAt ASC
+    `;
+    res.status(200).json(comments.recordset);
+  } catch (error) {
+    console.error('Error getting comments for post:', error);
+    res.status(500).json({ message: 'Failed to retrieve comments', error: error.message });
+  }
+};
+
+// Thêm bình luận mới vào bài đăng
+exports.addComment = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { postId } = req.params;
+    const { content } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ message: 'Content is required' });
+    }
+
+    const result = await sql.query`
+      INSERT INTO Comments (BlogId, UserId, Content, CreatedAt)
+      VALUES (${postId}, ${userId}, ${content}, GETDATE());
+      SELECT SCOPE_IDENTITY() AS Id;
+    `;
+
+    const newCommentId = result.recordset[0].Id;
+    const newComment = await sql.query`
+      SELECT c.Id, c.Content, c.CreatedAt, u.Username AS Author
+      FROM Comments c
+      JOIN Users u ON c.UserId = u.Id
+      WHERE c.Id = ${newCommentId}
+    `;
+
+    res.status(201).json({ message: 'Bình luận đã được thêm thành công!', comment: newComment.recordset[0] });
+  } catch (error) {
+    console.error('Error adding comment:', error);
+    res.status(500).json({ message: 'Failed to add comment', error: error.message });
   }
 };
