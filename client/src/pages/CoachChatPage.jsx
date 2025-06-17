@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Container, Paper, Typography, Box, TextField, Button, List, ListItem, ListItemText,
-  CircularProgress, Alert, Snackbar
+  Container, Paper, Typography, Box, TextField, Button, CircularProgress, Alert, Snackbar, Avatar, IconButton
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import PersonIcon from '@mui/icons-material/Person';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 
@@ -43,7 +44,6 @@ const CoachChatPage = () => {
         const userProfileRes = await axios.get('http://localhost:5000/api/auth/profile', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        console.log('User Profile Role:', userProfileRes.data.role);
 
         if (userProfileRes.data.role !== 'coach') {
           setError('Bạn không có quyền truy cập trang này.');
@@ -56,9 +56,7 @@ const CoachChatPage = () => {
         });
 
         const assignedMembers = assignedMembersRes.data.members || [];
-        console.log('Assigned Members:', assignedMembers);
         const currentMember = assignedMembers.find(member => member.Id === parseInt(memberId));
-        console.log('Current Member Found:', currentMember);
 
         if (!currentMember) {
           setError('Bạn không có quyền chat với thành viên này hoặc thành viên không tồn tại.');
@@ -67,10 +65,8 @@ const CoachChatPage = () => {
         }
         
         setMemberData(currentMember);
-        console.log('memberData set to:', currentMember);
-        
         await fetchMessages();
-        setLoading(false); // Set loading to false after all data is fetched successfully
+        setLoading(false);
       } catch (error) {
         console.error('Lỗi kiểm tra quyền truy cập hoặc tải dữ liệu:', error);
         setError(error.response?.data?.message || 'Không thể tải dữ liệu.');
@@ -82,7 +78,10 @@ const CoachChatPage = () => {
       navigate('/login');
       return;
     }
-    checkAccessAndFetchData();
+    
+    if (user) {
+      checkAccessAndFetchData();
+    }
 
     const interval = setInterval(fetchMessages, 5000);
     return () => clearInterval(interval);
@@ -135,94 +134,214 @@ const CoachChatPage = () => {
       setNewMessage('');
       fetchMessages();
     } catch (err) {
-      console.error('Lỗi khi gửi tin nhắn:', err);
       setError(err.response?.data?.message || 'Không thể gửi tin nhắn.');
     } finally {
       setSending(false);
     }
   };
 
+  // Hàm xử lý Enter để gửi tin nhắn
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const handleCloseAlert = () => {
+    setError('');
+  };
+
   const handleCloseSnackbar = () => {
     setError('');
   };
 
+  const handleBack = () => {
+    navigate('/coach/dashboard');
+  };
+
   if (loading) {
     return (
-      <Container maxWidth="md" sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
-        <CircularProgress />
+      <Container maxWidth="lg" sx={{ py: 4, mt: '80px' }}>
+        <Paper elevation={3} sx={{ p: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px', maxWidth: '1000px', mx: 'auto' }}>
+          <CircularProgress size={40} />
+        </Paper>
+      </Container>
+    );
+  }
+
+  if (error && !memberData) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4, mt: '80px' }}>
+        <Paper elevation={3} sx={{ p: 4, maxWidth: 600, mx: 'auto' }}>
+          <Box display="flex" alignItems="center" mb={3}>
+            <IconButton onClick={handleBack} color="primary" sx={{ mr: 2 }}>
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography variant="h5" sx={{ fontWeight: 600, color: '#1976d2' }}>
+              Chat với thành viên
+            </Typography>
+          </Box>
+          <Alert severity="error">
+            {error}
+          </Alert>
+        </Paper>
       </Container>
     );
   }
 
   return (
-    <Container maxWidth="md" sx={{ mt: 4 }}>
-      <Paper elevation={3} sx={{ p: 4, display: 'flex', flexDirection: 'column', height: '70vh' }}>
-        <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, color: '#1976d2' }}>
-          Chat với thành viên: {memberData?.Username || 'Đang tải...'}
-        </Typography>
-        <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2, border: '1px solid #e0e0e0', borderRadius: 1, mb: 2 }}>
-          <List>
-            {messages.map((msg) => (
-              <ListItem
-                key={msg.Id}
-                sx={{
-                  justifyContent: msg.SenderId === parseInt(memberId) ? 'flex-start' : 'flex-end',
-                  pr: msg.SenderId === parseInt(memberId) ? 0 : 2,
-                  pl: msg.SenderId === parseInt(memberId) ? 2 : 0,
-                }}
-              >
-                <Paper
-                  variant="outlined"
+    <Container maxWidth="lg" sx={{ py: 4, px: 2, mt: '80px' }}>
+      <Paper elevation={3} sx={{ height: '600px', display: 'flex', flexDirection: 'column', overflow: 'hidden', maxWidth: '1000px', mx: 'auto' }}>
+        {/* Header */}
+        <Box sx={{ 
+          p: 2.5, 
+          borderBottom: '1px solid #e0e0e0', 
+          bgcolor: '#f8f9fa',
+          display: 'flex',
+          alignItems: 'center'
+        }}>
+          <IconButton onClick={handleBack} color="primary" sx={{ mr: 2 }}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Avatar sx={{ bgcolor: '#4caf50', mr: 2, width: 35, height: 35 }}>
+            {memberData?.Username?.charAt(0)?.toUpperCase() || <PersonIcon />}
+          </Avatar>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: '#1976d2', fontSize: '1.1rem' }}>
+              {memberData?.Username || 'Thành viên'}
+            </Typography>
+            <Typography variant="body2" color="textSecondary" sx={{ fontSize: '0.8rem' }}>
+              Thành viên Premium
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Messages Area */}
+        <Box sx={{ 
+          flex: 1, 
+          overflowY: 'auto', 
+          p: 2,
+          bgcolor: '#f5f7fa',
+          minHeight: 0
+        }}>
+          {messages.length === 0 ? (
+            <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+              <Box textAlign="center">
+                <Typography color="textSecondary" variant="h6" sx={{ mb: 1, fontSize: '1rem' }}>
+                  Chưa có tin nhắn nào
+                </Typography>
+                <Typography color="textSecondary" variant="body2" sx={{ fontSize: '0.85rem' }}>
+                  Hãy bắt đầu cuộc trò chuyện với thành viên này!
+                </Typography>
+              </Box>
+            </Box>
+          ) : (
+            <Box sx={{ maxWidth: '100%' }}>
+              {messages.map((msg) => (
+                <Box
+                  key={msg.Id}
                   sx={{
-                    p: 1.5,
-                    maxWidth: '70%',
-                    bgcolor: msg.SenderId === parseInt(memberId) ? '#e0e0e0' : '#1976d2',
-                    color: msg.SenderId === parseInt(memberId) ? 'text.primary' : 'white',
-                    borderRadius: '20px',
-                    borderBottomLeftRadius: msg.SenderId === parseInt(memberId) ? '0px' : '20px',
-                    borderBottomRightRadius: msg.SenderId === parseInt(memberId) ? '20px' : '0px',
-                    wordBreak: 'break-word',
+                    display: 'flex',
+                    justifyContent: msg.SenderId === parseInt(memberId) ? 'flex-start' : 'flex-end',
+                    mb: 1.5
                   }}
                 >
-                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                    {msg.SenderId === parseInt(memberId) ? msg.SenderName : 'Bạn'}
-                  </Typography>
-                  <Typography variant="body1">
-                    {msg.Content}
-                  </Typography>
-                  <Typography variant="caption" display="block" sx={{ mt: 0.5, textAlign: 'right', color: msg.SenderId === parseInt(memberId) ? 'text.secondary' : 'rgba(255, 255, 255, 0.7)' }}>
-                    {new Date(msg.SentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(msg.SentAt).toLocaleDateString()}
-                  </Typography>
-                </Paper>
-              </ListItem>
-            ))}
-            <div ref={messagesEndRef} />
-          </List>
+                  <Paper
+                    elevation={2}
+                    sx={{
+                      p: 1.5,
+                      maxWidth: '65%',
+                      minWidth: '80px',
+                      backgroundColor: msg.SenderId === parseInt(memberId) ? '#ffffff' : '#1976d2',
+                      color: msg.SenderId === parseInt(memberId) ? 'text.primary' : 'white',
+                      borderRadius: 2.5,
+                      borderTopLeftRadius: msg.SenderId === parseInt(memberId) ? 4 : 15,
+                      borderTopRightRadius: msg.SenderId === parseInt(memberId) ? 15 : 4,
+                      borderBottomLeftRadius: 15,
+                      borderBottomRightRadius: 15,
+                      position: 'relative',
+                      wordBreak: 'break-word'
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ mb: 0.5, lineHeight: 1.4, fontSize: '0.9rem' }}>
+                      {msg.Content}
+                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          opacity: 0.8,
+                          fontWeight: 500,
+                          fontSize: '0.65rem'
+                        }}
+                      >
+                        {msg.SenderId === parseInt(memberId) ? msg.SenderName : 'Bạn'}
+                      </Typography>
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          opacity: 0.7,
+                          fontSize: '0.65rem'
+                        }}
+                      >
+                        {new Date(msg.SentAt).toLocaleDateString('vi-VN')} {new Date(msg.SentAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      </Typography>
+                    </Box>
+                  </Paper>
+                </Box>
+              ))}
+              <div ref={messagesEndRef} />
+            </Box>
+          )}
         </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <TextField
-            fullWidth
-            variant="outlined"
-            placeholder="Nhập tin nhắn..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                handleSendMessage();
-              }
-            }}
-            disabled={sending}
-          />
-          <Button
-            variant="contained"
-            endIcon={<SendIcon />}
-            onClick={handleSendMessage}
-            disabled={sending}
-          >
-            Gửi
-          </Button>
+
+        {/* Input Area */}
+        <Box sx={{ 
+          p: 2.5, 
+          borderTop: '1px solid #e0e0e0',
+          bgcolor: '#ffffff'
+        }}>
+          <Box display="flex" gap={1.5} alignItems="flex-end">
+            <TextField
+              fullWidth
+              multiline
+              maxRows={3}
+              size="small"
+              variant="outlined"
+              placeholder="Nhập tin nhắn của bạn..."
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              disabled={sending}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2.5,
+                  bgcolor: '#f8f9fa',
+                  fontSize: '0.9rem'
+                }
+              }}
+            />
+            <Button
+              variant="contained"
+              endIcon={sending ? <CircularProgress size={16} color="inherit" /> : <SendIcon sx={{ fontSize: 16 }} />}
+              onClick={handleSendMessage}
+              disabled={sending || !newMessage.trim()}
+              sx={{ 
+                fontWeight: 600,
+                borderRadius: 2.5,
+                px: 2.5,
+                py: 1.2,
+                minWidth: '80px',
+                fontSize: '0.85rem'
+              }}
+            >
+              {sending ? 'Gửi...' : 'Gửi'}
+            </Button>
+          </Box>
         </Box>
       </Paper>
+
       {error && (
         <Snackbar open={!!error} autoHideDuration={6000} onClose={handleCloseSnackbar}>
           <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
