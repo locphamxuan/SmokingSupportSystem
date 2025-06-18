@@ -169,9 +169,6 @@ CREATE TABLE Messages (
 );
 GO
 
-
-drop table Messages
-
 -- REPORTS (NO RATING)
 CREATE TABLE Reports (
     Id INT IDENTITY(1,1) PRIMARY KEY,
