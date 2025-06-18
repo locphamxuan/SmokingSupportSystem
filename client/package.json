@@ -19,7 +19,6 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.9.0",
-    "boostrap": "^2.0.0",
     "bootstrap": "^5.3.6",
     "chart.js": "^4.5.0",
     "framer-motion": "^12.16.0",

@@ -87,10 +87,10 @@ const coachController = {
 
             // Get latest progress log
             const latestProgressResult = await sql.query`
-                SELECT TOP 1 Id, Date, Cigarettes, Note
-                FROM Progress
+                SELECT TOP 1 Id, LogDate as Date, Cigarettes, Feeling as Note
+                FROM SmokingDailyLog
                 WHERE UserId = ${memberId}
-                ORDER BY Date DESC
+                ORDER BY LogDate DESC
             `;
             const latestProgress = latestProgressResult.recordset[0] || null;
 

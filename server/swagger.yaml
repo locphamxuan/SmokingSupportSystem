@@ -27,9 +27,13 @@ components:
           type: string
         role:
           type: string
-          enum: [guest, user, member, coach, admin]
-        isMember:
+          enum: [member, memberVip, coach, admin]
+          description: |
+            member: chưa mua gói, memberVip: đã mua gói, coach: huấn luyện viên, admin: quản trị viên.
+        isMemberVip:
           type: boolean
+        coachId:
+          type: integer
         createdAt:
           type: string
           format: date-time
@@ -93,6 +97,7 @@ components:
         planType:
           type: string
           enum: [suggested, custom]
+          description: 'Loại kế hoạch: suggested (hệ thống cung cấp), custom (người dùng tự tạo)'
         startDate:
           type: string
           format: date
@@ -104,15 +109,16 @@ components:
         status:
           type: string
           enum: [active, completed, cancelled]
+        createdAt:
+          type: string
+          format: date-time
+        currentProgress:
+          type: integer
+        milestones:
+          type: string
         initialCigarettes:
           type: integer
         dailyReduction:
-          type: integer
-        milestones:
-          type: array
-          items:
-            type: object
-        currentProgress:
           type: integer
         quitReason:
           type: string
@@ -130,8 +136,6 @@ components:
           format: date
         cigarettes:
           type: integer
-        moneySpent:
-          type: number
         note:
           type: string
     Booking:
@@ -143,14 +147,20 @@ components:
           type: integer
         coachId:
           type: integer
-        scheduledTime:
+        slot:
           type: string
-          format: date-time
+          enum: ['7h-9h', '10h-12h', '13h-15h', '16h-18h']
+        slotDate:
+          type: string
+          format: date
         status:
           type: string
-          enum: [pending, confirmed, cancelled]
+          enum: [đang chờ xác nhận, đã xác nhận, người dùng đã hủy, coach đã hủy]
         note:
           type: string
+        createdAt:
+          type: string
+          format: date-time
     Message:
       type: object
       properties:
@@ -174,8 +184,8 @@ components:
         - $ref: '#/components/schemas/User'
         - type: object
           properties:
-            appointment: # This will be the field for appointment details
-              $ref: '#/components/schemas/Booking' # Reference to the Booking schema
+            appointment:
+              $ref: '#/components/schemas/Booking'
     Badge:
       type: object
       properties:
@@ -187,13 +197,16 @@ components:
           type: string
         badgeType:
           type: string
-          enum: [days, money]
+          enum: [loai1, loai2, loai3, loai4, loai5, loai6, loai7]
         requirement:
           type: string
+        imageUrl:
+          type: string
+          format: uri
         awardedAt:
           type: string
           format: date-time
-    Blog:
+    Post:
       type: object
       properties:
         id:
@@ -209,13 +222,13 @@ components:
           format: date-time
         status:
           type: string
-          enum: [draft, published, archived]
+          enum: [chờ duyệt, đã duyệt, từ chối]
     Comment:
       type: object
       properties:
         id:
           type: integer
-        blogId:
+        postId:
           type: integer
         userId:
           type: integer
@@ -224,6 +237,106 @@ components:
         createdAt:
           type: string
           format: date-time
+    UserBadge:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        badgeId:
+          type: integer
+        awardedAt:
+          type: string
+          format: date-time
+    UserStatistics:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        totalDaysWithoutSmoking:
+          type: integer
+        totalMoneySaved:
+          type: number
+        healthImprovements:
+          type: string
+        lastUpdated:
+          type: string
+          format: date-time
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        message:
+          type: string
+        type:
+          type: string
+          description: 'Loại thông báo: reminder, motivation, system, ...'
+        createdAt:
+          type: string
+          format: date-time
+        isRead:
+          type: boolean
+    Report:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    Ranking:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        totalDaysWithoutSmoking:
+          type: integer
+        totalMoneySaved:
+          type: number
+        lastUpdated:
+          type: string
+          format: date-time
+    SmokingDailyLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        progressId:
+          type: integer
+        logDate:
+          type: string
+          format: date
+        cigarettes:
+          type: integer
+        feeling:
+          type: string
+    MembershipPackage:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        durationInDays:
+          type: integer
 
   securitySchemes:
     BearerAuth:
@@ -288,12 +401,12 @@ paths:
     post:
       tags:
         - Authentication
-      summary: Upgrade user to member
+      summary: Upgrade user to memberVip
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: User upgraded to member successfully
+          description: User upgraded to memberVip successfully
           content:
             application/json:
               schema:
@@ -333,8 +446,13 @@ paths:
                     type: string
                   role:
                     type: string
-                  isMember:
+                  isMemberVip:
                     type: boolean
+                  coachId:
+                    type: integer
+                  createdAt:
+                    type: string
+                    format: date-time
                   smokingStatus:
                     $ref: '#/components/schemas/SmokingProfile'
     put:
@@ -466,13 +584,19 @@ paths:
     get:
       tags:
         - Progress
-      summary: Get user's smoking progress history (daily cigarette count)
+      summary: Lấy lịch sử tiến trình cai thuốc
       security:
         - BearerAuth: []
+      parameters:
+        - in: query
+          name: full
+          schema:
+            type: boolean
+          description: 'Nếu true và user là memberVip thì trả về toàn bộ, nếu false hoặc member thường thì trả về 30 ngày gần nhất'
       responses:
         '200':
-          description: Smoking progress history retrieved successfully
-          content: 
+          description: Lịch sử tiến trình
+          content:
             application/json:
               schema:
                 type: object
@@ -576,6 +700,51 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Booking'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Server error
+    post:
+      tags:
+        - Booking
+      summary: Create a new booking
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - coachId
+                - slot
+                - slotDate
+              properties:
+                coachId:
+                  type: integer
+                slot:
+                  type: string
+                  enum: ['7h-9h', '10h-12h', '13h-15h', '16h-18h']
+                slotDate:
+                  type: string
+                  format: date
+                note:
+                  type: string
+      responses:
+        '201':
+          description: Booking created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  booking:
+                    $ref: '#/components/schemas/Booking'
+        '400':
+          description: Invalid input
         '401':
           description: Unauthorized
         '500':
@@ -802,7 +971,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Blog'
+                  $ref: '#/components/schemas/Post'
         '500':
           description: Server error
     post:
@@ -836,7 +1005,7 @@ paths:
                   message:
                     type: string
                   post:
-                    $ref: '#/components/schemas/Blog'
+                    $ref: '#/components/schemas/Post'
         '400':
           description: Invalid input
         '401':
@@ -908,4 +1077,219 @@ paths:
         '401':
           description: Unauthorized
         '500':
-          description: Server error 
+          description: Server error
+
+  /auth/statistics:
+    get:
+      tags:
+        - Statistics
+      summary: Get user statistics
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserStatistics'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Server error
+
+  /auth/notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Get user notifications
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Server error
+
+  /auth/notifications/{notificationId}/read:
+    put:
+      tags:
+        - Notifications
+      summary: Mark notification as read
+      parameters:
+        - in: path
+          name: notificationId
+          required: true
+          schema:
+            type: integer
+          description: ID of the notification to mark as read
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Notification marked as read successfully
+        '404':
+          description: Notification not found
+        '401':
+          description: Unauthorized
+        '500':
+          description: Server error
+
+  /auth/reports:
+    post:
+      tags:
+        - Reports
+      summary: Submit a report
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+      responses:
+        '201':
+          description: Report submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  report:
+                    $ref: '#/components/schemas/Report'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '500':
+          description: Server error
+
+  /auth/rankings:
+    get:
+      tags:
+        - Rankings
+      summary: Get user rankings
+      responses:
+        '200':
+          description: Rankings retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ranking'
+        '500':
+          description: Server error
+
+  /auth/daily-log:
+    get:
+      tags:
+        - Daily Log
+      summary: Get user's daily smoking log
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Daily log retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SmokingDailyLog'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Server error
+    post:
+      tags:
+        - Daily Log
+      summary: Add daily smoking log entry
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - cigarettes
+              properties:
+                cigarettes:
+                  type: integer
+                feeling:
+                  type: string
+                logDate:
+                  type: string
+                  format: date
+      responses:
+        '201':
+          description: Daily log entry added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  logEntry:
+                    $ref: '#/components/schemas/SmokingDailyLog'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '500':
+          description: Server error
+
+  /auth/membership-packages:
+    get:
+      tags:
+        - Membership
+      summary: Get available membership packages
+      responses:
+        '200':
+          description: Membership packages retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MembershipPackage'
+        '500':
+          description: Server error
+
+  /auth/quit-plan/suggested:
+    get:
+      tags:
+        - Quit Plans
+      summary: Lấy danh sách kế hoạch mẫu hệ thống (chỉ memberVip)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Danh sách kế hoạch mẫu
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QuitPlan'
+        '403':
+          description: Chỉ dành cho memberVip 

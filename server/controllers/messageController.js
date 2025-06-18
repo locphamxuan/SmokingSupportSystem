@@ -11,16 +11,21 @@ const messageController = {
             }
 
             // Kiểm tra quyền gửi tin nhắn
-            const userCheck = await sql.query`
-                SELECT IsMember, CoachId, Role FROM Users WHERE Id = ${userId}
+            const userResult = await sql.query`
+                SELECT IsMemberVip, CoachId, Role FROM Users WHERE Id = ${userId}
             `;
-            const user = userCheck.recordset[0];
+            const user = userResult.recordset[0];
+
+            if (!user) {
+                return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+            }
+
+            if (!user.IsMemberVip) {
+                return res.status(403).json({ message: 'Bạn cần là thành viên Premium để gửi tin nhắn' });
+            }
 
             // Kiểm tra quyền gửi tin nhắn
             if (user.Role === 'user' || user.Role === 'member') {
-                if (!user.IsMember) {
-                    return res.status(403).json({ message: 'Bạn cần là thành viên Premium để sử dụng tính năng này' });
-                }
                 if (user.CoachId !== parseInt(receiverId)) {
                     return res.status(403).json({ message: 'Bạn chỉ có thể gửi tin nhắn cho huấn luyện viên của mình' });
                 }
@@ -39,7 +44,7 @@ const messageController = {
             // Kiểm tra progressId nếu có
             if (progressId) {
                 const progressCheck = await sql.query`
-                    SELECT Id FROM Progress WHERE Id = ${progressId} AND UserId = ${userId}
+                    SELECT Id FROM SmokingDailyLog WHERE Id = ${progressId} AND UserId = ${userId}
                 `;
                 if (progressCheck.recordset.length === 0) {
                     return res.status(400).json({ message: 'Progress ID không hợp lệ' });
@@ -86,10 +91,10 @@ const messageController = {
             const { coachId } = req.params;
 
             // Kiểm tra quyền truy cập
-            const userCheck = await sql.query`
-                SELECT IsMember, CoachId, Role FROM Users WHERE Id = ${userId}
+            const userResult = await sql.query`
+                SELECT IsMemberVip, CoachId, Role FROM Users WHERE Id = ${userId}
             `;
-            const user = userCheck.recordset[0];
+            const user = userResult.recordset[0];
 
             if (!user) {
                 console.error(`Error: User with ID ${userId} not found in DB when checking coachId.`);
