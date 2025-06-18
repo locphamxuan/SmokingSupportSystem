@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import {
+  Container, Paper, Typography, Box, TextField, Button, CircularProgress, Alert, Snackbar, Avatar, IconButton
+} from '@mui/material';
+import SendIcon from '@mui/icons-material/Send';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import PersonIcon from '@mui/icons-material/Person';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import '../style/CoachChatPage.scss';
-import facebookImage from "../assets/images/facebook.jpg";
-import instagramImage from "../assets/images/instragram.jpg";
 
 const CoachChatPage = () => {
   const { memberId } = useParams();
@@ -15,7 +17,6 @@ const CoachChatPage = () => {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [memberData, setMemberData] = useState(null);
-  const messagesEndRef = useRef(null);
   
   let user = null;
   try {
@@ -28,6 +29,7 @@ const CoachChatPage = () => {
   }
 
   const token = localStorage.getItem('token');
+  const messagesEndRef = useRef(null);
 
   useEffect(() => {
     const checkAccessAndFetchData = async () => {
@@ -76,7 +78,10 @@ const CoachChatPage = () => {
       navigate('/login');
       return;
     }
-    checkAccessAndFetchData();
+    
+    if (user) {
+      checkAccessAndFetchData();
+    }
 
     const interval = setInterval(fetchMessages, 5000);
     return () => clearInterval(interval);
@@ -84,16 +89,24 @@ const CoachChatPage = () => {
 
   const fetchMessages = async () => {
     try {
+      console.log('Fetching messages for member:', memberId);
       const response = await axios.get(`http://localhost:5000/api/messages/member/${memberId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      console.log('Messages response:', response.data);
       if (response.data && Array.isArray(response.data.messages)) {
         setMessages(response.data.messages);
         setError('');
       } else {
+        console.error('Invalid messages data format:', response.data);
         setError('Định dạng dữ liệu tin nhắn không hợp lệ.');
       }
     } catch (error) {
+      console.error('Chi tiết lỗi khi tải tin nhắn:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
       if (error.response?.status === 401) {
         setError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
         navigate('/login');
@@ -127,6 +140,18 @@ const CoachChatPage = () => {
     }
   };
 
+  // Hàm xử lý Enter để gửi tin nhắn
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const handleCloseAlert = () => {
+    setError('');
+  };
+
   const handleCloseSnackbar = () => {
     setError('');
   };
@@ -137,127 +162,194 @@ const CoachChatPage = () => {
 
   if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center vh-100">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
-      </div>
+      <Container maxWidth="lg" sx={{ py: 4, mt: '80px' }}>
+        <Paper elevation={3} sx={{ p: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px', maxWidth: '1000px', mx: 'auto' }}>
+          <CircularProgress size={40} />
+        </Paper>
+      </Container>
+    );
+  }
+
+  if (error && !memberData) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4, mt: '80px' }}>
+        <Paper elevation={3} sx={{ p: 4, maxWidth: 600, mx: 'auto' }}>
+          <Box display="flex" alignItems="center" mb={3}>
+            <IconButton onClick={handleBack} color="primary" sx={{ mr: 2 }}>
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography variant="h5" sx={{ fontWeight: 600, color: '#1976d2' }}>
+              Chat với thành viên
+            </Typography>
+          </Box>
+          <Alert severity="error">
+            {error}
+          </Alert>
+        </Paper>
+      </Container>
     );
   }
 
   return (
-    <div className="coach-chat-wrapper">
-      <div className="container mt-4 mb-4">
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <button onClick={handleBack} className="btn btn-outline-secondary">
-            <i className="fas fa-arrow-left me-2"></i>
-            Quay lại lịch tư vấn
-          </button>
-          <h2 className="section-title mb-0">
-            Chat với thành viên: {memberData?.Username || 'Đang tải...'}
-          </h2>
-          <div style={{ width: '150px' }}></div>
-        </div>
+    <Container maxWidth="lg" sx={{ py: 4, px: 2, mt: '80px' }}>
+      <Paper elevation={3} sx={{ height: '600px', display: 'flex', flexDirection: 'column', overflow: 'hidden', maxWidth: '1000px', mx: 'auto' }}>
+        {/* Header */}
+        <Box sx={{ 
+          p: 2.5, 
+          borderBottom: '1px solid #e0e0e0', 
+          bgcolor: '#f8f9fa',
+          display: 'flex',
+          alignItems: 'center'
+        }}>
+          <IconButton onClick={handleBack} color="primary" sx={{ mr: 2 }}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Avatar sx={{ bgcolor: '#4caf50', mr: 2, width: 35, height: 35 }}>
+            {memberData?.Username?.charAt(0)?.toUpperCase() || <PersonIcon />}
+          </Avatar>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: '#1976d2', fontSize: '1.1rem' }}>
+              {memberData?.Username || 'Thành viên'}
+            </Typography>
+            <Typography variant="body2" color="textSecondary" sx={{ fontSize: '0.8rem' }}>
+              Thành viên Premium
+            </Typography>
+          </Box>
+        </Box>
 
-        <div className="card chat-card">
-          <div className="card-body chat-messages" id="chat-messages">
-            {messages.map((msg) => (
-              <div
-                key={msg.Id}
-                className={`message-wrapper ${msg.SenderId === parseInt(memberId) ? 'message-received' : 'message-sent'}`}
-              >
-                <div className="message-content">
-                  <div className="message-header">
-                    <span className="message-sender">
-                      {msg.SenderId === parseInt(memberId) ? msg.SenderName : 'Bạn'}
-                    </span>
-                  </div>
-                  <div className="message-text">
-                    {msg.Content}
-                  </div>
-                  <div className="message-time">
-                    {new Date(msg.SentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(msg.SentAt).toLocaleDateString()}
-                  </div>
-                </div>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-          <div className="card-footer chat-input">
-            <div className="input-group">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Nhập tin nhắn..."
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSendMessage();
-                  }
-                }}
-                disabled={sending}
-              />
-              <button
-                className="btn btn-primary"
-                onClick={handleSendMessage}
-                disabled={sending}
-              >
-                {sending ? (
-                  <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                ) : (
-                  <>
-                    <i className="fas fa-paper-plane me-2"></i>
-                    Gửi
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
+        {/* Messages Area */}
+        <Box sx={{ 
+          flex: 1, 
+          overflowY: 'auto', 
+          p: 2,
+          bgcolor: '#f5f7fa',
+          minHeight: 0
+        }}>
+          {messages.length === 0 ? (
+            <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+              <Box textAlign="center">
+                <Typography color="textSecondary" variant="h6" sx={{ mb: 1, fontSize: '1rem' }}>
+                  Chưa có tin nhắn nào
+                </Typography>
+                <Typography color="textSecondary" variant="body2" sx={{ fontSize: '0.85rem' }}>
+                  Hãy bắt đầu cuộc trò chuyện với thành viên này!
+                </Typography>
+              </Box>
+            </Box>
+          ) : (
+            <Box sx={{ maxWidth: '100%' }}>
+              {messages.map((msg) => (
+                <Box
+                  key={msg.Id}
+                  sx={{
+                    display: 'flex',
+                    justifyContent: msg.SenderId === parseInt(memberId) ? 'flex-start' : 'flex-end',
+                    mb: 1.5
+                  }}
+                >
+                  <Paper
+                    elevation={2}
+                    sx={{
+                      p: 1.5,
+                      maxWidth: '65%',
+                      minWidth: '80px',
+                      backgroundColor: msg.SenderId === parseInt(memberId) ? '#ffffff' : '#1976d2',
+                      color: msg.SenderId === parseInt(memberId) ? 'text.primary' : 'white',
+                      borderRadius: 2.5,
+                      borderTopLeftRadius: msg.SenderId === parseInt(memberId) ? 4 : 15,
+                      borderTopRightRadius: msg.SenderId === parseInt(memberId) ? 15 : 4,
+                      borderBottomLeftRadius: 15,
+                      borderBottomRightRadius: 15,
+                      position: 'relative',
+                      wordBreak: 'break-word'
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ mb: 0.5, lineHeight: 1.4, fontSize: '0.9rem' }}>
+                      {msg.Content}
+                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          opacity: 0.8,
+                          fontWeight: 500,
+                          fontSize: '0.65rem'
+                        }}
+                      >
+                        {msg.SenderId === parseInt(memberId) ? msg.SenderName : 'Bạn'}
+                      </Typography>
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          opacity: 0.7,
+                          fontSize: '0.65rem'
+                        }}
+                      >
+                        {new Date(msg.SentAt).toLocaleDateString('vi-VN')} {new Date(msg.SentAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      </Typography>
+                    </Box>
+                  </Paper>
+                </Box>
+              ))}
+              <div ref={messagesEndRef} />
+            </Box>
+          )}
+        </Box>
 
-        {error && (
-          <div className="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+        {/* Input Area */}
+        <Box sx={{ 
+          p: 2.5, 
+          borderTop: '1px solid #e0e0e0',
+          bgcolor: '#ffffff'
+        }}>
+          <Box display="flex" gap={1.5} alignItems="flex-end">
+            <TextField
+              fullWidth
+              multiline
+              maxRows={3}
+              size="small"
+              variant="outlined"
+              placeholder="Nhập tin nhắn của bạn..."
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              disabled={sending}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2.5,
+                  bgcolor: '#f8f9fa',
+                  fontSize: '0.9rem'
+                }
+              }}
+            />
+            <Button
+              variant="contained"
+              endIcon={sending ? <CircularProgress size={16} color="inherit" /> : <SendIcon sx={{ fontSize: 16 }} />}
+              onClick={handleSendMessage}
+              disabled={sending || !newMessage.trim()}
+              sx={{ 
+                fontWeight: 600,
+                borderRadius: 2.5,
+                px: 2.5,
+                py: 1.2,
+                minWidth: '80px',
+                fontSize: '0.85rem'
+              }}
+            >
+              {sending ? 'Gửi...' : 'Gửi'}
+            </Button>
+          </Box>
+        </Box>
+      </Paper>
+
+      {error && (
+        <Snackbar open={!!error} autoHideDuration={6000} onClose={handleCloseSnackbar}>
+          <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
             {error}
-            <button type="button" className="btn-close" onClick={handleCloseSnackbar} aria-label="Close"></button>
-          </div>
-        )}
-      </div>
-
-      <footer className="footer">
-        <div className="container">
-          <div className="social-icons">
-            <a
-              href="https://www.facebook.com/loccphamxuan?locale=vi_VN"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Facebook"
-            >
-              <img
-                src={facebookImage}
-                alt="Facebook"
-                style={{ width: "36px", height: "36px" }}
-              />
-            </a>
-            <a
-              href="https://www.instagram.com/xlocpham/"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Instagram"
-            >
-              <img
-                src={instagramImage}
-                alt="Instagram"
-                style={{ width: "36px", height: "36px" }}
-              />
-            </a>
-          </div>
-          <p className="copyright">
-            &copy; 2024 Hỗ trợ cai nghiện. Đã đăng ký bản quyền.
-          </p>
-        </div>
-      </footer>
-    </div>
+          </Alert>
+        </Snackbar>
+      )}
+    </Container>
   );
 };
 

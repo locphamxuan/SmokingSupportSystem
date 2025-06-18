@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material';
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
+import './App.css';
 import Navbar from './components/Navbar.jsx'; 
 import HomePage from './pages/HomePage.jsx';
 import CommunityPage from './pages/CommunityPage.jsx'; 

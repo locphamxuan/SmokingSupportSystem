@@ -243,14 +243,14 @@ const MyProgressPage = () => {
   const handleRequestCoach = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:5000/api/auth/request-coach', {}, {
+      const response = await axios.post('http://localhost:5000/api/users/request-coach', {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSuccess('Yêu cầu hỗ trợ từ huấn luyện viên đã được gửi!');
+      setSuccess('Huấn luyện viên đã được phân công cho bạn!');
       await fetchUserData();
       // Navigate to chat interface if coach is assigned
-      if (response.data.coach) {
-        navigate(`/chat-coach/${response.data.coach.Id}`);
+      if (response.data.coachId) {
+        navigate(`/chat-coach/${response.data.coachId}`);
       }
     } catch (error) {
       setError(error.response?.data?.message || 'Gửi yêu cầu thất bại.');
@@ -332,9 +332,11 @@ const MyProgressPage = () => {
 
   if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center vh-100">
-        <div className="spinner-border text-success" role="status">
-          <span className="visually-hidden">Loading...</span>
+      <div className="my-progress-wrapper">
+        <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
+          <div className="spinner-border text-success" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
         </div>
       </div>
     );
@@ -410,21 +412,50 @@ const MyProgressPage = () => {
                   </p>
                 )}
                 
+                {/* DEBUG: Coach Data */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="mt-2 p-2 bg-light border rounded">
+                    <small className="text-muted">
+                      <strong>DEBUG:</strong> Coach data: {JSON.stringify(userData.coach)} | 
+                      isMember: {String(userData.isMember)} | 
+                      coachId: {userData.coachId}
+                    </small>
+                  </div>
+                )}
+
                 {/* Coach Request/Chat */}
                 {(userData.isMemberVip || userData.role === 'memberVip') && userData.role !== 'coach' && userData.role !== 'admin' && (
                   <div className="mt-3">
-                    {userData.coach ? (
+                    {userData.coach || userData.coachId ? (
                       <div className="alert alert-info">
-                        <p className="mb-1"><strong>Huấn luyện viên của bạn:</strong> {userData.coach.Username}</p>
-                        <button onClick={() => navigate(`/chat-coach/${userData.coach.Id}`)} className="btn btn-success me-2">Nhắn tin với Coach</button>
-                        {!userData.coach.bookingStatus && (
-                          <button onClick={() => navigate('/booking')} className="btn btn-info">Đặt lịch</button>
-                        )}
-                        {userData.coach.bookingStatus && (
-                          <p className="mt-2 mb-0">Trạng thái lịch hẹn: <strong>{userData.coach.bookingStatus}</strong></p>
+                        <h6 className="alert-heading mb-2">
+                          <i className="fas fa-user-tie me-2"></i>Huấn luyện viên của bạn
+                        </h6>
+                        <p className="mb-2">
+                          <strong>Tên:</strong> {userData.coach?.Username || userData.coach?.Name || `Coach ID: ${userData.coachId}`}
+                        </p>
+                        <div className="d-flex flex-wrap gap-2">
+                          <button 
+                            onClick={() => navigate(`/chat-coach/${userData.coach?.Id || userData.coach?.id || userData.coachId}`)} 
+                            className="btn btn-success"
+                          >
+                            <i className="fas fa-comments me-2"></i>Nhắn tin với Coach
+                          </button>
+                          <button onClick={() => navigate('/booking')} className="btn btn-info">
+                            <i className="fas fa-calendar-plus me-2"></i>Đặt lịch hẹn
+                          </button>
+                          <button onClick={handleCancelCoachRequest} className="btn btn-outline-danger">
+                            <i className="fas fa-times me-2"></i>Hủy yêu cầu Coach
+                          </button>
+                        </div>
+                        {userData.coach?.bookingStatus && (
+                          <p className="mt-2 mb-0">
+                            <strong>Trạng thái lịch hẹn:</strong> 
+                            <span className="badge bg-primary ms-2">{userData.coach.bookingStatus}</span>
+                          </p>
                         )}
                       </div>
-                    ) : (
+                    ) : userData.isMember ? (
                       <div className="alert alert-warning">
                         <p className="mb-1">Bạn chưa được phân công huấn luyện viên.</p>
                         {!(userData.isMemberVip || userData.role === 'memberVip') ? (
@@ -433,7 +464,7 @@ const MyProgressPage = () => {
                           <button onClick={() => navigate('/booking')} className="btn btn-info">Đặt lịch</button>
                         )}
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 )}
               </div>
