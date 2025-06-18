@@ -4,7 +4,7 @@ const adminController = {
     getAllUsers: async (req, res) => {
         try {
             const result = await sql.query`
-                SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address, CreatedAt
+                SELECT Id, Username, Email, Role, IsMemberVip, PhoneNumber, Address, CreatedAt
                 FROM Users
                 ORDER BY CreatedAt DESC
             `;
@@ -18,7 +18,7 @@ const adminController = {
     getAllCoaches: async (req, res) => {
         try {
             const result = await sql.query`
-                SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address, CreatedAt
+                SELECT Id, Username, Email, Role, IsMemberVip, PhoneNumber, Address, CreatedAt
                 FROM Users 
                 WHERE Role = 'coach'
                 ORDER BY CreatedAt DESC
@@ -37,7 +37,7 @@ const adminController = {
             
             // Lấy thông tin user cơ bản
             const userResult = await sql.query`
-                SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address, CreatedAt, CoachId
+                SELECT Id, Username, Email, Role, IsMemberVip, PhoneNumber, Address, CreatedAt, CoachId
                 FROM Users WHERE Id = ${userId}
             `;
             
@@ -46,7 +46,7 @@ const adminController = {
             }
             
             const user = userResult.recordset[0];
-            const userRole = user.Role || (user.IsMember ? 'member' : 'guest');
+            const userRole = user.Role || (user.IsMemberVip ? 'member' : 'guest');
             
             console.log('User found:', { id: user.Id, username: user.Username, role: userRole });
             
@@ -58,7 +58,7 @@ const adminController = {
                 phoneNumber: user.PhoneNumber || "",
                 address: user.Address || "",
                 role: userRole,
-                isMember: user.IsMember,
+                isMember: user.IsMemberVip,
                 createdAt: user.CreatedAt
             };
 
@@ -207,14 +207,14 @@ const adminController = {
                     Username = ${username},
                     Email = ${email},
                     Role = ${role || 'guest'},
-                    IsMember = ${isMember ? 1 : 0},
+                    IsMemberVip = ${isMember ? 1 : 0},
                     PhoneNumber = ${phoneNumber || null},
                     Address = ${address || null}
                 WHERE Id = ${userId}
             `;
 
             const result = await sql.query`
-                SELECT Id, Username, Email, Role, IsMember, PhoneNumber, Address, CreatedAt
+                SELECT Id, Username, Email, Role, IsMemberVip, PhoneNumber, Address, CreatedAt
                 FROM Users WHERE Id = ${userId}
             `;
             
@@ -226,7 +226,7 @@ const adminController = {
                 phoneNumber: user.PhoneNumber || "",
                 address: user.Address || "",
                 role: user.Role || 'guest',
-                isMember: user.IsMember,
+                isMember: user.IsMemberVip,
                 createdAt: user.CreatedAt
             };
 
@@ -271,7 +271,6 @@ const adminController = {
             const deleteQueries = [
                 'DELETE FROM SmokingDailyLog WHERE UserId = @userId',
                 'DELETE FROM Messages WHERE SenderId = @userId OR ReceiverId = @userId',
-                'DELETE FROM Progress WHERE UserId = @userId',
                 'DELETE FROM UserBadges WHERE UserId = @userId',
                 'DELETE FROM Comments WHERE UserId = @userId',
                 'DELETE FROM Reports WHERE UserId = @userId',
@@ -281,7 +280,7 @@ const adminController = {
                 'DELETE FROM SmokingProfiles WHERE UserId = @userId',
                 'DELETE FROM QuitPlans WHERE UserId = @userId OR CoachId = @userId',
                 'DELETE FROM Booking WHERE MemberId = @userId OR CoachId = @userId',
-                'DELETE FROM Blogs WHERE UserId = @userId',
+                'DELETE FROM Posts WHERE UserId = @userId',
                 'DELETE FROM Users WHERE Id = @userId'
             ];
 
@@ -308,7 +307,7 @@ const adminController = {
         try {
             const totalUsers = await sql.query`SELECT COUNT(*) as count FROM Users`;
             const totalCoaches = await sql.query`SELECT COUNT(*) as count FROM Users WHERE Role = 'coach'`;
-            const totalMembers = await sql.query`SELECT COUNT(*) as count FROM Users WHERE IsMember = 1`;
+            const totalMembers = await sql.query`SELECT COUNT(*) as count FROM Users WHERE IsMemberVip = 1`;
             const totalGuests = await sql.query`SELECT COUNT(*) as count FROM Users WHERE Role = 'guest'`;
 
             res.json({

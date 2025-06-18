@@ -7,6 +7,7 @@ import axios from 'axios';
 import facebookImage from "../assets/images/facebook.jpg";
 import instagramImage from "../assets/images/instragram.jpg";
 import "../style/SubscriptionPlans.scss";
+import { getMembershipPackages } from '../services/extraService';
 
 const SubscriptionPlans = () => {
   const navigate = useNavigate();
@@ -14,6 +15,8 @@ const SubscriptionPlans = () => {
   const [success, setSuccess] = useState('');
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [packages, setPackages] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const features = {
     free: [
@@ -54,10 +57,10 @@ const SubscriptionPlans = () => {
       });
       
       if (response.data && response.data.user) {
-        // Ensure isMember is a boolean
+        // Ensure isMemberVip is a boolean
         const updatedUser = {
           ...response.data.user,
-          isMember: !!response.data.user.isMember
+          isMemberVip: !!response.data.user.isMemberVip
         };
         localStorage.setItem('user', JSON.stringify(updatedUser));
         setUser(updatedUser);
@@ -87,10 +90,10 @@ const SubscriptionPlans = () => {
     try {
       if (userStr && userStr !== 'undefined') {
         const parsedUser = JSON.parse(userStr);
-        // Ensure isMember is a boolean when initializing from localStorage
+        // Ensure isMemberVip is a boolean when initializing from localStorage
         currentUser = {
           ...parsedUser,
-          isMember: !!parsedUser.isMember
+          isMemberVip: !!parsedUser.isMemberVip
         };
       }
     } catch (e) {
@@ -109,15 +112,21 @@ const SubscriptionPlans = () => {
 
     setUser(currentUser);
     console.log('[SubscriptionPlans] Initial user state:', currentUser); // DEBUG
+
+    // Lấy danh sách gói thành viên
+    getMembershipPackages()
+      .then(setPackages)
+      .catch(() => setPackages([]))
+      .finally(() => setLoading(false));
   }, [navigate]);
 
-  const isPremiumMember = user && (user.role === 'member' || user.isMember);
+  const isPremiumMember = user && (user.role === 'memberVip' || user.isMemberVip === true);
   console.log('[SubscriptionPlans] isPremiumMember:', isPremiumMember); // DEBUG
   console.log('[SubscriptionPlans] User role:', user?.role); // DEBUG
-  console.log('[SubscriptionPlans] User isMember:', user?.isMember); // DEBUG
+  console.log('[SubscriptionPlans] User isMemberVip:', user?.isMemberVip); // DEBUG
 
-  if (!user) {
-    return null;
+  if (!user || loading) {
+    return <div>Đang tải...</div>;
   }
 
   return (
@@ -174,62 +183,34 @@ const SubscriptionPlans = () => {
                 Nâng cấp lên Premium để trải nghiệm đầy đủ tính năng.
               </p>
               <div className="row justify-content-center">
-                <div className="col-12 col-md-6 col-lg-5 mb-4">
-                  <div className="card h-100">
-                    <div className="card-body">
-                      <h4>
-                        Gói Miễn phí
-                      </h4>
-                      <h3>
-                        Miễn phí
-                      </h3>
-                      <p>Trải nghiệm cơ bản</p>
-                      <hr className="my-3" />
-                      <ul className="list-unstyled mb-0">
-                        {features.free.map((feature, index) => (
-                          <li key={index} className="d-flex align-items-center py-2">
-                            <i className="fas fa-check-circle me-3"></i>
-                            <span>{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      <button 
-                        className="btn btn-lg btn-outline-secondary mt-4 rounded-pill"
-                        disabled 
-                      >
-                        Đang sử dụng
-                      </button>
+                {packages.map((pkg) => (
+                  <div key={pkg.id} className="col-12 col-md-6 col-lg-5 mb-4">
+                    <div className="card h-100">
+                      <div className="card-body">
+                        <h4>{pkg.name}</h4>
+                        <h3>
+                          {pkg.price === 0 ? 'Miễn phí' : `${pkg.price.toLocaleString()} VNĐ`}
+                          {pkg.durationInDays > 0 && <span className="text-muted">/{pkg.durationInDays} ngày</span>}
+                        </h3>
+                        <p>{pkg.description}</p>
+                        <hr className="my-3" />
+                        <ul className="list-unstyled mb-0">
+                          {(pkg.price === 0 ? features.free : features.premium).map((feature, index) => (
+                            <li key={index} className="d-flex align-items-center py-2">
+                              <i className="fas fa-check-circle me-3"></i>
+                              <span>{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        {pkg.price === 0 ? (
+                          <button className="btn btn-lg btn-outline-secondary mt-4 rounded-pill" disabled>Đang sử dụng</button>
+                        ) : (
+                          <button className="btn btn-lg rounded-pill mt-4" onClick={handleUpgrade}>Nâng cấp ngay</button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="col-12 col-md-6 col-lg-5 mb-4">
-                  <div className="card h-100">
-                    <div className="card-body">
-                      <h4>
-                        Gói Premium
-                      </h4>
-                      <h3>
-                        100.000đ<span className="text-muted">/tháng</span>
-                      </h3>
-                      <p>Trải nghiệm đầy đủ</p>
-                      <hr className="my-3" />
-                      <ul className="list-unstyled mb-0">
-                        {features.premium.map((feature, index) => (
-                          <li key={index} className="d-flex align-items-center py-2">
-                            <i className="fas fa-check-circle me-3"></i>
-                            <span>{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      <button
-                        className="btn btn-lg rounded-pill mt-4"
-                        onClick={handleUpgrade}
-                      >
-                        Nâng cấp ngay
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
             </>
           )}

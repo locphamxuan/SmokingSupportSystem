@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from '../contexts/AuthContext.jsx';
 import "../style/HomePage.scss";
 import solutionsRightImage from "../assets/images/anh3.jpg";
 import stepsLeftImage from "../assets/images/anh4.jpg";
@@ -15,6 +16,12 @@ import homepagebackground2 from "../assets/images/homepagebackground2.jpg";
 import backgroundhomepage from "../assets/images/backr0undh0mepage.jpg";
 
 const HomePage = () => {
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
+  const [loading, setLoading] = useState(true);
+
+  console.log('HomePage render:', { user, isAuthenticated });
+
   const slides = [
     {
       id: 1,
@@ -59,16 +66,27 @@ const HomePage = () => {
   const [currentTestimonial, setCurrentTestimonial] = useState(testimonials[0]);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 5000); // Chuyển slide sau mỗi 5 giây
+    // Simulate loading
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
 
-    return () => clearInterval(timer);
+    return () => clearTimeout(timer);
   }, []);
 
-  const handleTestimonialChange = (testimonial) => {
-    setCurrentTestimonial(testimonial);
+  const handleNavigation = (path) => {
+    console.log('HomePage navigation to:', path);
+    navigate(path);
   };
+
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Đang tải...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="homepage">
@@ -222,7 +240,7 @@ const HomePage = () => {
                 className={`author-button ${
                   currentTestimonial.id === testimonial.id ? "active" : ""
                 }`}
-                onClick={() => handleTestimonialChange(testimonial)}
+                onClick={() => setCurrentTestimonial(testimonial)}
               >
                 {testimonial.author} - {testimonial.location}
               </button>
