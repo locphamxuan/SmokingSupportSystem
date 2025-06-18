@@ -73,7 +73,7 @@ const BookingPage = () => {
         setError('Vui lòng chọn thời gian hẹn.');
         return;
       }
-      await axios.post('http://localhost:5000/api/booking/book-appointment', {
+      const response = await axios.post('http://localhost:5000/api/booking/book-appointment', {
         coachId: Number(selectedCoachId),
         scheduledTime,
         note
