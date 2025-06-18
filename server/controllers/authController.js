@@ -18,8 +18,8 @@ exports.register = async (req, res) => {
     }
     // Thêm user mới
     const insert = await sql.query`
-      INSERT INTO Users (Username, Email, Password, PhoneNumber, Address, Role, IsMember, CreatedAt, CoachId)
-      VALUES (${username}, ${email}, ${password}, ${phoneNumber}, ${address}, 'guest', 0, GETDATE(), NULL);
+      INSERT INTO Users (Username, Email, Password, PhoneNumber, Address, Role, IsMemberVip, CreatedAt, CoachId)
+      VALUES (${username}, ${email}, ${password}, ${phoneNumber}, ${address}, 'member', 0, GETDATE(), NULL);
       SELECT SCOPE_IDENTITY() AS Id;
     `;
     const userId = insert.recordset[0].Id;
@@ -44,7 +44,7 @@ exports.register = async (req, res) => {
         phoneNumber: user.PhoneNumber,
         address: user.Address,
         role: user.Role,
-        isMember: user.IsMember,
+        isMemberVip: user.IsMemberVip,
         createdAt: user.CreatedAt,
         password: user.Password,
         coachId: user.CoachId
@@ -82,7 +82,7 @@ exports.login = async (req, res) => {
         phoneNumber: user.PhoneNumber,
         address: user.Address,
         role: user.Role,
-        isMember: user.IsMember,
+        isMemberVip: user.IsMemberVip,
         createdAt: user.CreatedAt,
         password: user.Password,
         coachId: user.CoachId
@@ -102,7 +102,7 @@ exports.getProfile = async (req, res) => {
 
     // Lấy thông tin user
     const userResult = await sql.query`
-      SELECT Id, Username, Email, PhoneNumber, Address, Role, IsMember, CreatedAt, CoachId
+      SELECT Id, Username, Email, PhoneNumber, Address, Role, IsMemberVip, CreatedAt, CoachId
       FROM Users WHERE Id = ${userId}
     `;
     if (userResult.recordset.length === 0) {
@@ -146,15 +146,15 @@ exports.getProfile = async (req, res) => {
     const dbSmoking = smokingResult.recordset[0];
     console.log(`[getProfile] SmokingProfiles raw data for userId ${userId}:`, dbSmoking); // DEBUG
 
-    // Lấy nhật ký hút thuốc mới nhất từ Progress
+    // Lấy nhật ký hút thuốc mới nhất từ SmokingDailyLog
     let dailyLog = { cigarettes: 0, feeling: '' };
     const progressResult = await sql.query`
-      SELECT TOP 1 * FROM Progress WHERE UserId = ${userId} ORDER BY Date DESC
+      SELECT TOP 1 * FROM SmokingDailyLog WHERE UserId = ${userId} ORDER BY LogDate DESC
     `;
     if (progressResult.recordset.length > 0) {
       dailyLog = {
         cigarettes: progressResult.recordset[0].Cigarettes || 0,
-        feeling: progressResult.recordset[0].Note || ''
+        feeling: progressResult.recordset[0].Feeling || ''
       };
     }
     console.log(`[getProfile] DailyLog data for userId ${userId}:`, dailyLog); // DEBUG
@@ -187,7 +187,7 @@ exports.getProfile = async (req, res) => {
       phoneNumber: user.PhoneNumber,
       address: user.Address,
       role: user.Role,
-      isMember: user.IsMember,
+      isMemberVip: user.IsMemberVip,
       createdAt: user.CreatedAt,
       smokingStatus,
       coach: coachDetails
@@ -208,7 +208,7 @@ exports.upgradeMember = async (req, res) => {
     
     // Kiểm tra user hiện tại
     const checkUser = await sql.query`
-      SELECT Id, Username, Email, Role, IsMember FROM Users WHERE Id = ${userId}
+      SELECT Id, Username, Email, Role, IsMemberVip FROM Users WHERE Id = ${userId}
     `;
     
     if (checkUser.recordset.length === 0) {
@@ -219,16 +219,16 @@ exports.upgradeMember = async (req, res) => {
     console.log('Current user before upgrade:', currentUser);
     
     // Kiểm tra xem user đã là member chưa
-    if (currentUser.IsMember === 1 || currentUser.IsMember === true || currentUser.Role === 'member') {
+    if (currentUser.IsMemberVip === 1 || currentUser.IsMemberVip === true || currentUser.Role === 'memberVip') {
       return res.status(400).json({ message: 'Bạn đã là thành viên Premium rồi!' });
     }
     
-    // Cập nhật cả Role và IsMember
+    // Cập nhật cả Role và IsMemberVip
     await sql.query`
       UPDATE Users 
       SET 
-        IsMember = 1,
-        Role = 'member'
+        IsMemberVip = 1,
+        Role = 'memberVip'
       WHERE Id = ${userId}
     `;
     
@@ -247,7 +247,7 @@ exports.upgradeMember = async (req, res) => {
       phoneNumber: user.PhoneNumber || "",
       address: user.Address || "",
       role: user.Role,
-      isMember: user.IsMember,
+      isMemberVip: user.IsMemberVip,
       createdAt: user.CreatedAt,
       password: user.Password,
       coachId: user.CoachId
@@ -262,7 +262,7 @@ exports.upgradeMember = async (req, res) => {
         phoneNumber: user.PhoneNumber || "",
         address: user.Address || "",
         role: user.Role,
-        isMember: user.IsMember,
+        isMemberVip: user.IsMemberVip,
         createdAt: user.CreatedAt,
         password: user.Password,
         coachId: user.CoachId
@@ -284,14 +284,14 @@ exports.requestCoach = async (req, res) => {
     const userId = req.user.id;
 
     const userResult = await sql.query`
-      SELECT IsMember, CoachId FROM Users WHERE Id = ${userId}
+      SELECT IsMemberVip, CoachId FROM Users WHERE Id = ${userId}
     `;
     const user = userResult.recordset[0];
 
     if (!user) {
       return res.status(404).json({ message: 'Không tìm thấy người dùng' });
     }
-    if (!user.IsMember) {
+    if (!user.IsMemberVip) {
       return res.status(403).json({ message: 'Bạn cần là thành viên Premium để yêu cầu huấn luyện viên' });
     }
     if (user.CoachId !== null) {
@@ -407,11 +407,12 @@ exports.createOrUpdateQuitPlan = async (req, res) => {
     let { startDate, targetDate, planType, initialCigarettes, dailyReduction, milestones, planDetail } = req.body;
 
     // Ensure required fields are present and set default values for optional/nullable fields
-    if (!startDate || !targetDate || !planType || initialCigarettes === undefined) {
-      return res.status(400).json({ message: 'Missing required quit plan fields (startDate, targetDate, planType, initialCigarettes)' });
+    if (!startDate || !targetDate || !planType) {
+      return res.status(400).json({ message: 'Missing required quit plan fields (startDate, targetDate, planType)' });
     }
 
-    // Ensure milestones is an array and dailyReduction defaults to 0
+    // Set default values for optional fields
+    initialCigarettes = initialCigarettes === undefined || initialCigarettes === null ? 0 : Number(initialCigarettes);
     milestones = Array.isArray(milestones) ? milestones : [];
     dailyReduction = dailyReduction === undefined || dailyReduction === null ? 0 : Number(dailyReduction);
 
@@ -492,7 +493,7 @@ exports.getQuitPlan = async (req, res) => {
 
         // Lấy số điếu thuốc thực tế hút hôm nay
         const latestProgressResult = await sql.query`
-            SELECT TOP 1 Cigarettes FROM Progress WHERE UserId = ${userId} ORDER BY Date DESC
+            SELECT TOP 1 Cigarettes FROM SmokingDailyLog WHERE UserId = ${userId} ORDER BY LogDate DESC
         `;
         const actualCigarettesToday = latestProgressResult.recordset.length > 0 
             ? latestProgressResult.recordset[0].Cigarettes 
@@ -542,7 +543,7 @@ const checkAndAwardBadges = async (userId) => {
       SELECT 
         COUNT(CASE WHEN Cigarettes = 0 THEN 1 END) as daysWithoutSmoking,
         SUM(CASE WHEN Cigarettes < ${initialCigarettesPerDay} THEN (${initialCigarettesPerDay} - Cigarettes) ELSE 0 END) as reducedCigarettes
-      FROM Progress 
+      FROM SmokingDailyLog 
       WHERE UserId = ${userId}
     `;
     
@@ -621,7 +622,7 @@ exports.addProgress = async (req, res) => {
     // Check if there's an existing progress entry for today for this user and plan
     const today = new Date().toISOString().slice(0, 10); // Format YYYY-MM-DD
     const existingProgress = await sql.query`
-      SELECT Id FROM Progress WHERE UserId = ${userId} AND Date = ${today} AND PlanId = ${planId || null}
+      SELECT Id FROM SmokingDailyLog WHERE UserId = ${userId} AND LogDate = ${today} AND PlanId = ${planId || null}
     `;
     console.log('[addProgress] Existing progress for today:', existingProgress.recordset);
 
@@ -630,16 +631,16 @@ exports.addProgress = async (req, res) => {
       // Update existing entry
       progressId = existingProgress.recordset[0].Id;
       await sql.query`
-        UPDATE Progress
+        UPDATE SmokingDailyLog
         SET Cigarettes = ${cigarettes},
-            Note = ${note || null}
+            Feeling = ${note || null}
         WHERE Id = ${progressId}
       `;
       console.log('[addProgress] Updated existing progress entry.');
     } else {
       // Insert new entry
       const insertResult = await sql.query`
-        INSERT INTO Progress (UserId, PlanId, Date, Cigarettes, Note)
+        INSERT INTO SmokingDailyLog (UserId, PlanId, LogDate, Cigarettes, Feeling)
         VALUES (${userId}, ${planId || null}, ${today}, ${cigarettes}, ${note || null});
         SELECT SCOPE_IDENTITY() AS Id;
       `;
@@ -699,10 +700,10 @@ exports.getSmokingProgressHistory = async (req, res) => {
   try {
     const userId = req.user.id;
     const result = await sql.query`
-      SELECT Date, Cigarettes
-      FROM Progress
+      SELECT LogDate as Date, Cigarettes
+      FROM SmokingDailyLog
       WHERE UserId = ${userId}
-      ORDER BY Date ASC
+      ORDER BY LogDate ASC
     `;
     res.json({ history: result.recordset });
   } catch (error) {
@@ -718,7 +719,7 @@ exports.getAllPosts = async (req, res) => {
   try {
     const posts = await sql.query`
       SELECT b.Id, b.Title, b.Content, b.CreatedAt, b.Status, u.Username AS Author
-      FROM Blogs b
+      FROM Posts b
       JOIN Users u ON b.UserId = u.Id
       WHERE b.Status = 'published'
       ORDER BY b.CreatedAt DESC
@@ -741,7 +742,7 @@ exports.createPost = async (req, res) => {
     }
 
     const result = await sql.query`
-      INSERT INTO Blogs (UserId, Title, Content, Status, CreatedAt)
+      INSERT INTO Posts (UserId, Title, Content, Status, CreatedAt)
       VALUES (${userId}, ${title}, ${content}, 'published', GETDATE());
       SELECT SCOPE_IDENTITY() AS Id;
     `;
@@ -749,7 +750,7 @@ exports.createPost = async (req, res) => {
     const newPostId = result.recordset[0].Id;
     const newPost = await sql.query`
       SELECT b.Id, b.Title, b.Content, b.CreatedAt, b.Status, u.Username AS Author
-      FROM Blogs b
+      FROM Posts b
       JOIN Users u ON b.UserId = u.Id
       WHERE b.Id = ${newPostId}
     `;
@@ -769,7 +770,7 @@ exports.getCommentsForPost = async (req, res) => {
       SELECT c.Id, c.Content, c.CreatedAt, u.Username AS Author
       FROM Comments c
       JOIN Users u ON c.UserId = u.Id
-      WHERE c.BlogId = ${postId}
+      WHERE c.PostId = ${postId}
       ORDER BY c.CreatedAt ASC
     `;
     res.status(200).json(comments.recordset);
@@ -791,7 +792,7 @@ exports.addComment = async (req, res) => {
     }
 
     const result = await sql.query`
-      INSERT INTO Comments (BlogId, UserId, Content, CreatedAt)
+      INSERT INTO Comments (PostId, UserId, Content, CreatedAt)
       VALUES (${postId}, ${userId}, ${content}, GETDATE());
       SELECT SCOPE_IDENTITY() AS Id;
     `;
@@ -808,5 +809,21 @@ exports.addComment = async (req, res) => {
   } catch (error) {
     console.error('Error adding comment:', error);
     res.status(500).json({ message: 'Failed to add comment', error: error.message });
+  }
+};
+
+// Lấy danh sách kế hoạch mẫu hệ thống (chỉ cho memberVip)
+exports.getSuggestedQuitPlans = async (req, res) => {
+  try {
+    // Bỏ kiểm tra memberVip để ai cũng xem được
+    const suggestedPlans = await sql.query`
+      SELECT Id, Title, Description, PlanDetail
+      FROM SuggestedQuitPlans
+      ORDER BY Id ASC
+    `;
+    res.json(suggestedPlans.recordset);
+  } catch (error) {
+    console.error('Error getting suggested quit plans:', error);
+    res.status(500).json({ message: 'Failed to get suggested quit plans', error: error.message });
   }
 };

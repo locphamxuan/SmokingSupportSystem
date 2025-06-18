@@ -1,22 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Divider } from '@mui/material';
-import axios from 'axios';
+import { getRankings } from '../services/extraService';
 
 const LeaderboardPage = () => {
   const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
-        const response = await axios.get('/api/users/leaderboard');
-        setUsers(response.data);
+        setLoading(true);
+        const response = await getRankings();
+        setUsers(response || []);
       } catch (error) {
         console.error('Error fetching leaderboard:', error);
+        setError('Không thể tải bảng xếp hạng');
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchLeaderboard();
   }, []);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <Typography>Đang tải...</Typography>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <Typography color="error">{error}</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ 
@@ -35,19 +57,19 @@ const LeaderboardPage = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Ranking</TableCell>
-                <TableCell>Username</TableCell>
-                <TableCell align="right">Number of days of quitting smoking</TableCell>
-                <TableCell align="right">Score</TableCell>
+                <TableCell>Xếp hạng</TableCell>
+                <TableCell>Tên người dùng</TableCell>
+                <TableCell align="right">Số ngày không hút thuốc</TableCell>
+                <TableCell align="right">Tiền tiết kiệm (VNĐ)</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {users.map((user, index) => (
-                <TableRow key={user._id}>
+                <TableRow key={user.id}>
                   <TableCell>{index + 1}</TableCell>
                   <TableCell>{user.username}</TableCell>
-                  <TableCell align="right">{user.daysSmokeFree}</TableCell>
-                  <TableCell align="right">{user.points}</TableCell>
+                  <TableCell align="right">{user.totalDaysWithoutSmoking}</TableCell>
+                  <TableCell align="right">{user.totalMoneySaved?.toLocaleString() || 0}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

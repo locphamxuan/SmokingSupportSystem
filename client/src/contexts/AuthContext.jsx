@@ -25,9 +25,13 @@ export const AuthProvider = ({ children }) => {
         const storedToken = localStorage.getItem('token');
         const storedUser = localStorage.getItem('user');
         
+        console.log('Initializing auth with:', { storedToken: !!storedToken, storedUser });
+        
         if (storedToken && storedUser && storedUser !== 'undefined') {
+          const parsedUser = JSON.parse(storedUser);
+          console.log('Parsed user:', parsedUser);
           setToken(storedToken);
-          setUser(JSON.parse(storedUser));
+          setUser(parsedUser);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
@@ -45,6 +49,7 @@ export const AuthProvider = ({ children }) => {
   // Hàm login
   const login = (userData, userToken) => {
     try {
+      console.log('Login called with:', { userData, userToken: !!userToken });
       localStorage.setItem('token', userToken);
       localStorage.setItem('user', JSON.stringify(userData));
       setToken(userToken);
@@ -56,6 +61,7 @@ export const AuthProvider = ({ children }) => {
 
   // Hàm logout
   const logout = () => {
+    console.log('Logout called');
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);
@@ -65,6 +71,7 @@ export const AuthProvider = ({ children }) => {
   // Hàm cập nhật thông tin user
   const updateUser = (updatedUser) => {
     try {
+      console.log('Update user called with:', updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
       setUser(updatedUser);
     } catch (error) {
@@ -74,6 +81,8 @@ export const AuthProvider = ({ children }) => {
 
   // Kiểm tra xem user có đăng nhập không
   const isAuthenticated = !!token && !!user;
+  
+  console.log('Auth state:', { isAuthenticated, user: !!user, token: !!token, loading });
 
   // Kiểm tra role
   const hasRole = (roles) => {

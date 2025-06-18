@@ -122,6 +122,20 @@ function Register() {
       const response = await axios.post('http://localhost:5000/api/auth/register', registerPayload);
       
       if (response.status === 201) {
+        // Đảm bảo user data có đúng format nếu API trả về user data
+        if (response.data.user) {
+          const normalizedUser = {
+            ...response.data.user,
+            isMemberVip: response.data.user.isMemberVip || false,
+            role: response.data.user.role || 'member'
+          };
+          // Lưu user data nếu có token
+          if (response.data.token) {
+            localStorage.setItem('token', response.data.token);
+            localStorage.setItem('user', JSON.stringify(normalizedUser));
+          }
+        }
+        
         setSuccess("Bạn đã đăng ký thành công! Đang chuyển về trang đăng nhập...");
         // Delay để user có thể đọc thông báo
         setTimeout(() => {
