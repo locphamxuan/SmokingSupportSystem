@@ -152,9 +152,6 @@ const AppRoutes = () => {
               <CoachChatPage />
             </ProtectedRoute>
           } 
-
-          element={<CoachChatPage />} 
-
         />
         <Route 
           path="/coach/member/:memberId/progress" 
