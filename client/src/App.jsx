@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider, createTheme } from '@mui/material';
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
 import './App.css';
+import MainLayout from './layouts/MainLayout'; // Thêm import MainLayout
 import Navbar from './components/Navbar.jsx'; 
 import HomePage from './pages/HomePage.jsx';
 import CommunityPage from './pages/CommunityPage.jsx'; 
@@ -61,7 +62,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   return children;
 };
 
-// App Routes Component
+// Cập nhật AppRoutes Component
 const AppRoutes = () => {
   const { isAuthenticated, loading } = useAuth();
 
@@ -76,9 +77,13 @@ const AppRoutes = () => {
   }
 
   return (
-    <>
-      <Navbar />
-      <Routes>
+    <Routes>
+      {/* Public routes */}
+      <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} />
+      <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
+
+      {/* Routes with MainLayout */}
+      <Route element={<MainLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/test" element={<TestPage />} />
         <Route path="/blog" element={<CommunityPage />} />
@@ -147,6 +152,9 @@ const AppRoutes = () => {
               <CoachChatPage />
             </ProtectedRoute>
           } 
+
+          element={<CoachChatPage />} 
+
         />
         <Route 
           path="/coach/member/:memberId/progress" 
@@ -181,10 +189,10 @@ const AppRoutes = () => {
           }
         />
 
-        {/* Route dự phòng cho các đường dẫn không khớp */}
+        {/* Fallback route */}
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </>
+      </Route>
+    </Routes>
   );
 };
 
