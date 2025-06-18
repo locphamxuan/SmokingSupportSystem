@@ -84,11 +84,13 @@ const Navbar = () => {
                     </Link>
                   </>
                 )}
+                {/* Menu riêng cho Admin */}
                 {isAdmin && (
                   <Link to="/admin/users" className="dropdown-item" onClick={() => handleNavClick('/admin/users')}>
                     Quản lý tài khoản
                   </Link>
                 )}
+                {/* Menu riêng cho Coach */}
                 {isCoach && (
                   <Link to="/coach/dashboard" className="dropdown-item" onClick={() => handleNavClick('/coach/dashboard')}>
                     Lịch tư vấn
