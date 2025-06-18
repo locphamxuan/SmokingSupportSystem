@@ -5,6 +5,13 @@ import 'bootstrap/dist/css/bootstrap.min.css'; // Import Bootstrap CSS
 import '../style/MyProgressPage.scss'; // Assuming you'll create this file for custom styles
 import facebookImage from '../assets/images/facebook.jpg'; // Import Facebook image for footer
 import instagramImage from '../assets/images/instragram.jpg'; // Import Instagram image for footer
+import { 
+  getUserStatistics, 
+  getUserNotifications, 
+  getDailyLog, 
+  addDailyLog,
+  getRankings 
+} from '../services/extraService';
 
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
 import { Line } from 'react-chartjs-2';
@@ -40,7 +47,7 @@ const MyProgressPage = () => {
     quitPlan: null,
     achievements: [],
     role: 'guest',
-    isMember: false,
+    isMemberVip: false,
     coach: null,
   });
   const [smokingHistory, setSmokingHistory] = useState([]);
@@ -48,6 +55,7 @@ const MyProgressPage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
+  const [suggestedPlans, setSuggestedPlans] = useState([]);
   
   // Safely parse user from localStorage
   let user = null;
@@ -79,10 +87,10 @@ const MyProgressPage = () => {
 
       const fetchedUserData = {
         ...profileResponse.data,
-        smokingStatus: profileResponse.data.smokingStatus || {}, // Ensure smokingStatus is an object
-        quitPlan: null, // Initialize as null, will be fetched separately
+        smokingStatus: profileResponse.data.smokingStatus || {},
+        quitPlan: null,
         achievements: profileResponse.data.achievements || [],
-        isMember: profileResponse.data.isMember || false,
+        isMemberVip: profileResponse.data.isMemberVip || false,
         coach: profileResponse.data.coach || null,
       };
 
@@ -109,7 +117,7 @@ const MyProgressPage = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
         fetchedUserData.quitPlan = {
-          id: quitPlanResponse.data.quitPlan.id,
+          id: quitPlanResponse.data.quitPlan.id || 0,
           startDate: quitPlanResponse.data.quitPlan.startDate || '',
           targetDate: quitPlanResponse.data.quitPlan.targetDate || '',
           planType: quitPlanResponse.data.quitPlan.planType || '',
@@ -172,6 +180,21 @@ const MyProgressPage = () => {
     }
   }, [user, navigate]);
 
+  useEffect(() => {
+    const fetchSuggestedPlans = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get('http://localhost:5000/api/auth/quit-plan/suggested', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setSuggestedPlans(res.data);
+      } catch (err) {
+        setSuggestedPlans([]);
+      }
+    };
+    fetchSuggestedPlans();
+  }, []);
+
   const handleUpdateSmokingStatus = async (field, value) => {
     // Cập nhật trạng thái cục bộ trước
     const updatedSmokingStatus = { ...userData.smokingStatus, [field]: value };
@@ -191,25 +214,24 @@ const MyProgressPage = () => {
 
   const handleUpdateDailyLog = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.put('http://localhost:5000/api/auth/daily-log', {
+      // Sử dụng API mới từ extraService
+      const response = await addDailyLog({
         cigarettes: userData.smokingStatus.dailyLog.cigarettes,
-        note: userData.smokingStatus.dailyLog.feeling,
-        planId: userData.quitPlan?.id || null // Include PlanId, if available
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
+        feeling: userData.smokingStatus.dailyLog.feeling,
+        logDate: new Date().toISOString().slice(0, 10)
       });
+      
       setSuccess('Nhật ký đã được cập nhật!');
       // If new badges were awarded, update the achievements state
-      if (response.data.newBadges && response.data.newBadges.length > 0) {
+      if (response.newBadges && response.newBadges.length > 0) {
         setUserData(prev => ({
           ...prev,
-          achievements: [...prev.achievements, ...response.data.newBadges]
+          achievements: [...prev.achievements, ...response.newBadges]
         }));
       }
       fetchUserData(); // Re-fetch all user data including updated progress and potentially new badges
     } catch (error) {
-      setError(error.response?.data?.message || 'Cập nhật nhật ký thất bại.');
+      setError(error.message || 'Cập nhật nhật ký thất bại.');
     }
   };
 
@@ -275,8 +297,13 @@ const MyProgressPage = () => {
       const token = localStorage.getItem('token');
       // Gửi yêu cầu POST để cập nhật kế hoạch cai thuốc
       await axios.post('http://localhost:5000/api/auth/quit-plan', {
-        ...userData.quitPlan,
-        initialCigarettes: Number(userData.quitPlan.initialCigarettes) // Ensure it's a number
+        startDate: userData.quitPlan?.startDate || '',
+        targetDate: userData.quitPlan?.targetDate || '',
+        planType: userData.quitPlan?.planType || 'custom',
+        initialCigarettes: Number(userData.quitPlan?.initialCigarettes || 0), // Ensure it's a number
+        dailyReduction: Number(userData.quitPlan?.dailyReduction || 0),
+        milestones: userData.quitPlan?.milestones || [],
+        planDetail: userData.quitPlan?.planDetail || ''
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -376,10 +403,10 @@ const MyProgressPage = () => {
                 {userData.role !== 'coach' && userData.role !== 'admin' && (
                   <p>
                     <strong>Gói:</strong>
-                    <span className={`badge ms-2 ${userData.isMember ? 'bg-success' : 'bg-warning text-dark'}`}>
-                      {userData.isMember ? 'Premium' : 'Miễn phí'}
+                    <span className={`badge ms-2 ${userData.isMemberVip || userData.role === 'memberVip' ? 'bg-success' : 'bg-warning text-dark'}`}>
+                      {userData.isMemberVip || userData.role === 'memberVip' ? 'Premium' : 'Miễn phí'}
                     </span>
-                    {!userData.isMember && (
+                    {!(userData.isMemberVip || userData.role === 'memberVip') && (
                       <button onClick={() => navigate('/subscribe')} className="btn btn-sm btn-outline-success ms-2">Nâng cấp</button>
                     )}
                   </p>
@@ -397,7 +424,7 @@ const MyProgressPage = () => {
                 )}
 
                 {/* Coach Request/Chat */}
-                {userData.role !== 'coach' && userData.role !== 'admin' && (
+                {(userData.isMemberVip || userData.role === 'memberVip') && userData.role !== 'coach' && userData.role !== 'admin' && (
                   <div className="mt-3">
                     {userData.coach || userData.coachId ? (
                       <div className="alert alert-info">
@@ -430,30 +457,14 @@ const MyProgressPage = () => {
                       </div>
                     ) : userData.isMember ? (
                       <div className="alert alert-warning">
-                        <h6 className="alert-heading mb-2">
-                          <i className="fas fa-exclamation-triangle me-2"></i>Chưa có huấn luyện viên
-                        </h6>
-                        <p className="mb-2">Bạn chưa được phân công huấn luyện viên. Hãy yêu cầu hỗ trợ để được kết nối với coach chuyên nghiệp.</p>
-                        <div className="d-flex flex-wrap gap-2">
-                          <button onClick={handleRequestCoach} className="btn btn-success">
-                            <i className="fas fa-user-plus me-2"></i>Yêu cầu Coach
-                          </button>
-                          <button onClick={() => navigate('/booking')} className="btn btn-info">
-                            <i className="fas fa-calendar-plus me-2"></i>Đặt lịch hẹn
-                          </button>
-                        </div>
+                        <p className="mb-1">Bạn chưa được phân công huấn luyện viên.</p>
+                        {!(userData.isMemberVip || userData.role === 'memberVip') ? (
+                          <p className="mb-0">Vui lòng nâng cấp tài khoản để yêu cầu huấn luyện viên.</p>
+                        ) : (
+                          <button onClick={() => navigate('/booking')} className="btn btn-info">Đặt lịch</button>
+                        )}
                       </div>
-                    ) : (
-                      <div className="alert alert-secondary">
-                        <h6 className="alert-heading mb-2">
-                          <i className="fas fa-crown me-2"></i>Nâng cấp Premium
-                        </h6>
-                        <p className="mb-2">Để được hỗ trợ từ huấn luyện viên chuyên nghiệp, vui lòng nâng cấp lên gói Premium.</p>
-                        <button onClick={() => navigate('/subscribe')} className="btn btn-warning">
-                          <i className="fas fa-star me-2"></i>Nâng cấp ngay
-                        </button>
-                      </div>
-                    )}
+                    ) : null}
                   </div>
                 )}
               </div>
@@ -513,13 +524,24 @@ const MyProgressPage = () => {
                 </div>
                 <div className="mb-3">
                   <label htmlFor="cigaretteType" className="form-label">Loại thuốc lá</label>
-                  <input
-                    type="text"
-                    className="form-control"
+                  <select
+                    className="form-select"
                     id="cigaretteType"
                     value={userData.smokingStatus.cigaretteType}
                     onChange={(e) => handleUpdateSmokingStatus('cigaretteType', e.target.value)}
-                  />
+                  >
+                    <option value="">Chọn loại thuốc lá</option>
+                    <option value="Thuốc lá 555">Thuốc lá 555</option>
+                    <option value="Thuốc lá Richmond">Thuốc lá Richmond</option>
+                    <option value="Thuốc lá Esse">Thuốc lá Esse</option>
+                    <option value="Thuốc lá Craven">Thuốc lá Craven</option>
+                    <option value="Thuốc lá Marlboro">Thuốc lá Marlboro</option>
+                    <option value="Thuốc lá Camel">Thuốc lá Camel</option>
+                    <option value="Thuốc lá SG bạc">Thuốc lá SG bạc</option>
+                    <option value="Thuốc lá Jet">Thuốc lá Jet</option>
+                    <option value="Thuốc lá Thăng Long">Thuốc lá Thăng Long</option>
+                    <option value="Thuốc lá Hero">Thuốc lá Hero</option>
+                  </select>
                 </div>
                 <div className="mb-3">
                   <label htmlFor="quitReason" className="form-label">Lý do cai thuốc</label>
@@ -545,8 +567,41 @@ const MyProgressPage = () => {
                 {!userData.quitPlan ? (
                   <div className="text-center p-3 border border-dashed rounded-3 bg-light">
                     <p className="text-secondary mb-3">Bạn chưa có kế hoạch cai thuốc. Hãy tạo một kế hoạch để bắt đầu hành trình của mình!</p>
+                    <h6 className="mb-2">Chọn kế hoạch mẫu:</h6>
+                    <div>
+                      {suggestedPlans.length === 0 ? (
+                        <p>Không có kế hoạch mẫu.</p>
+                      ) : (
+                        suggestedPlans.map((plan, idx) => (
+                          <div key={plan.Id} className="card mb-2">
+                            <div className="card-body">
+                              <h6>{plan.Title}</h6>
+                              <p>{plan.Description}</p>
+                              <button
+                                className="btn btn-outline-primary btn-sm"
+                                onClick={() => setUserData(prev => ({
+                                  ...prev,
+                                  quitPlan: {
+                                    startDate: new Date().toISOString().slice(0, 10),
+                                    targetDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().slice(0, 10),
+                                    milestones: [],
+                                    currentProgress: 0,
+                                    initialCigarettes: 0,
+                                    dailyReduction: 0,
+                                    planDetail: plan.PlanDetail || '',
+                                    planType: 'suggested',
+                                  }
+                                }))}
+                              >
+                                Áp dụng kế hoạch này
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
                     <button onClick={handleJoinQuitPlan} className="btn btn-success me-2">Tham gia Kế hoạch Cai thuốc</button>
-                    <button onClick={() => setUserData(prev => ({ ...prev, quitPlan: { startDate: '', targetDate: '', milestones: [], currentProgress: 0, initialCigarettes: 0 } }))} className="btn btn-outline-success">Tạo Kế hoạch mới</button>
+                    <button onClick={() => setUserData(prev => ({ ...prev, quitPlan: { startDate: '', targetDate: '', milestones: [], currentProgress: 0, initialCigarettes: 0, dailyReduction: 0, planDetail: '', planType: 'custom' } }))} className="btn btn-outline-success">Tạo Kế hoạch mới</button>
                   </div>
                 ) : (
                   <div>
@@ -556,7 +611,7 @@ const MyProgressPage = () => {
                         type="date"
                         className="form-control"
                         id="startDate"
-                        value={userData.quitPlan.startDate}
+                        value={userData.quitPlan?.startDate || ''}
                         onChange={(e) => setUserData(prev => ({
                           ...prev,
                           quitPlan: { ...prev.quitPlan, startDate: e.target.value }
@@ -569,7 +624,7 @@ const MyProgressPage = () => {
                         type="date"
                         className="form-control"
                         id="targetDate"
-                        value={userData.quitPlan.targetDate}
+                        value={userData.quitPlan?.targetDate || ''}
                         onChange={(e) => setUserData(prev => ({
                           ...prev,
                           quitPlan: { ...prev.quitPlan, targetDate: e.target.value }
@@ -582,7 +637,7 @@ const MyProgressPage = () => {
                         type="number"
                         className="form-control"
                         id="initialCigarettes"
-                        value={userData.quitPlan.initialCigarettes}
+                        value={userData.quitPlan?.initialCigarettes || 0}
                         onChange={(e) => setUserData(prev => ({
                           ...prev,
                           quitPlan: { ...prev.quitPlan, initialCigarettes: Number(e.target.value) }
@@ -596,7 +651,7 @@ const MyProgressPage = () => {
                         type="number"
                         className="form-control"
                         id="dailyReduction"
-                        value={userData.quitPlan.dailyReduction}
+                        value={userData.quitPlan?.dailyReduction || 0}
                         onChange={(e) => setUserData(prev => ({
                           ...prev,
                           quitPlan: { ...prev.quitPlan, dailyReduction: Number(e.target.value) }
@@ -610,20 +665,20 @@ const MyProgressPage = () => {
                         className="form-control"
                         id="planDetail"
                         rows="3"
-                        value={userData.quitPlan.planDetail}
+                        value={userData.quitPlan?.planDetail || ''}
                         onChange={(e) => setUserData(prev => ({
                           ...prev,
                           quitPlan: { ...prev.quitPlan, planDetail: e.target.value }
                         }))}
                       ></textarea>
                     </div>
-                    <p className="fw-bold mt-3 mb-1">Tiến độ hiện tại: {(typeof userData.quitPlan.currentProgress === 'number' ? userData.quitPlan.currentProgress : 0).toFixed(2)}%</p>
+                    <p className="fw-bold mt-3 mb-1">Tiến độ hiện tại: {(typeof userData.quitPlan?.currentProgress === 'number' ? userData.quitPlan.currentProgress : 0).toFixed(2)}%</p>
                     <div className="progress" style={{ height: '10px' }}>
                       <div 
                         className="progress-bar bg-success"
                         role="progressbar"
-                        style={{ width: `${(typeof userData.quitPlan.currentProgress === 'number' ? userData.quitPlan.currentProgress : 0)}%` }}
-                        aria-valuenow={(typeof userData.quitPlan.currentProgress === 'number' ? userData.quitPlan.currentProgress : 0)}
+                        style={{ width: `${(typeof userData.quitPlan?.currentProgress === 'number' ? userData.quitPlan.currentProgress : 0)}%` }}
+                        aria-valuenow={(typeof userData.quitPlan?.currentProgress === 'number' ? userData.quitPlan.currentProgress : 0)}
                         aria-valuemin="0"
                         aria-valuemax="100"
                       ></div>
@@ -631,10 +686,10 @@ const MyProgressPage = () => {
 
                     <h6 className="mt-4 mb-2">Các mốc quan trọng:</h6>
                     <ul className="list-group mb-3">
-                      {userData.quitPlan.milestones.length === 0 ? (
+                      {(userData.quitPlan?.milestones || []).length === 0 ? (
                         <li className="list-group-item text-secondary">Chưa có mốc quan trọng nào.</li>
                       ) : (
-                        userData.quitPlan.milestones.map((milestone, index) => (
+                        (userData.quitPlan?.milestones || []).map((milestone, index) => (
                           <li key={index} className="list-group-item d-flex justify-content-between align-items-center">
                             {milestone.title}
                             <span className="badge bg-secondary">{milestone.date}</span>
@@ -689,62 +744,82 @@ const MyProgressPage = () => {
             <div className="card shadow-sm h-100">
               <div className="card-header bg-success text-white fw-bold">Biểu đồ tiến độ hút thuốc</div>
               <div className="card-body">
-                {smokingHistory.length > 0 ? (
-                  <Line
-                    data={{
-                      labels: smokingHistory.map(entry => new Date(entry.Date).toLocaleDateString()),
-                      datasets: [
-                        {
-                          label: 'Số điếu hút mỗi ngày',
-                          data: smokingHistory.map(entry => entry.Cigarettes),
-                          borderColor: 'rgb(75, 192, 192)',
-                          tension: 0.1,
-                        },
-                        userData.quitPlan && userData.quitPlan.dailyReduction > 0 && {
-                          label: 'Mục tiêu giảm dần',
-                          data: smokingHistory.map((entry, index) => {
-                            const startDate = new Date(userData.quitPlan.startDate);
-                            const currentDate = new Date(entry.Date);
-                            const daysPassed = Math.floor((currentDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-                            return Math.max(0, userData.quitPlan.initialCigarettes - (userData.quitPlan.dailyReduction * daysPassed));
-                          }),
-                          borderColor: 'rgb(255, 99, 132)',
-                          tension: 0.1,
-                          borderDash: [5, 5],
-                        },
-                      ].filter(Boolean),
-                    }}
-                    options={{
-                      responsive: true,
-                      plugins: {
-                        legend: {
-                          position: 'top',
-                        },
-                        title: {
-                          display: true,
-                          text: 'Lịch sử số điếu thuốc hút hàng ngày',
-                        },
-                      },
-                      scales: {
-                        x: {
+                {(() => {
+                  // Tạo mảng ngày liên tục từ ngày bắt đầu đến hôm nay hoặc ngày kết thúc
+                  let chartLabels = [];
+                  let chartData = [];
+                  let targetData = [];
+                  if (userData.quitPlan && userData.quitPlan.startDate) {
+                    const startDate = new Date(userData.quitPlan.startDate);
+                    const endDate = userData.quitPlan.targetDate ? new Date(userData.quitPlan.targetDate) : new Date();
+                    const today = new Date();
+                    // Nếu chưa đến ngày kết thúc thì lấy đến hôm nay
+                    const lastDate = endDate > today ? today : endDate;
+                    for (let d = new Date(startDate); d <= lastDate; d.setDate(d.getDate() + 1)) {
+                      const dateStr = d.toISOString().slice(0, 10);
+                      chartLabels.push(new Date(dateStr).toLocaleDateString());
+                      // Tìm entry trong smokingHistory
+                      const entry = smokingHistory.find(e => e.Date.slice(0, 10) === dateStr);
+                      chartData.push(entry ? entry.Cigarettes : 0);
+                      // Mục tiêu giảm dần
+                      if (userData.quitPlan.dailyReduction > 0) {
+                        const daysPassed = Math.floor((d.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+                        targetData.push(Math.max(0, userData.quitPlan.initialCigarettes - (userData.quitPlan.dailyReduction * daysPassed)));
+                      }
+                    }
+                  }
+                  return chartLabels.length > 0 ? (
+                    <Line
+                      data={{
+                        labels: chartLabels,
+                        datasets: [
+                          {
+                            label: 'Số điếu hút mỗi ngày',
+                            data: chartData,
+                            borderColor: 'rgb(75, 192, 192)',
+                            tension: 0.1,
+                          },
+                          userData.quitPlan && userData.quitPlan.dailyReduction > 0 && {
+                            label: 'Mục tiêu giảm dần',
+                            data: targetData,
+                            borderColor: 'rgb(255, 99, 132)',
+                            tension: 0.1,
+                            borderDash: [5, 5],
+                          },
+                        ].filter(Boolean),
+                      }}
+                      options={{
+                        responsive: true,
+                        plugins: {
+                          legend: {
+                            position: 'top',
+                          },
                           title: {
                             display: true,
-                            text: 'Ngày',
+                            text: 'Lịch sử số điếu thuốc hút hàng ngày',
                           },
                         },
-                        y: {
-                          title: {
-                            display: true,
-                            text: 'Số điếu thuốc',
+                        scales: {
+                          x: {
+                            title: {
+                              display: true,
+                              text: 'Ngày',
+                            },
                           },
-                          min: 0,
+                          y: {
+                            title: {
+                              display: true,
+                              text: 'Số điếu thuốc',
+                            },
+                            min: 0,
+                          },
                         },
-                      },
-                    }}
-                  />
-                ) : (
-                  <p className="text-secondary">Chưa có dữ liệu lịch sử hút thuốc để hiển thị biểu đồ.</p>
-                )}
+                      }}
+                    />
+                  ) : (
+                    <p className="text-secondary">Chưa có dữ liệu lịch sử hút thuốc để hiển thị biểu đồ.</p>
+                  );
+                })()}
               </div>
             </div>
           </div>

@@ -162,7 +162,7 @@ const AboutPage = () => {
                   <li><i className="fas fa-check-circle"></i> Vượt qua khó khăn cùng nhau</li>
                 </ul>
               </div>
-              <Link to="/community" className="join-btn">Tham gia ngay <i className="fas fa-arrow-right"></i></Link>
+              <Link to="/blog" className="join-btn">Tham gia ngay <i className="fas fa-arrow-right"></i></Link>
             </div>
           </div>
         </div>

@@ -65,19 +65,16 @@ const BookingPage = () => {
     setSuccess('');
     try {
       const token = localStorage.getItem('token');
-      if (!selectedCoachId) {
+      if (!selectedCoachId || isNaN(Number(selectedCoachId))) {
         setError('Vui lòng chọn một huấn luyện viên.');
         return;
       }
-      
-      console.log("BookingPage - Submitting booking with:", {
-        coachId: parseInt(selectedCoachId),
-        scheduledTime,
-        note
-      });
-
-      const response = await axios.post('http://localhost:5000/api/booking/book-appointment', {
-        coachId: parseInt(selectedCoachId),
+      if (!scheduledTime) {
+        setError('Vui lòng chọn thời gian hẹn.');
+        return;
+      }
+      await axios.post('http://localhost:5000/api/booking/book-appointment', {
+        coachId: Number(selectedCoachId),
         scheduledTime,
         note
       }, {

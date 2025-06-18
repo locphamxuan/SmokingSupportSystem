@@ -136,22 +136,29 @@ const LoginPage = () => {
       const response = await axios.post(endpoint, loginPayload);
       const { token, user } = response.data;
 
+      // Đảm bảo user data có đúng format
+      const normalizedUser = {
+        ...user,
+        isMemberVip: user.isMemberVip || false,
+        role: user.role || 'member'
+      };
+
       if (
-        (userType === 'member' && user.role !== 'member' && user.role !== 'guest' && user.role !== 'user') ||
-        (userType === 'coach' && user.role !== 'coach') ||
-        (userType === 'admin' && user.role !== 'admin')
+        (userType === 'member' && normalizedUser.role !== 'member' && normalizedUser.role !== 'memberVip') ||
+        (userType === 'coach' && normalizedUser.role !== 'coach') ||
+        (userType === 'admin' && normalizedUser.role !== 'admin')
       ) {
         setError('Tài khoản không đúng loại bạn đã chọn!');
         setLoading(false);
         return;
       }
 
-      login(user, token);
+      login(normalizedUser, token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-      if (user.role === 'coach') {
+      if (normalizedUser.role === 'coach') {
         navigate('/coach-portal');
-      } else if (user.role === 'admin') {
+      } else if (normalizedUser.role === 'admin') {
         navigate('/admin/users');
       } else {
         navigate('/');

@@ -2,6 +2,12 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 const { authenticateToken } = require('../middlewares/auth');
+const statisticsController = require('../controllers/statisticsController');
+const notificationController = require('../controllers/notificationController');
+const reportController = require('../controllers/reportController');
+const rankingController = require('../controllers/rankingController');
+const dailyLogController = require('../controllers/dailyLogController');
+const membershipController = require('../controllers/membershipController');
 
 // Các tuyến đường công khai (không yêu cầu xác thực)
 router.post('/login', authController.login);
@@ -30,5 +36,23 @@ router.post('/posts', authenticateToken, authController.createPost); // Requires
 // Comment routes
 router.get('/posts/:postId/comments', authController.getCommentsForPost); // Publicly accessible to view comments
 router.post('/posts/:postId/comments', authenticateToken, authController.addComment); // Requires authentication to add a comment
+
+// Statistics
+router.get('/statistics', authenticateToken, statisticsController.getUserStatistics);
+// Notifications
+router.get('/notifications', authenticateToken, notificationController.getUserNotifications);
+router.put('/notifications/:notificationId/read', authenticateToken, notificationController.markNotificationAsRead);
+// Reports
+router.post('/reports', authenticateToken, reportController.submitReport);
+// Rankings
+router.get('/rankings', rankingController.getRankings);
+// Daily Log
+router.get('/daily-log', authenticateToken, dailyLogController.getDailyLog);
+router.post('/daily-log', authenticateToken, dailyLogController.addDailyLog);
+// Membership Packages
+router.get('/membership-packages', membershipController.getMembershipPackages);
+
+// Suggested Quit Plans (chỉ cho memberVip)
+router.get('/quit-plan/suggested', authenticateToken, authController.getSuggestedQuitPlans);
 
 module.exports = router;

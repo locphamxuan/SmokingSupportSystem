@@ -70,40 +70,6 @@ const BlogPage = () => {
     setSuccess("");
   };
 
-  const benefitsData = [
-    {
-      icon: <i className="fas fa-heart text-danger"></i>, 
-      title: "Cải thiện sức khỏe tim mạch",
-      description: "Chỉ sau 20 phút ngừng hút thuốc, nhịp tim và huyết áp bắt đầu trở về bình thường"
-    },
-    {
-      icon: <i className="fas fa-brain text-info"></i>, 
-      title: "Tăng cường trí nhớ và tập trung",
-      description: "Oxy được cung cấp đầy đủ cho não bộ, cải thiện khả năng tư duy và học tập"
-    },
-    {
-      icon: <i className="fas fa-money-bill-wave text-success"></i>, 
-      title: "Tiết kiệm tài chính",
-      description: "Tiết kiệm hàng triệu đồng mỗi năm từ việc không mua thuốc lá"
-    },
-    {
-      icon: <i className="fas fa-clock text-warning"></i>, 
-      title: "Kéo dài tuổi thọ",
-      description: "Giảm nguy cơ ung thư phổi lên đến 50% sau 10 năm cai thuốc"
-    }
-  ];
-
-  const harmfulEffects = [
-    "Ung thư phổi, họng, thực quản và nhiều bộ phận khác",
-    "Bệnh tim mạch, đột quỵ và các vấn đề về hệ tuần hoàn",
-    "Bệnh phổi tắc nghẽn mãn tính (COPD)",
-    "Giảm khả năng sinh sản ở cả nam và nữ",
-    "Lão hóa da, răng và hôi miệng",
-    "Suy giảm hệ miễn dịch, dễ mắc bệnh",
-    "Ảnh hưởng xấu đến thai nhi khi mang thai",
-    "Gây nghiện nicotine, khó cai bỏ"
-  ];
-
   return (
     <div className="d-flex flex-column min-vh-100"> 
       <main className="flex-grow-1"> 
@@ -125,7 +91,7 @@ const BlogPage = () => {
               Lợi ích của việc cai nghiện thuốc lá
             </h2>
             <Row xs={1} md={2} className="g-4"> 
-              {benefitsData.map((benefit, index) => (
+              {/* benefitsData.map((benefit, index) => (
                 <Col key={index}> 
                   <Card className="h-100 shadow-sm transition-transform hover-scale"> 
                     <Card.Body> 
@@ -140,65 +106,8 @@ const BlogPage = () => {
                     </Card.Body>
                   </Card>
                 </Col>
-              ))}
+              )) */}
             </Row>
-          </div>
-
-          <div className="mb-5"> 
-            <h2 className="text-center mb-4 text-danger"> 
-            </h2>
-            <div className="p-4 bg-warning-subtle rounded shadow-sm"> 
-              <div className="d-flex align-items-center mb-3"> 
-                <i className="fas fa-exclamation-triangle text-warning me-2 fs-3"></i> 
-                <h6 className="text-warning fw-bold"> 
-                  Thuốc lá gây ra nhiều tác hại nghiêm trọng đến sức khỏe:
-                </h6>
-              </div>
-              <ListGroup variant="flush"> {/* Thay thế List bằng ListGroup */}
-                {harmfulEffects.map((effect, index) => (
-                  <ListGroupItem key={index} className="py-1 border-0 bg-transparent"> 
-                    <div className="d-flex align-items-center"> 
-                      <i className="fas fa-check-circle text-danger me-2"></i> 
-                      <span className="text-dark">{effect}</span> 
-                    </div>
-                  </ListGroupItem>
-=======
-    <Box sx={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      minHeight: '100vh',
-      paddingTop: '80px' // Thêm padding-top để tránh navbar che khuất
-    }}>
-      <Box sx={{ flexGrow: 1 }}>
-        <Container maxWidth="lg">
-          <Box sx={{ my: 4 }}>
-           
-
-            {/* Benefits Section */}
-            <Box sx={{ mb: 6 }}>
-              <Typography variant="h4" component="h2" gutterBottom align="center" sx={{ mb: 4, color: '#1976d2' }}>
-                Lợi ích của việc cai nghiện thuốc lá
-              </Typography>
-              <Grid container spacing={3}>
-                {benefitsData.map((benefit, index) => (
-                  <Grid item xs={12} md={6} key={index}>
-                    <Card sx={{ height: '100%', transition: '0.3s', '&:hover': { transform: 'translateY(-4px)', boxShadow: 4 } }}>
-                      <CardContent>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                          {benefit.icon}
-                          <Typography variant="h6" component="h3" sx={{ ml: 2, fontWeight: 'bold' }}>
-                            {benefit.title}
-                          </Typography>
-                        </Box>
-                        <Typography variant="body1" color="text.secondary">
-                          {benefit.description}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </ListGroup>
-            </div>
           </div>
 
           <hr className="my-4" /> 

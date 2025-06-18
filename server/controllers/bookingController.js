@@ -8,12 +8,12 @@ const bookingController = {
             console.log(`Server: Received bookCoach request - UserId: ${userId}, CoachId: ${coachId}`);
 
             // Kiểm tra người dùng có phải là thành viên premium chưa
-            const userCheck = await sql.query`
-                SELECT IsMember, CoachId FROM Users WHERE Id = ${userId}
+            const userResult = await sql.query`
+                SELECT IsMemberVip, CoachId FROM Users WHERE Id = ${userId}
             `;
-            const user = userCheck.recordset[0];
+            const user = userResult.recordset[0];
 
-            if (!user || !user.IsMember) {
+            if (!user || !user.IsMemberVip) {
                 return res.status(403).json({ message: 'Bạn cần là thành viên Premium để đặt lịch với huấn luyện viên' });
             }
 
@@ -45,20 +45,16 @@ const bookingController = {
 
     bookAppointment: async (req, res) => {
         try {
-            const { coachId, scheduledTime, note } = req.body;
-            const memberId = req.user.id; // Lấy userId từ token đã xác thực
+            const { coachId, slotDate, slot, note } = req.body;
+            const memberId = req.user.id;
 
-            if (!coachId || !scheduledTime) {
-                return res.status(400).json({ message: 'Huấn luyện viên và thời gian hẹn là bắt buộc.' });
+            if (!coachId || !slotDate || !slot) {
+                return res.status(400).json({ message: 'Huấn luyện viên, ngày và khung giờ là bắt buộc.' });
             }
 
-            // Chuyển đổi scheduledTime thành định dạng phù hợp cho SQL Server (ví dụ: datetime)
-            const formattedScheduledTime = new Date(scheduledTime).toISOString();
-
-            // Insert vào bảng Booking. Theo memory, tên bảng là 'Booking' (singular).
             await sql.query`
-                INSERT INTO Booking (MemberId, CoachId, ScheduledTime, Note, Status, CreatedAt)
-                VALUES (${memberId}, ${coachId}, ${formattedScheduledTime}, ${note || null}, N'đang chờ xác nhận', GETDATE())
+                INSERT INTO Booking (MemberId, CoachId, Slot, SlotDate, Note, Status, CreatedAt)
+                VALUES (${memberId}, ${coachId}, ${slot}, ${slotDate}, ${note || null}, N'đang chờ xác nhận', GETDATE())
             `;
 
             res.status(201).json({ message: 'Yêu cầu đặt lịch đã được tạo thành công.' });

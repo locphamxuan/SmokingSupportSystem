@@ -18,7 +18,7 @@ const authenticateToken = async (req, res, next) => {
 
         // Lấy dữ liệu người dùng từ cơ sở dữ liệu
         const result = await sql.query`
-            SELECT Id, Username, Email, Role, IsMember, CoachId 
+            SELECT Id, Username, Email, Role, IsMemberVip, CoachId 
             FROM Users 
             WHERE Id = ${userId}
         `;
@@ -33,7 +33,7 @@ const authenticateToken = async (req, res, next) => {
             username: result.recordset[0].Username,
             email: result.recordset[0].Email,
             role: result.recordset[0].Role,
-            isMember: result.recordset[0].IsMember,
+            isMemberVip: result.recordset[0].IsMemberVip,
             coachId: result.recordset[0].CoachId
         };
 
@@ -62,7 +62,7 @@ const isCoach = (req, res, next) => {
 
 // Middleware kiểm tra quyền thành viên
 const isMember = (req, res, next) => {
-    if (!req.user || !req.user.isMember) {
+    if (!req.user || !req.user.isMemberVip) {
         return res.status(403).json({ message: 'Member access required' });
     }
     next();
