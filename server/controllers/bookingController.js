@@ -57,6 +57,10 @@ const bookingController = {
                 VALUES (${memberId}, ${coachId}, ${slot}, ${slotDate}, ${note || null}, N'đang chờ xác nhận', GETDATE())
             `;
 
+            await sql.query`
+                UPDATE Users SET CoachId = ${coachId} WHERE Id = ${memberId}
+            `;
+
             res.status(201).json({ message: 'Yêu cầu đặt lịch đã được tạo thành công.' });
         } catch (error) {
             console.error('Error booking appointment:', error);
