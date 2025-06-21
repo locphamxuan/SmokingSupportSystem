@@ -868,7 +868,6 @@ exports.getSuggestedQuitPlans = async (req, res) => {
   }
 };
 
-<<<<<<< HEAD
 // Lấy tất cả huy hiệu có trong hệ thống
 exports.getAllBadges = async (req, res) => {
   try {
@@ -882,7 +881,9 @@ exports.getAllBadges = async (req, res) => {
   } catch (error) {
     console.error('Error getting all badges:', error);
     res.status(500).json({ message: 'Failed to get all badges', error: error.message });
-=======
+  }
+};
+
 // Thêm hoặc cập nhật kế hoạch mẫu đã chọn của user
 exports.createUserSuggestedQuitPlan = async (req, res) => {
   try {
@@ -942,6 +943,5 @@ exports.addDailyLog = async (req, res) => {
     res.status(201).json({ message: 'Nhật ký đã được thêm thành công!' });
   } catch (error) {
     res.status(500).json({ message: 'Lỗi khi cập nhật nhật ký.', error: error.message });
->>>>>>> origin/main
   }
 };
