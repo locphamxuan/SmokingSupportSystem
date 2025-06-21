@@ -39,9 +39,10 @@ const apiService = {
     updateSmokingStatus: (status) => api.put('/users/smoking-status', status),
     
     // Kế hoạch cai thuốc
-    createQuitPlan: (plan) => api.post('/quit-plans', plan),
-    getQuitPlan: () => api.get('/quit-plans/current'),
-    updateQuitPlan: (planId, plan) => api.put(`/quit-plans/${planId}`, plan),
+    createQuitPlan: (plan) => api.post('/auth/quit-plan', plan),
+    getQuitPlan: () => api.get('/auth/quit-plan'),
+    updateQuitPlan: (planId, plan) => api.put(`/auth/quit-plan/${planId}`, plan),
+    getSuggestedQuitPlans: () => api.get('/auth/quit-plan/suggested'),
     
     // Tiến độ
     addProgress: (progress) => api.post('/progress', progress),

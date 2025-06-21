@@ -6,13 +6,22 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 
 const BookingPage = () => {
   const navigate = useNavigate();
-  const [scheduledTime, setScheduledTime] = useState('');
+  const [slotDate, setSlotDate] = useState('');
+  const [selectedSlot, setSelectedSlot] = useState('');
   const [note, setNote] = useState('');
   const [coaches, setCoaches] = useState([]);
   const [selectedCoachId, setSelectedCoachId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Available time slots as defined in the database
+  const availableSlots = [
+    { value: '7h-9h', label: '7:00 - 9:00' },
+    { value: '10h-12h', label: '10:00 - 12:00' },
+    { value: '13h-15h', label: '13:00 - 15:00' },
+    { value: '16h-18h', label: '16:00 - 18:00' }
+  ];
 
   useEffect(() => {
     const fetchUserAndCoaches = async () => {
@@ -69,13 +78,21 @@ const BookingPage = () => {
         setError('Vui lòng chọn một huấn luyện viên.');
         return;
       }
-      if (!scheduledTime) {
-        setError('Vui lòng chọn thời gian hẹn.');
+      if (!slotDate) {
+        setError('Vui lòng chọn ngày hẹn.');
         return;
       }
+<<<<<<< HEAD
+=======
+      if (!selectedSlot) {
+        setError('Vui lòng chọn khung giờ hẹn.');
+        return;
+      }
+>>>>>>> origin/main
       const response = await axios.post('http://localhost:5000/api/booking/book-appointment', {
         coachId: Number(selectedCoachId),
-        scheduledTime,
+        slotDate,
+        slot: selectedSlot,
         note
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -164,15 +181,33 @@ const BookingPage = () => {
             )}
           </div>
           <div className="mb-3">
-            <label htmlFor="scheduledTime" className="form-label">Thời gian hẹn</label>
+            <label htmlFor="slotDate" className="form-label">Ngày hẹn</label>
             <input
-              type="datetime-local"
+              type="date"
               className="form-control"
-              id="scheduledTime"
-              value={scheduledTime}
-              onChange={(e) => setScheduledTime(e.target.value)}
+              id="slotDate"
+              value={slotDate}
+              onChange={(e) => setSlotDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]} // Prevent booking in the past
               required
             />
+          </div>
+          <div className="mb-3">
+            <label htmlFor="slotSelect" className="form-label">Khung giờ hẹn</label>
+            <select
+              className="form-select"
+              id="slotSelect"
+              value={selectedSlot}
+              onChange={(e) => setSelectedSlot(e.target.value)}
+              required
+            >
+              <option value="">Chọn khung giờ</option>
+              {availableSlots.map((slot) => (
+                <option key={slot.value} value={slot.value}>
+                  {slot.label}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="mb-3">
             <label htmlFor="note" className="form-label">Ghi chú (Tùy chọn)</label>

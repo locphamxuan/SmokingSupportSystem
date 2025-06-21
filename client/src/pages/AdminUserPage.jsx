@@ -65,27 +65,20 @@ const AdminUserPage = () => {
   });
 
   const getUserRole = (user) => {
-    // Kiểm tra nếu user có IsMember = 1 thì coi là member (thành viên premium)
-    if (user.isMember === 1 || user.isMember === true) {
-      return "member";
-    }
-    
-    // Ưu tiên role từ database nếu có
     if (user.role) {
       return user.role.toLowerCase();
     }
-    
-    // Logic dự phòng cho các trường hợp dữ liệu cũ hoặc không xác định
-    if (user.isAdmin === 1) return "admin"; // Nếu là admin
-    return "guest"; // Mặc định là khách hàng
+    if (user.isAdmin === 1) return "admin";
+    return "guest";
   };
 
   const getRoleColor = (role) => {
     switch (role) {
-      case "admin": return "#f44336"; // Màu đỏ cho Quản trị viên
-      case "coach": return "#2196f3"; // Màu xanh dương cho Huấn luyện viên
-      case "member": return "#ff9800"; // Màu cam cho Thành viên
-      case "guest": return "#9e9e9e"; // Màu xám cho Khách hàng
+      case "admin": return "#f44336";
+      case "coach": return "#2196f3";
+      case "membervip": return "#43a047"; // Xanh lá cho Thành viên Vip
+      case "member": return "#ff9800";
+      case "guest": return "#9e9e9e";
       default: return "#9e9e9e";
     }
   };
@@ -94,6 +87,7 @@ const AdminUserPage = () => {
     switch (role) {
       case "admin": return "Quản trị viên";
       case "coach": return "Huấn luyện viên";
+      case "membervip": return "Thành viên Vip";
       case "member": return "Thành viên";
       case "guest": return "Khách hàng";
       default: return "Khách hàng";
@@ -118,20 +112,17 @@ const AdminUserPage = () => {
     if (roleFilter === "member") {
       filtered = filtered.filter(user => {
         const role = getUserRole(user);
-        return role === "member" || user.isMember === true || user.isMember === 1;
+        return role === "member" || role === "membervip";
       });
     } else if (roleFilter === "guest") {
       filtered = filtered.filter(user => {
         const role = getUserRole(user);
-        return role === "guest" && !user.isMember;
+        return role === "guest";
       });
     } else if (roleFilter === "coach") {
       filtered = filtered.filter(user => getUserRole(user) === "coach");
     } else if (roleFilter !== "all") {
-      filtered = filtered.filter(user => {
-        const userRole = getUserRole(user);
-        return userRole === roleFilter;
-      });
+      filtered = filtered.filter(user => getUserRole(user) === roleFilter);
     }
 
     // Sắp xếp danh sách đã lọc theo ID tăng dần
@@ -215,16 +206,10 @@ const AdminUserPage = () => {
     // Lọc bỏ admin khỏi thống kê
     const filteredUsers = users.filter(user => user.role !== 'admin');
     const coachCount = filteredUsers.filter(user => getUserRole(user) === "coach").length;
-    const memberCount = filteredUsers.filter(user => {
-      const role = getUserRole(user);
-      return role === "member" || user.isMember === true || user.isMember === 1;
-    }).length;
-    const guestCount = filteredUsers.filter(user => {
-      const role = getUserRole(user);
-      return role === "guest" && !user.isMember;
-    }).length;
+    const memberVipCount = filteredUsers.filter(user => getUserRole(user) === "membervip").length;
+    const memberOnlyCount = filteredUsers.filter(user => getUserRole(user) === "member").length;
     const totalUsers = filteredUsers.length;
-    return { coachCount, memberCount, guestCount, totalUsers };
+    return { coachCount, memberOnlyCount, memberVipCount, totalUsers };
   };
 
   const handleEdit = (user) => {
@@ -336,7 +321,7 @@ const AdminUserPage = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
-  const { coachCount, memberCount, guestCount, totalUsers } = getStatistics();
+  const { coachCount, memberOnlyCount, memberVipCount, totalUsers } = getStatistics();
 
   return (
     <Box sx={{
@@ -415,9 +400,9 @@ const AdminUserPage = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '100%' }}>
                     <Box>
                       <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                        Thành viên Premium
+                        Thành viên Vip
                       </Typography>
-                      <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{memberCount}</Typography>
+                      <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{memberVipCount}</Typography>
                     </Box>
                     <PremiumIcon sx={{ fontSize: 32, opacity: 0.8 }} />
                   </Box>
@@ -463,9 +448,9 @@ const AdminUserPage = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '100%' }}>
                     <Box>
                       <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                        Khách hàng
+                        Thành viên
                       </Typography>
-                      <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{guestCount}</Typography>
+                      <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{memberOnlyCount}</Typography>
                     </Box>
                     <PeopleIcon sx={{ fontSize: 32, opacity: 0.8 }} />
                   </Box>
@@ -677,19 +662,6 @@ const AdminUserPage = () => {
                 value={formData.address}
                 onChange={handleInputChange}
               />
-              <FormControl fullWidth margin="dense">
-                <InputLabel>Vai trò</InputLabel>
-                <Select
-                  name="role"
-                  value={formData.role}
-                  label="Vai trò"
-                  onChange={handleInputChange}
-                >
-                  <MenuItem value="member">Thành viên</MenuItem>
-                  <MenuItem value="coach">Huấn luyện viên</MenuItem>
-                  <MenuItem value="guest">Khách hàng</MenuItem>
-                </Select>
-              </FormControl>
             </DialogContent>
             <DialogActions>
               <Button onClick={handleClose}>Hủy</Button>
@@ -749,33 +721,37 @@ const AdminUserPage = () => {
 
               {/* Thông tin hút thuốc */}
               {selectedUserDetail.smokingProfile && (
-                <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: '#f57c00' }}>
-                    🚬 Thông tin hút thuốc
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" color="textSecondary">Số điếu/ngày:</Typography>
-                      <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.smokingProfile.cigarettesPerDay}</Typography>
-                    </Grid>
-                                         <Grid item xs={6}>
-                       <Typography variant="body2" color="textSecondary">Tần suất hút:</Typography>
-                       <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.smokingProfile.smokingFrequency || 'N/A'}</Typography>
-                     </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" color="textSecondary">Giá/gói:</Typography>
-                      <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.smokingProfile.costPerPack?.toLocaleString('vi-VN')} VNĐ</Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" color="textSecondary">Loại thuốc:</Typography>
-                      <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.smokingProfile.cigaretteType || 'N/A'}</Typography>
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Typography variant="body2" color="textSecondary">Lý do cai thuốc:</Typography>
-                      <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.smokingProfile.quitReason || 'Chưa cập nhật'}</Typography>
-                    </Grid>
-                  </Grid>
-                </Paper>
+                <div className="card mb-3">
+                  <div className="card-header bg-warning text-white">
+                    <strong>🚬 Thông tin hút thuốc</strong>
+                  </div>
+                  <div className="card-body">
+                    <div className="row mb-2">
+                      <div className="col-md-6">
+                        <strong>Số điếu/ngày:</strong> {selectedUserDetail.smokingProfile.cigarettesPerDay ?? 'N/A'}
+                      </div>
+                      <div className="col-md-6">
+                        <strong>Giá/gói:</strong> {selectedUserDetail.smokingProfile.costPerPack?.toLocaleString('vi-VN') ?? 'N/A'} VNĐ
+                      </div>
+                    </div>
+                    <div className="row mb-2">
+                      <div className="col-md-6">
+                        <strong>Tần suất hút:</strong> {selectedUserDetail.smokingProfile.smokingFrequency || 'Chưa cập nhật'}
+                      </div>
+                      <div className="col-md-6">
+                        <strong>Loại thuốc:</strong> {selectedUserDetail.smokingProfile.cigaretteType || 'Chưa cập nhật'}
+                      </div>
+                    </div>
+                    <div className="row mb-2">
+                      <div className="col-md-6">
+                        <strong>Tình trạng sức khỏe:</strong> {selectedUserDetail.smokingProfile.healthStatus || 'Chưa cập nhật'}
+                      </div>
+                      <div className="col-md-6">
+                        <strong>Lý do cai thuốc:</strong> {selectedUserDetail.smokingProfile.quitReason || 'Chưa cập nhật'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* Thông tin theo role Coach */}

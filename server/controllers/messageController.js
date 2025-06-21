@@ -20,7 +20,9 @@ const messageController = {
                 return res.status(404).json({ message: 'Không tìm thấy người dùng' });
             }
 
-            if (!user.IsMemberVip) {
+            // Fix: Accept 1, true, '1', 'true' as Membervip
+            const isPremium = user.IsMemberVip === 1 || user.IsMemberVip === true || user.IsMemberVip === '1' || user.IsMemberVip === 'true';
+            if (!isPremium) {
                 return res.status(403).json({ message: 'Bạn cần là thành viên Premium để gửi tin nhắn' });
             }
 
@@ -200,6 +202,115 @@ const messageController = {
         } catch (error) {
             console.error('Get coach messages with member error:', error);
             res.status(500).json({ message: 'Failed to get coach messages with member', error: error.message });
+        }
+    },
+
+    // Hàm cho socket: lấy lịch sử tin nhắn
+    getMessagesSocket: async (userId, otherId) => {
+        try {
+            // Lấy thông tin user
+            const userResult = await sql.query`
+                SELECT Id, IsMemberVip, CoachId, Role FROM Users WHERE Id = ${userId}
+            `;
+            const user = userResult.recordset[0];
+            if (!user) return [];
+
+            // Fix: Accept 1, true, '1', 'true' as Premium
+            const isPremium = user.IsMemberVip === 1 || user.IsMemberVip === true || user.IsMemberVip === '1' || user.IsMemberVip === 'true';
+            if ((user.Role === 'member' || user.Role === 'memberVip') && (!isPremium || parseInt(user.CoachId) !== parseInt(otherId))) {
+                return [];
+            }
+            if (user.Role === 'coach') {
+                // Coach chỉ chat với member đã gán cho mình
+                const memberResult = await sql.query`
+                    SELECT CoachId FROM Users WHERE Id = ${otherId}
+                `;
+                const member = memberResult.recordset[0];
+                if (!member || parseInt(member.CoachId) !== parseInt(userId)) {
+                    return [];
+                }
+            } else if (user.Role !== 'member' && user.Role !== 'memberVip') {
+                // Không cho phép role khác
+                return [];
+            }
+
+            // Lấy tin nhắn
+            const messages = await sql.query`
+                SELECT 
+                    m.Id,
+                    m.SenderId,
+                    m.ReceiverId,
+                    m.Content,
+                    m.SentAt,
+                    m.IsRead,
+                    u.Username as SenderName,
+                    r.Username as ReceiverName
+                FROM Messages m
+                LEFT JOIN Users u ON m.SenderId = u.Id
+                LEFT JOIN Users r ON m.ReceiverId = r.Id
+                WHERE (m.SenderId = ${userId} AND m.ReceiverId = ${otherId})
+                   OR (m.SenderId = ${otherId} AND m.ReceiverId = ${userId})
+                ORDER BY m.SentAt ASC
+            `;
+            return messages.recordset;
+        } catch (error) {
+            return [];
+        }
+    },
+
+    // Hàm cho socket: gửi tin nhắn
+    sendMessageSocket: async (senderId, receiverId, content) => {
+        try {
+            if (!content || !content.trim()) {
+                return { error: 'Nội dung tin nhắn không được để trống' };
+            }
+            // Kiểm tra quyền gửi tin nhắn
+            const userResult = await sql.query`
+                SELECT IsMemberVip, CoachId, Role FROM Users WHERE Id = ${senderId}
+            `;
+            const user = userResult.recordset[0];
+            if (!user) {
+                return { error: 'Không tìm thấy người dùng' };
+            }
+            // Fix: Accept 1, true, '1', 'true' as Premium
+            const isPremium = user.IsMemberVip === 1 || user.IsMemberVip === true || user.IsMemberVip === '1' || user.IsMemberVip === 'true';
+            if ((user.Role === 'member' || user.Role === 'memberVip') && !isPremium) {
+                return { error: 'Bạn cần là thành viên Premium để gửi tin nhắn' };
+            }
+            if (user.Role === 'coach') {
+                const memberCheck = await sql.query`
+                    SELECT CoachId FROM Users WHERE Id = ${receiverId}
+                `;
+                const member = memberCheck.recordset[0];
+                if (!member || member.CoachId !== senderId) {
+                    return { error: 'Bạn không có quyền gửi tin nhắn cho thành viên này.' };
+                }
+            }
+            // Thêm tin nhắn mới
+            const result = await sql.query`
+                INSERT INTO Messages (SenderId, ReceiverId, Content, SentAt, IsRead)
+                VALUES (${senderId}, ${receiverId}, ${content.trim()}, GETDATE(), 0);
+                SELECT SCOPE_IDENTITY() AS Id;
+            `;
+            const messageId = result.recordset[0].Id;
+            const newMessage = await sql.query`
+                SELECT 
+                    m.Id,
+                    m.SenderId,
+                    m.ReceiverId,
+                    m.Content,
+                    m.SentAt,
+                    m.IsRead,
+                    u.Username as SenderName,
+                    r.Username as ReceiverName
+                FROM Messages m
+                LEFT JOIN Users u ON m.SenderId = u.Id
+                LEFT JOIN Users r ON m.ReceiverId = r.Id
+                WHERE m.Id = ${messageId}
+            `;
+            return { message: newMessage.recordset[0] };
+        } catch (error) {
+            return { error: 'Lỗi gửi tin nhắn' };
         }
     }
 };
