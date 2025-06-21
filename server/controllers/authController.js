@@ -825,3 +825,19 @@ exports.getSuggestedQuitPlans = async (req, res) => {
     res.status(500).json({ message: 'Failed to get suggested quit plans', error: error.message });
   }
 };
+
+// Lấy tất cả huy hiệu có trong hệ thống
+exports.getAllBadges = async (req, res) => {
+  try {
+    const badgesResult = await sql.query`
+      SELECT Id, Name, Description, BadgeType, Requirement
+      FROM Badges
+      ORDER BY Id ASC
+    `;
+    
+    res.json({ badges: badgesResult.recordset });
+  } catch (error) {
+    console.error('Error getting all badges:', error);
+    res.status(500).json({ message: 'Failed to get all badges', error: error.message });
+  }
+};

@@ -115,8 +115,31 @@ const SubscriptionPlans = () => {
 
     // Lấy danh sách gói thành viên
     getMembershipPackages()
-      .then(setPackages)
-      .catch(() => setPackages([]))
+      .then((data) => {
+        console.log('Membership packages data:', data);
+        setPackages(data);
+      })
+      .catch((error) => {
+        console.error('Error fetching membership packages:', error);
+        // Fallback data nếu API không hoạt động
+        const fallbackPackages = [
+          {
+            id: 1,
+            name: 'Gói Miễn phí',
+            price: 0,
+            durationInDays: 0,
+            description: 'Trải nghiệm các tính năng cơ bản'
+          },
+          {
+            id: 2,
+            name: 'Gói Premium',
+            price: 99000,
+            durationInDays: 30,
+            description: 'Truy cập đầy đủ tất cả tính năng cao cấp'
+          }
+        ];
+        setPackages(fallbackPackages);
+      })
       .finally(() => setLoading(false));
   }, [navigate]);
 
@@ -125,14 +148,29 @@ const SubscriptionPlans = () => {
   console.log('[SubscriptionPlans] User role:', user?.role); // DEBUG
   console.log('[SubscriptionPlans] User isMemberVip:', user?.isMemberVip); // DEBUG
 
+  console.log('SubscriptionPlans render - user:', user, 'loading:', loading, 'packages:', packages);
+
   if (!user || loading) {
-    return <div>Đang tải...</div>;
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '50vh',
+        fontSize: '18px'
+      }}>
+        Đang tải...
+      </div>
+    );
   }
 
   return (
-    <div className="homepage">
-      <section className="subscription-plans-section">
-        <div className="container">
+    <div className="homepage" style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
+      <section className="subscription-plans-section" style={{ padding: '40px 0' }}>
+        <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
+          <div style={{ padding: '20px 0', textAlign: 'center' }}>
+            <h1 style={{ color: '#333', marginBottom: '20px' }}>Gói Dịch Vụ</h1>
+          </div>
           {isPremiumMember ? (
             <>
               <div className="card premium-status-card text-center mb-4">
