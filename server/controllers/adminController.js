@@ -72,21 +72,35 @@ const adminController = {
                 if (profileResult.recordset.length > 0) {
                     const profile = profileResult.recordset[0];
                     userDetail.smokingProfile = {
-                        cigarettesPerDay: profile.cigarettesPerDay || 0,
-                        costPerPack: profile.costPerPack || 0,
-                        smokingFrequency: profile.smokingFrequency || '',
-                        healthStatus: profile.healthStatus || '',
-                        cigaretteType: profile.cigaretteType || '',
+                        cigarettesPerDay: profile.CigarettesPerDay || 0,
+                        costPerPack: profile.CostPerPack || 0,
+                        smokingFrequency: profile.SmokingFrequency || '',
+                        healthStatus: profile.HealthStatus || '',
+                        cigaretteType: profile.CigaretteType || '',
                         quitReason: profile.QuitReason || ''
                     };
                     console.log('Smoking profile found:', userDetail.smokingProfile);
                 } else {
                     console.log('No smoking profile found for user:', userId);
-                    userDetail.smokingProfile = null;
+                    userDetail.smokingProfile = {
+                        cigarettesPerDay: 0,
+                        costPerPack: 0,
+                        smokingFrequency: '',
+                        healthStatus: '',
+                        cigaretteType: '',
+                        quitReason: ''
+                    };
                 }
             } catch (profileError) {
                 console.log('SmokingProfiles table error:', profileError.message);
-                userDetail.smokingProfile = null;
+                userDetail.smokingProfile = {
+                    cigarettesPerDay: 0,
+                    costPerPack: 0,
+                    smokingFrequency: '',
+                    healthStatus: '',
+                    cigaretteType: '',
+                    quitReason: ''
+                };
             }
 
             // Lấy thông tin chi tiết theo role (với try-catch riêng)

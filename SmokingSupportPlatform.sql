@@ -117,6 +117,13 @@ CREATE TABLE Notifications (
 );
 GO
 
+ALTER TABLE SmokingDailyLog
+ADD SuggestedPlanId INT NULL;
+
+ALTER TABLE SmokingDailyLog
+ADD CONSTRAINT FK_SmokingDailyLog_SuggestedPlanId
+FOREIGN KEY (SuggestedPlanId) REFERENCES SuggestedQuitPlans(Id);
+
 -- POSTS
 CREATE TABLE Posts (
     Id INT IDENTITY(1,1) PRIMARY KEY,
@@ -204,6 +211,20 @@ CREATE TABLE SmokingDailyLog (
     FOREIGN KEY (PlanId) REFERENCES QuitPlans(Id)
 );
 
+CREATE TABLE UserSuggestedQuitPlans (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    UserId INT NOT NULL,
+    SuggestedPlanId INT NOT NULL,
+    StartDate DATE NOT NULL,
+    TargetDate DATE NOT NULL,
+    Status NVARCHAR(20) DEFAULT 'active', -- active, completed, canceled, ...
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (UserId) REFERENCES Users(Id),
+    FOREIGN KEY (SuggestedPlanId) REFERENCES SuggestedQuitPlans(Id)
+);
+
+
 --- Dữ liệu mẫu cho Users
 INSERT INTO Users (Username, Password, Email, Role, IsMemberVip) VALUES
 (N'admin', N'admin123', N'admin@smoking.com', 'admin', 0),
@@ -290,11 +311,34 @@ INSERT INTO MembershipPackages (Name, Description, Price, DurationInDays) VALUES
 (N'Gói VIP 3 tháng', N'Hỗ trợ nâng cao trong 90 ngày với HLV.', 499000, 90);
   
 
+
+
+
 INSERT INTO SuggestedQuitPlans (Title, Description, PlanDetail)
 VALUES
-(N'Kế hoạch mẫu 7 ngày', N'Giảm dần số điếu thuốc mỗi ngày trong 1 tuần.', N'Ngày 1-2: 80% số điếu/ngày. Ngày 3-4: 60%. Ngày 5-6: 40%. Ngày 7: 20%. Sau đó bỏ hoàn toàn.'),
-(N'Kế hoạch mẫu 14 ngày', N'Giảm dần số điếu thuốc trong 2 tuần, kết hợp hoạt động thể thao.', N'Chia nhỏ mục tiêu mỗi 3 ngày, tăng dần thời gian không hút thuốc, bổ sung hoạt động thể thao.'),
-(N'Kế hoạch mẫu 30 ngày', N'Kế hoạch bỏ thuốc trong 1 tháng với sự hỗ trợ của cộng đồng.', N'Ngày 1-10: Giảm 30%. Ngày 11-20: Giảm 60%. Ngày 21-30: Chỉ hút khi thực sự thèm, sau đó bỏ hoàn toàn. Tham gia nhóm hỗ trợ.'),
-(N'Kế hoạch mẫu cho người bận rộn', N'Phù hợp với người làm việc nhiều, giảm hút thuốc vào giờ làm.', N'Chỉ hút ngoài giờ làm, giảm dần số điếu vào buổi tối, thay thế bằng hoạt động thư giãn.'),
-(N'Kế hoạch mẫu cho người trẻ', N'Kết hợp cai thuốc với hoạt động giải trí lành mạnh.', N'Tham gia các hoạt động thể thao, giải trí, mỗi khi thèm thuốc hãy thử một hoạt động mới.');
-
+(
+  N'KẾ HOẠCH CAI THUỐC TRONG 30 NGÀY (Dành cho người hút nhẹ đến trung bình)',
+  N'Ngừng hút hoàn toàn trong 30 ngày. Giảm thiểu cơn thèm và phản ứng phụ.',
+  N'
+Tuần 1: Giai đoạn chuẩn bị: Xác định lý do cai thuốc, chọn ngày "D" (quit day), ghi nhật ký hút thuốc. Giảm 20-30% số điếu.
+Tuần 2: Giai đoạn giảm dần: Chỉ hút sau bữa ăn hoặc khi thực sự không chịu được. Tăng hoạt động thể chất.
+Tuần 3: Ngày "D" - Ngừng hoàn toàn. Sử dụng kẹo nicotine, chewing gum nếu cần. Ghi nhật ký cơn thèm.
+Tuần 4: Ổn định: Thay đổi thói quen. Tránh các môi trường có người hút. Tập thiền, thở sâu.'
+),
+(
+  N'KẾ HOẠCH CAI THUỐC TRONG 60 NGÀY (Dành cho người hút thuốc trung bình – nặng)',
+  N'Ngưng hút thuốc hoàn toàn sau 30 ngày đầu. Làm quen với cuộc sống không thuốc trong 30 ngày tiếp theo.',
+  N'
+Ngày 1-15: Giảm dần lượng thuốc (giảm 1-2 điếu mỗi 2 ngày). Xác định “triggers” gây thèm.
+Ngày 16-30: Ngày "D" – Ngưng hẳn. Tăng cường vận động, uống nhiều nước, giữ tay/mồm bận rộn.
+Ngày 31-45: Ổn định tinh thần: Xử lý stress, áp lực bằng thể thao, thiền, viết nhật ký.
+Ngày 46-60: Tái lập thói quen mới: Tập trung phát triển bản thân, kỹ năng mới, kết nối xã hội không thuốc.'
+),
+(
+  N'KẾ HOẠCH CAI THUỐC TRONG 90 NGÀY (Dành cho người hút lâu năm hoặc nghiện nặng)',
+  N'Giảm phụ thuộc cả thể chất lẫn tâm lý. Tái cấu trúc hoàn toàn thói quen sống không có thuốc lá.',
+  N'
+Tháng 1: Chuẩn bị và giảm dần: Ghi chép hành vi hút thuốc, giảm 10-20% mỗi tuần. Lên lịch bỏ thuốc.
+Tháng 2: Cai hoàn toàn: Ngưng hút, sử dụng các công cụ hỗ trợ nếu cần. Ghi nhật ký cảm xúc.
+Tháng 3: Củng cố: Tập trung vào phát triển cá nhân, xử lý trigger tiềm ẩn. Tham gia nhóm hỗ trợ hoặc huấn luyện viên.'
+);

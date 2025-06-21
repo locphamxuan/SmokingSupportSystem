@@ -337,6 +337,29 @@ components:
           type: number
         durationInDays:
           type: integer
+    UserSuggestedQuitPlan:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        suggestedPlanId:
+          type: integer
+        startDate:
+          type: string
+          format: date
+        targetDate:
+          type: string
+          format: date
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
 
   securitySchemes:
     BearerAuth:
@@ -1292,4 +1315,47 @@ paths:
                 items:
                   $ref: '#/components/schemas/QuitPlan'
         '403':
-          description: Chỉ dành cho memberVip 
+          description: Chỉ dành cho memberVip
+
+  /auth/user-suggested-quit-plan:
+    post:
+      tags:
+        - Quit Plans
+      summary: Lưu kế hoạch cai thuốc mẫu mà người dùng đã chọn
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - suggestedPlanId
+                - startDate
+                - targetDate
+              properties:
+                suggestedPlanId:
+                  type: integer
+                startDate:
+                  type: string
+                  format: date
+                targetDate:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: Lưu kế hoạch mẫu thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Dữ liệu không hợp lệ
+        '401':
+          description: Unauthorized
+        '500':
+          description: Server error 
