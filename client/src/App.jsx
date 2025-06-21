@@ -164,7 +164,7 @@ const AppRoutes = () => {
         <Route 
           path="/subscribe" 
           element={
-            <ProtectedRoute allowedRoles={['member']}> 
+            <ProtectedRoute allowedRoles={['member', 'memberVip']}> 
               <SubscriptionPlans />
             </ProtectedRoute>
           } 

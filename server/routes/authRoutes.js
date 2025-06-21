@@ -27,6 +27,7 @@ router.put('/daily-log', authenticateToken, authController.addProgress);
 router.post('/progress', authenticateToken, authController.addProgress);
 router.get('/coaches', authenticateToken, authController.getAllCoaches);
 router.get('/badges', authenticateToken, authController.getUserBadges);
+router.get('/all-badges', authenticateToken, authController.getAllBadges);
 router.get('/progress/history', authenticateToken, authController.getSmokingProgressHistory);
 
 // Blog Posts routes
