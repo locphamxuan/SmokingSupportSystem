@@ -219,6 +219,7 @@ CREATE TABLE UserSuggestedQuitPlans (
     FOREIGN KEY (SuggestedPlanId) REFERENCES SuggestedQuitPlans(Id)
 );
 
+
 --- Dữ liệu mẫu cho Users
 INSERT INTO Users (Username, Password, Email, Role, IsMemberVip) VALUES
 (N'admin', N'admin123', N'admin@smoking.com', 'admin', 0),
@@ -296,6 +297,9 @@ INSERT INTO Booking (MemberId, CoachId, SlotDate, Slot, Status, Note) VALUES
 INSERT INTO Messages (SenderId, ReceiverId, Content) VALUES
 (4, 2, N'Cảm ơn coach đã hỗ trợ!'),
 (5, 3, N'Tôi đang gặp khó khăn vào buổi sáng.');
+
+
+
 
 INSERT INTO SuggestedQuitPlans (Title, Description, PlanDetail)
 VALUES

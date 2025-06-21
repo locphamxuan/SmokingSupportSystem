@@ -39,8 +39,11 @@ export const smokingProfileAPI = {
 
 // Quit Plan API
 export const quitPlanAPI = {
-    createPlan: (planData) => api.post('/quit-plans', planData),
-    getPlans: () => api.get('/quit-plans')
+    createPlan: (planData) => api.post('/auth/quit-plan', planData),
+    getPlans: () => api.get('/auth/quit-plan'),
+    getSuggestedPlans: () => api.get('/auth/quit-plan/suggested'),
+    // Add updatePlan if needed:
+    // updatePlan: (planId, planData) => api.put(`/auth/quit-plan/${planId}`, planData),
 };
 
 // Progress API

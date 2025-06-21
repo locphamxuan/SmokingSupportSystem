@@ -20,7 +20,7 @@ const coachController = {
             const members = await sql.query`
                 WITH RankedBookings AS (
                     SELECT
-                        Id, MemberId, CoachId, ScheduledTime, Status,
+                        Id, MemberId, CoachId, SlotDate, Slot, Status,
                         ROW_NUMBER() OVER (PARTITION BY MemberId ORDER BY CreatedAt DESC) as rn
                     FROM Booking
                     WHERE Status IN (N'đang chờ xác nhận', N'đã xác nhận', N'đã hủy') AND CoachId = ${coachId}
@@ -32,7 +32,8 @@ const coachController = {
                     u.PhoneNumber, 
                     u.CreatedAt,
                     rb.Id AS appointmentId, 
-                    rb.ScheduledTime AS appointmentScheduledTime, 
+                    rb.SlotDate AS appointmentSlotDate, 
+                    rb.Slot AS appointmentSlot,
                     rb.Status AS appointmentStatus
                 FROM Users u
                 LEFT JOIN RankedBookings rb ON u.Id = rb.MemberId AND rb.rn = 1
@@ -48,9 +49,10 @@ const coachController = {
                 CreatedAt: member.CreatedAt,
                 appointment: member.appointmentId ? {
                     id: member.appointmentId,
-                    memberId: member.Id, // Assuming MemberId in Booking table is User.Id
+                    memberId: member.Id,
                     coachId: coachId,
-                    scheduledTime: member.appointmentScheduledTime,
+                    slotDate: member.appointmentSlotDate,
+                    slot: member.appointmentSlot,
                     status: member.appointmentStatus ? member.appointmentStatus.toLowerCase() : null,
                 } : null,
             }));

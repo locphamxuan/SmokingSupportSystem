@@ -56,4 +56,7 @@ router.get('/membership-packages', membershipController.getMembershipPackages);
 // Suggested Quit Plans (chỉ cho memberVip)
 router.get('/quit-plan/suggested', authenticateToken, authController.getSuggestedQuitPlans);
 
+// New route for user suggested quit plan
+router.post('/user-suggested-quit-plan', authenticateToken, authController.createUserSuggestedQuitPlan);
+
 module.exports = router;

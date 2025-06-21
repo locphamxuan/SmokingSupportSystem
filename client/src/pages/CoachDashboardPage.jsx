@@ -29,18 +29,22 @@ const CoachDashboardPage = () => {
       const response = await axios.get('http://localhost:5000/api/hlv/members', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
-      console.log("CoachDashboard - Received members data:", response.data);
-      console.log("CoachDashboard - Members with appointments:", response.data.members?.map(m => ({
-        id: m.Id,
-        username: m.Username,
-        appointment: m.appointment
-      })));
-      
       setMembers(response.data.members);
     } catch (err) {
-      console.error('Lỗi khi tải danh sách thành viên được chỉ định:', err);
-      setError(err.response?.data?.message || 'Không thể tải danh sách thành viên được chỉ định.');
+      if (err.response) {
+        if (err.response.status === 401) {
+          setError('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.');
+          navigate('/login');
+        } else if (err.response.status === 500) {
+          setError('Lỗi hệ thống (500). Vui lòng thử lại sau hoặc liên hệ quản trị viên.');
+        } else {
+          setError(err.response.data?.message || 'Đã xảy ra lỗi không xác định.');
+        }
+        console.error('Lỗi khi tải danh sách thành viên được chỉ định:', err.response.data);
+      } else {
+        setError('Không thể kết nối đến máy chủ.');
+        console.error('Lỗi khi tải danh sách thành viên được chỉ định:', err);
+      }
     } finally {
       setLoading(false);
     }
@@ -143,7 +147,9 @@ const CoachDashboardPage = () => {
                     <td>{member.Email}</td>
                     <td>{member.PhoneNumber}</td>
                     <td>
-                      {member.appointment?.scheduledTime ? new Date(member.appointment.scheduledTime).toLocaleDateString() : 'Không có lịch hẹn'}
+                      {member.appointment?.slotDate
+                        ? `${new Date(member.appointment.slotDate).toLocaleDateString()} (${member.appointment.slot})`
+                        : 'Không có lịch hẹn'}
                     </td>
                     <td>
                       {member.appointment?.status ? getStatusChip(member.appointment.status.toLowerCase()) : 'Không có lịch hẹn'}

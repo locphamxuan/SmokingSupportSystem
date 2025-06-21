@@ -110,31 +110,27 @@ exports.getProfile = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy người dùng' });
     }
     let user = userResult.recordset[0];
-    let coachDetails = null;
+    let coach = null;
     let bookingInfo = null;
 
     if (user.CoachId) {
-      const coachResult = await sql.query`
-        SELECT Id, Username FROM Users WHERE Id = ${user.CoachId} AND Role = 'coach'
-      `;
-      if (coachResult.recordset.length > 0) {
-        coachDetails = coachResult.recordset[0];
+      const coachResult = await sql.query`SELECT Id, Username, Email FROM Users WHERE Id = ${user.CoachId} AND Role = 'coach'`;
+      coach = coachResult.recordset[0] || null;
 
-        // Lấy thông tin đặt lịch sắp tới hoặc đang chờ xác nhận của người dùng với huấn luyện viên này
-        const bookingResult = await sql.query`
-          SELECT TOP 1 Id, Status, ScheduledTime, Note
-          FROM Booking
-          WHERE MemberId = ${userId} AND CoachId = ${user.CoachId}
-          AND Status IN ('pending', 'confirmed') -- Chỉ lấy lịch hẹn chưa hoàn thành/hủy
-          ORDER BY ScheduledTime ASC; -- Lấy lịch hẹn sắp tới (nếu có nhiều)
-        `;
-        if (bookingResult.recordset.length > 0) {
-          bookingInfo = bookingResult.recordset[0];
-          // Thêm trạng thái booking vào coachDetails để tiện xử lý ở frontend
-          coachDetails.bookingStatus = bookingInfo.Status;
-          coachDetails.scheduledTime = bookingInfo.ScheduledTime;
-          coachDetails.bookingNote = bookingInfo.Note;
-        }
+      // Lấy thông tin đặt lịch sắp tới hoặc đang chờ xác nhận của người dùng với huấn luyện viên này
+      const bookingResult = await sql.query`
+        SELECT TOP 1 Id, Status, SlotDate, Slot, Note
+        FROM Booking
+        WHERE MemberId = ${userId} AND CoachId = ${user.CoachId}
+          AND Status IN (N'đang chờ xác nhận', N'đã xác nhận')
+        ORDER BY SlotDate ASC;
+      `;
+      if (bookingResult.recordset.length > 0) {
+        bookingInfo = bookingResult.recordset[0];
+        bookingInfo.bookingStatus = bookingInfo.Status;
+        bookingInfo.slotDate = bookingInfo.SlotDate;
+        bookingInfo.slot = bookingInfo.Slot;
+        bookingInfo.bookingNote = bookingInfo.Note;
       }
     }
 
@@ -146,16 +142,39 @@ exports.getProfile = async (req, res) => {
     const dbSmoking = smokingResult.recordset[0];
     console.log(`[getProfile] SmokingProfiles raw data for userId ${userId}:`, dbSmoking); // DEBUG
 
-    // Lấy nhật ký hút thuốc mới nhất từ SmokingDailyLog
+    // Thêm hàm lấy SuggestedPlanId hiện tại của user
+    async function getCurrentSuggestedPlanId(userId) {
+      const result = await sql.query`
+        SELECT TOP 1 SuggestedPlanId FROM UserSuggestedQuitPlans WHERE UserId = ${userId} ORDER BY Id DESC
+      `;
+      return result.recordset.length > 0 ? result.recordset[0].SuggestedPlanId : null;
+    }
+
     let dailyLog = { cigarettes: 0, feeling: '' };
-    const progressResult = await sql.query`
-      SELECT TOP 1 * FROM SmokingDailyLog WHERE UserId = ${userId} ORDER BY LogDate DESC
-    `;
-    if (progressResult.recordset.length > 0) {
-      dailyLog = {
-        cigarettes: progressResult.recordset[0].Cigarettes || 0,
-        feeling: progressResult.recordset[0].Feeling || ''
-      };
+    const today = new Date().toISOString().slice(0, 10);
+    const suggestedPlanId = await getCurrentSuggestedPlanId(user.Id);
+    if (suggestedPlanId) {
+      // Nếu user đang theo kế hoạch mẫu, lấy nhật ký theo SuggestedPlanId
+      const progressResult = await sql.query`
+        SELECT TOP 1 * FROM SmokingDailyLog WHERE UserId = ${user.Id} AND LogDate = ${today} AND SuggestedPlanId = ${suggestedPlanId}
+      `;
+      if (progressResult.recordset.length > 0) {
+        dailyLog = {
+          cigarettes: progressResult.recordset[0].Cigarettes || 0,
+          feeling: progressResult.recordset[0].Feeling || ''
+        };
+      }
+    } else {
+      // Nếu không, lấy nhật ký theo PlanId (kế hoạch tự tạo)
+      const progressResult = await sql.query`
+        SELECT TOP 1 * FROM SmokingDailyLog WHERE UserId = ${user.Id} AND LogDate = ${today} AND PlanId IS NOT NULL
+      `;
+      if (progressResult.recordset.length > 0) {
+        dailyLog = {
+          cigarettes: progressResult.recordset[0].Cigarettes || 0,
+          feeling: progressResult.recordset[0].Feeling || ''
+        };
+      }
     }
     console.log(`[getProfile] DailyLog data for userId ${userId}:`, dailyLog); // DEBUG
 
@@ -178,6 +197,27 @@ exports.getProfile = async (req, res) => {
       dailyLog
     };
 
+    // Lấy kế hoạch mẫu đã chọn (nếu có)
+    const userSuggestedPlanResult = await sql.query(`
+      SELECT usp.Id, usp.StartDate, usp.TargetDate, sp.Title, sp.Description, sp.PlanDetail
+      FROM UserSuggestedQuitPlans usp
+      JOIN SuggestedQuitPlans sp ON usp.SuggestedPlanId = sp.Id
+      WHERE usp.UserId = ${user.Id}
+      ORDER BY usp.Id DESC
+    `);
+    let currentUserSuggestedPlan = null;
+    if (userSuggestedPlanResult.recordset.length > 0) {
+      const plan = userSuggestedPlanResult.recordset[0];
+      currentUserSuggestedPlan = {
+        id: plan.Id,
+        title: plan.Title,
+        description: plan.Description,
+        planDetail: plan.PlanDetail,
+        startDate: plan.StartDate ? plan.StartDate.toISOString().slice(0, 10) : '',
+        targetDate: plan.TargetDate ? plan.TargetDate.toISOString().slice(0, 10) : ''
+      };
+    }
+
     res.json({
       id: user.Id,
       username: user.Username,
@@ -188,7 +228,9 @@ exports.getProfile = async (req, res) => {
       isMemberVip: user.IsMemberVip,
       createdAt: user.CreatedAt,
       smokingStatus,
-      coachId: user.CoachId
+      coachId: user.CoachId,
+      coach,
+      currentUserSuggestedPlan
     });
   } catch (error) {
     console.error('[getProfile] Failed to get profile:', error); // DEBUG
@@ -826,6 +868,7 @@ exports.getSuggestedQuitPlans = async (req, res) => {
   }
 };
 
+<<<<<<< HEAD
 // Lấy tất cả huy hiệu có trong hệ thống
 exports.getAllBadges = async (req, res) => {
   try {
@@ -839,5 +882,66 @@ exports.getAllBadges = async (req, res) => {
   } catch (error) {
     console.error('Error getting all badges:', error);
     res.status(500).json({ message: 'Failed to get all badges', error: error.message });
+=======
+// Thêm hoặc cập nhật kế hoạch mẫu đã chọn của user
+exports.createUserSuggestedQuitPlan = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { suggestedPlanId, startDate, targetDate } = req.body;
+    await sql.query`
+      INSERT INTO UserSuggestedQuitPlans (UserId, SuggestedPlanId, StartDate, TargetDate)
+      VALUES (${userId}, ${suggestedPlanId}, ${startDate}, ${targetDate})
+    `;
+    res.json({ message: 'Lưu kế hoạch mẫu thành công!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Lưu kế hoạch mẫu thất bại.', error: error.message });
+  }
+};
+
+// Trong exports.addDailyLog hoặc addProgress:
+exports.addDailyLog = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { cigarettes, feeling, logDate, suggestedPlanId, planId } = req.body;
+    let useSuggestedPlanId = suggestedPlanId || null;
+    let usePlanId = planId || null;
+    // Nếu không truyền từ FE thì fallback như cũ
+    if (!useSuggestedPlanId && !usePlanId) {
+      // Lấy kế hoạch mẫu hiện tại
+      const suggestedPlanIdResult = await sql.query`
+        SELECT TOP 1 SuggestedPlanId FROM UserSuggestedQuitPlans WHERE UserId = ${userId} ORDER BY Id DESC
+      `;
+      useSuggestedPlanId = suggestedPlanIdResult.recordset.length > 0 ? suggestedPlanIdResult.recordset[0].SuggestedPlanId : null;
+      if (!useSuggestedPlanId) {
+        // Nếu không có kế hoạch mẫu, lấy PlanId từ QuitPlans
+        const planResult = await sql.query`
+          SELECT TOP 1 Id FROM QuitPlans WHERE UserId = ${userId} ORDER BY Id DESC
+        `;
+        usePlanId = planResult.recordset.length > 0 ? planResult.recordset[0].Id : null;
+      }
+    }
+    // Kiểm tra đã có nhật ký cho ngày này chưa
+    const today = logDate || new Date().toISOString().slice(0, 10);
+    const existing = await sql.query`
+      SELECT Id FROM SmokingDailyLog WHERE UserId = ${userId} AND LogDate = ${today} AND 
+        ((SuggestedPlanId IS NOT NULL AND SuggestedPlanId = ${useSuggestedPlanId}) OR (PlanId IS NOT NULL AND PlanId = ${usePlanId}))
+    `;
+    if (existing.recordset.length > 0) {
+      // Update
+      await sql.query`
+        UPDATE SmokingDailyLog SET Cigarettes = ${cigarettes}, Feeling = ${feeling || ''}
+        WHERE Id = ${existing.recordset[0].Id}
+      `;
+    } else {
+      // Insert
+      await sql.query`
+        INSERT INTO SmokingDailyLog (UserId, LogDate, Cigarettes, Feeling, PlanId, SuggestedPlanId)
+        VALUES (${userId}, ${today}, ${cigarettes}, ${feeling || ''}, ${usePlanId}, ${useSuggestedPlanId})
+      `;
+    }
+    res.status(201).json({ message: 'Nhật ký đã được thêm thành công!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi khi cập nhật nhật ký.', error: error.message });
+>>>>>>> origin/main
   }
 };
