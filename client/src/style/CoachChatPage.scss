@@ -194,7 +194,9 @@ $padding: 1rem;
   background: $secondary;
   border-radius: $border-radius;
   padding: $padding;
-  height: 600px;
+  height: calc(100vh - 200px);
+  max-height: 700px;
+  min-height: 500px;
   display: flex;
   flex-direction: column;
   box-shadow: 0 2px 8px rgba(0,0,0,0.07);
@@ -208,12 +210,35 @@ $padding: 1rem;
   margin-bottom: 0.75rem;
   background: #fff;
   border-radius: $border-radius $border-radius 0 0;
+  flex-shrink: 0;
 }
 
 .message-list {
   flex: 1;
   overflow-y: auto;
   padding-bottom: 1rem;
+  padding-right: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
 }
 
 .message-bubble {
@@ -248,6 +273,7 @@ $padding: 1rem;
   background: #fff;
   padding: 1rem 0.5rem 0.5rem 0.5rem;
   border-radius: 0 0 $border-radius $border-radius;
+  flex-shrink: 0;
 }
 
 .input-area input,

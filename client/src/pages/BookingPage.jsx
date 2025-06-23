@@ -82,13 +82,26 @@ const BookingPage = () => {
         setError('Vui lòng chọn ngày hẹn.');
         return;
       }
-<<<<<<< HEAD
-=======
       if (!selectedSlot) {
         setError('Vui lòng chọn khung giờ hẹn.');
         return;
       }
->>>>>>> origin/main
+
+      // Check if booking time is valid
+      const selectedDate = new Date(slotDate);
+      const currentDate = new Date();
+      const isToday = selectedDate.toDateString() === currentDate.toDateString();
+      
+      if (isToday) {
+        const currentHour = currentDate.getHours();
+        const selectedSlotEndHour = getSlotEndHour(selectedSlot);
+        
+        if (currentHour >= selectedSlotEndHour) {
+          setError(`Không thể đặt lịch cho khung giờ ${getSlotLabel(selectedSlot)} vì đã qua giờ này. Vui lòng chọn khung giờ khác hoặc ngày khác.`);
+          return;
+        }
+      }
+
       const response = await axios.post('http://localhost:5000/api/booking/book-appointment', {
         coachId: Number(selectedCoachId),
         slotDate,
@@ -107,6 +120,69 @@ const BookingPage = () => {
       console.error('Lỗi khi đặt lịch hẹn:', err);
       console.error('Error details:', err.response?.data);
       setError(err.response?.data?.message || 'Không thể đặt lịch hẹn. Vui lòng thử lại.');
+    }
+  };
+
+  // Helper function to get slot end hour
+  const getSlotEndHour = (slot) => {
+    const slotMap = {
+      '7h-9h': 9,
+      '10h-12h': 12,
+      '13h-15h': 15,
+      '16h-18h': 18
+    };
+    return slotMap[slot] || 0;
+  };
+
+  // Helper function to get slot label
+  const getSlotLabel = (slot) => {
+    const slotMap = {
+      '7h-9h': '7:00 - 9:00',
+      '10h-12h': '10:00 - 12:00',
+      '13h-15h': '13:00 - 15:00',
+      '16h-18h': '16:00 - 18:00'
+    };
+    return slotMap[slot] || slot;
+  };
+
+  // Filter available slots based on current time if booking for today
+  const getAvailableSlots = () => {
+    const selectedDate = new Date(slotDate);
+    const currentDate = new Date();
+    const isToday = selectedDate.toDateString() === currentDate.toDateString();
+    
+    if (!isToday) {
+      return availableSlots;
+    }
+    
+    const currentHour = currentDate.getHours();
+    return availableSlots.filter(slot => {
+      const slotEndHour = getSlotEndHour(slot.value);
+      return currentHour < slotEndHour;
+    });
+  };
+
+  // Handle date change and validate selected slot
+  const handleDateChange = (e) => {
+    const newDate = e.target.value;
+    setSlotDate(newDate);
+    
+    // If a slot is selected, check if it's still available for the new date
+    if (selectedSlot && newDate) {
+      const newSelectedDate = new Date(newDate);
+      const currentDate = new Date();
+      const isToday = newSelectedDate.toDateString() === currentDate.toDateString();
+      
+      if (isToday) {
+        const currentHour = currentDate.getHours();
+        const selectedSlotEndHour = getSlotEndHour(selectedSlot);
+        
+        if (currentHour >= selectedSlotEndHour) {
+          setSelectedSlot(''); // Reset slot selection
+          setError('Khung giờ đã chọn không còn khả dụng cho ngày này. Vui lòng chọn khung giờ khác.');
+          setTimeout(() => setError(''), 3000); // Clear error after 3 seconds
+        }
+      }
     }
   };
 
@@ -187,7 +263,7 @@ const BookingPage = () => {
               className="form-control"
               id="slotDate"
               value={slotDate}
-              onChange={(e) => setSlotDate(e.target.value)}
+              onChange={handleDateChange}
               min={new Date().toISOString().split('T')[0]} // Prevent booking in the past
               required
             />
@@ -202,12 +278,38 @@ const BookingPage = () => {
               required
             >
               <option value="">Chọn khung giờ</option>
-              {availableSlots.map((slot) => (
+              {getAvailableSlots().map((slot) => (
                 <option key={slot.value} value={slot.value}>
                   {slot.label}
                 </option>
               ))}
             </select>
+            {slotDate && (() => {
+              const selectedDate = new Date(slotDate);
+              const currentDate = new Date();
+              const isToday = selectedDate.toDateString() === currentDate.toDateString();
+              const availableCount = getAvailableSlots().length;
+              const totalCount = availableSlots.length;
+              
+              if (isToday && availableCount < totalCount) {
+                return (
+                  <small className="form-text text-warning">
+                    <i className="fas fa-exclamation-triangle me-1"></i>
+                    Một số khung giờ đã qua và không thể đặt lịch cho hôm nay. 
+                    Hiện có {availableCount}/{totalCount} khung giờ khả dụng.
+                  </small>
+                );
+              }
+              if (isToday && availableCount === 0) {
+                return (
+                  <small className="form-text text-danger">
+                    <i className="fas fa-times-circle me-1"></i>
+                    Tất cả khung giờ hôm nay đã qua. Vui lòng chọn ngày khác.
+                  </small>
+                );
+              }
+              return null;
+            })()}
           </div>
           <div className="mb-3">
             <label htmlFor="note" className="form-label">Ghi chú (Tùy chọn)</label>
