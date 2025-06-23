@@ -49,27 +49,7 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'API is working!', timestamp: new Date().toISOString() });
 });
 
-app.get('/api/test-user/:id', async (req, res) => {
-  try {
-    const { sql } = require('./db');
-    const userId = req.params.id;
-    
-    const result = await sql.query`
-      SELECT Id, Username, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, 
-             dailyCigarettes, dailyFeeling
-      FROM Users WHERE Id = ${userId}
-    `;
-    
-    res.json({ 
-      message: 'Direct DB query test',
-      userId: userId,
-      found: result.recordset.length > 0,
-      data: result.recordset[0] || null
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+
 
 // Lưu socketId theo userId để gửi tin nhắn đúng người
 const userSocketMap = new Map();

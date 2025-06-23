@@ -196,24 +196,6 @@
       filter: brightness(1.1) drop-shadow(0 0 20px rgba(255, 215, 0, 0.8)) !important;
     }
   }
-
-  // Tooltip enhancement
-  &[title]:hover::after {
-    content: attr(title);
-    position: absolute;
-    bottom: -40px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.9);
-    color: white;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    white-space: nowrap;
-    z-index: 1000;
-    opacity: 0;
-    animation: fadeInTooltip 0.3s ease forwards;
-  }
 }
 
 @keyframes fadeInTooltip {

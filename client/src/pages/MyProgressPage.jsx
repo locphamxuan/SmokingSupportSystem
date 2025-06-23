@@ -775,43 +775,6 @@ const MyProgressPage = () => {
             <div className="card shadow-sm h-100">
               <div className="card-header bg-success text-white fw-bold">Kế hoạch Cai thuốc</div>
               <div className="card-body">
-<<<<<<< HEAD
-                {!userData.quitPlan ? (
-                  <div className="text-center p-3 border border-dashed rounded-3 bg-light">
-                    <p className="text-secondary mb-3">Bạn chưa có kế hoạch cai thuốc. Hãy tạo một kế hoạch để bắt đầu hành trình của mình!</p>
-                    <h6 className="mb-2">Chọn kế hoạch mẫu:</h6>
-                    <div>
-                      {suggestedPlans.length === 0 ? (
-                        <p>Không có kế hoạch mẫu.</p>
-                      ) : (
-                        suggestedPlans.map((plan) => (
-                          <div key={plan.Id} className="card mb-2">
-                            <div className="card-body">
-                              <h6>{plan.Title}</h6>
-                              <p>{plan.Description}</p>
-                              <button
-                                className="btn btn-outline-primary btn-sm"
-                                onClick={() => setUserData(prev => ({
-                                  ...prev,
-                                  quitPlan: {
-                                    startDate: new Date().toISOString().slice(0, 10),
-                                    targetDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().slice(0, 10),
-                                    milestones: [],
-                                    currentProgress: 0,
-                                    initialCigarettes: 0,
-                                    dailyReduction: 0,
-                                    planDetail: plan.PlanDetail || '',
-                                    planType: 'suggested',
-                                  }
-                                }))}
-                              >
-                                Áp dụng kế hoạch này
-                              </button>
-                            </div>
-                          </div>
-                        ))
-                      )}
-=======
                 {userData.currentUserSuggestedPlan ? (
                   <div>
                     <h5>{userData.currentUserSuggestedPlan.title}</h5>
@@ -833,7 +796,6 @@ const MyProgressPage = () => {
                           {getCurrentProgress(userData.currentUserSuggestedPlan)}%
                         </div>
                       </div>
->>>>>>> origin/main
                     </div>
                     <button
                       className="btn btn-outline-danger mt-3"

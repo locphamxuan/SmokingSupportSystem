@@ -36,7 +36,6 @@ const Badge = ({ badgeType, name, description, size = 64, showAnimation = false 
   return (
     <div 
       className="badge-container" 
-      title={`${name} - ${description}`}
       style={{
         display: 'inline-block',
         margin: '4px',
@@ -45,7 +44,7 @@ const Badge = ({ badgeType, name, description, size = 64, showAnimation = false 
     >
       <img 
         src={getBadgeImage(badgeType)} 
-        alt={name}
+        alt={name || 'Badge'}
         style={badgeStyle}
         className={showAnimation ? 'badge-animated' : ''}
         onMouseEnter={(e) => {

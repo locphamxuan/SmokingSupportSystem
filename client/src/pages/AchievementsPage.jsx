@@ -85,11 +85,13 @@ const AchievementsPage = () => {
   console.log('User badges:', userBadges);
   console.log('Loading:', loading);
   const isUserBadge = (badgeId) => {
-    return userBadges.some(userBadge => userBadge.BadgeId === badgeId);
+    // Database returns badge objects with Id field (not BadgeId)
+    return userBadges.some(userBadge => userBadge.Id === badgeId);
   };
 
   const getUserBadgeInfo = (badgeId) => {
-    return userBadges.find(userBadge => userBadge.BadgeId === badgeId);
+    // Database returns badge objects with Id field (not BadgeId)
+    return userBadges.find(userBadge => userBadge.Id === badgeId);
   };
 
   if (loading) {
@@ -132,7 +134,7 @@ const AchievementsPage = () => {
           />
           {userBadges.length > 0 && (
             <Chip 
-              label={`Mới nhất: ${getUserBadgeInfo(Math.max(...userBadges.map(b => b.BadgeId)))?.AwardedAt ? new Date(getUserBadgeInfo(Math.max(...userBadges.map(b => b.BadgeId))).AwardedAt).toLocaleDateString() : ''}`}
+              label={`Mới nhất: ${getUserBadgeInfo(Math.max(...userBadges.map(b => b.Id)))?.AwardedAt ? new Date(getUserBadgeInfo(Math.max(...userBadges.map(b => b.Id))).AwardedAt).toLocaleDateString() : ''}`}
               color="success"
               sx={{ fontSize: '14px', px: 2, py: 1, height: 'auto' }}
             />
@@ -215,8 +217,6 @@ const AchievementsPage = () => {
                     <Box sx={{ mb: 2, position: 'relative', zIndex: 1 }}>
                       <Badge 
                         badgeType={badge.BadgeType}
-                        name={badge.Name}
-                        description={badge.Description}
                         size={90}
                         showAnimation={true}
                       />
@@ -341,8 +341,6 @@ const AchievementsPage = () => {
                     <Box sx={{ position: 'relative', mb: 2 }}>
                       <Badge 
                         badgeType={badge.BadgeType}
-                        name={badge.Name}
-                        description={badge.Description}
                         size={90}
                         showAnimation={hasEarned}
                       />
