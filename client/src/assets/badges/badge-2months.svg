@@ -1,0 +1,42 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradient for diamond effect -->
+    <linearGradient id="diamondGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E1BEE7;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#CE93D8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#9C27B0;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="#F3E5F5" stroke="#9C27B0" stroke-width="4"/>
+  
+  <!-- Inner decorative circle -->
+  <circle cx="64" cy="64" r="45" fill="none" stroke="#CE93D8" stroke-width="2" stroke-dasharray="2,2"/>
+  
+  <!-- Diamond icon -->
+  <g transform="translate(64,55)">
+    <!-- Diamond shape -->
+    <polygon points="0,-15 -10,-5 -12,8 0,20 12,8 10,-5" 
+             fill="url(#diamondGradient)" stroke="#7B1FA2" stroke-width="2"/>
+    
+    <!-- Diamond facets -->
+    <polygon points="0,-15 -10,-5 0,0 10,-5" fill="#E1BEE7"/>
+    <polygon points="-10,-5 -12,8 0,0" fill="#CE93D8"/>
+    <polygon points="10,-5 12,8 0,0" fill="#BA68C8"/>
+    <polygon points="-12,8 0,20 0,0" fill="#AB47BC"/>
+    <polygon points="12,8 0,20 0,0" fill="#9C27B0"/>
+    
+    <!-- Diamond sparkles -->
+    <circle cx="-8" cy="-8" r="1" fill="#FFFFFF" opacity="0.8"/>
+    <circle cx="6" cy="-3" r="1.5" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="-5" cy="5" r="1" fill="#FFFFFF" opacity="0.7"/>
+  </g>
+  
+  <!-- Text -->
+  <text x="64" y="95" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#4A148C">2 THÁNG</text>
+  
+  <!-- Number badge -->
+  <circle cx="64" cy="25" r="12" fill="#9C27B0"/>
+  <text x="64" y="31" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">60</text>
+</svg> 

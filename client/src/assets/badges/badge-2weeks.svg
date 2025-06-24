@@ -1,0 +1,30 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="#F5F5F5" stroke="#9E9E9E" stroke-width="3"/>
+  
+  <!-- Inner decorative circle -->
+  <circle cx="64" cy="64" r="45" fill="none" stroke="#BDBDBD" stroke-width="1" stroke-dasharray="5,5"/>
+  
+  <!-- Medal icon -->
+  <g transform="translate(64,50)">
+    <!-- Medal circle -->
+    <circle cx="0" cy="5" r="18" fill="#E0E0E0" stroke="#9E9E9E" stroke-width="2"/>
+    <circle cx="0" cy="5" r="13" fill="#F5F5F5" stroke="#757575" stroke-width="1"/>
+    
+    <!-- Medal ribbon -->
+    <path d="M-6,-12 L-3,-20 L0,-18 L3,-20 L6,-12 L6,0 L-6,0 Z" 
+          fill="#FF5722"/>
+    <path d="M-3,-12 L0,-20 L3,-12 L3,0 L-3,0 Z" 
+          fill="#D84315"/>
+    
+    <!-- Medal center design -->
+    <text x="0" y="10" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#424242">14</text>
+  </g>
+  
+  <!-- Text -->
+  <text x="64" y="95" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#424242">2 TUẦN</text>
+  
+  <!-- Number badge -->
+  <circle cx="64" cy="25" r="12" fill="#9E9E9E"/>
+  <text x="64" y="31" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">14</text>
+</svg> 
