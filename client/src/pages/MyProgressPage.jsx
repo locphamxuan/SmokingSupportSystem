@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import 'bootstrap/dist/css/bootstrap.min.css'; // Import Bootstrap CSS
-import '../style/MyProgressPage.scss'; // Assuming you'll create this file for custom styles
-import facebookImage from '../assets/images/facebook.jpg'; // Import Facebook image for footer
-import instagramImage from '../assets/images/instragram.jpg'; // Import Instagram image for footer
+import 'bootstrap/dist/css/bootstrap.min.css'; 
+import 'bootstrap/dist/js/bootstrap.bundle.min.js'; 
+import '../style/MyProgressPage.scss'; 
+
 import { 
   addDailyLog
 } from '../services/extraService';
+import DailyLogSection from '../components/DailyLogSection';
 
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
 import { Line } from 'react-chartjs-2';
@@ -23,6 +24,15 @@ ChartJS.register(
 );
 
 const MyProgressPage = () => {
+  const [currentDate, setCurrentDate] = useState(new Date().toLocaleDateString('vi-VN', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }));
+  
+  const [logDate, setLogDate] = useState(new Date().toISOString().slice(0, 10));
+
   const [userData, setUserData] = useState({
     username: '',
     email: '',
@@ -37,7 +47,8 @@ const MyProgressPage = () => {
       quitReason: '',
       dailyLog: {
         cigarettes: 0,
-        feeling: ''
+        feeling: '',
+        date: new Date().toISOString().slice(0, 10)
       }
     },
     quitPlan: null,
@@ -80,6 +91,13 @@ const MyProgressPage = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
   }
+
+  useEffect(() => {
+    // Nếu chế độ xem là 'plan' nhưng không có kế hoạch, chuyển sang 'daily'
+    if (chartView === 'plan' && !userData.quitPlan) {
+      setChartView('daily');
+    }
+  }, [userData.quitPlan, chartView]);
 
   const fetchUserData = useCallback(async () => {
     try {
@@ -261,8 +279,6 @@ const MyProgressPage = () => {
     setError('');
     setSuccess('');
   };
-
-
 
   const handleCancelCoachRequest = async () => {
     try {
@@ -552,6 +568,70 @@ const MyProgressPage = () => {
     }
   }, []);
 
+  const getTotalWeeks = () => {
+    if (!userData.currentUserSuggestedPlan) return 0;
+    
+    const startDate = new Date(userData.currentUserSuggestedPlan.startDate);
+    const endDate = new Date(userData.currentUserSuggestedPlan.targetDate);
+    const diffTime = Math.abs(endDate - startDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.ceil(diffDays / 7);
+  };
+
+  const getWeekDataFromPlan = (weekNumber) => {
+    if (!userData.currentUserSuggestedPlan) return [];
+
+    const startDate = new Date(userData.currentUserSuggestedPlan.startDate);
+    const weekStartDate = new Date(startDate);
+    weekStartDate.setDate(startDate.getDate() + (weekNumber - 1) * 7);
+    
+    const weekData = [];
+    for (let i = 0; i < 7; i++) {
+      const currentDate = new Date(weekStartDate);
+      currentDate.setDate(weekStartDate.getDate() + i);
+      
+      // Nếu ngày hiện tại vượt quá ngày kết thúc kế hoạch, dừng lại
+      if (currentDate > new Date(userData.currentUserSuggestedPlan.targetDate)) break;
+      
+      // Tìm dữ liệu nhật ký cho ngày này
+      const logEntry = smokingHistory.find(entry => 
+        new Date(entry.Date).toISOString().slice(0, 10) === currentDate.toISOString().slice(0, 10)
+      );
+      
+      weekData.push({
+        date: currentDate,
+        cigarettes: logEntry ? logEntry.Cigarettes : 0
+      });
+    }
+    
+    return weekData;
+  };
+
+  const handleDailyLogUpdate = async (updatedLog) => {
+    try {
+      const response = await addDailyLog({
+        cigarettes: updatedLog.cigarettes,
+        feeling: updatedLog.feeling,
+        logDate: updatedLog.date
+      });
+      
+      if (response.success) {
+        setSuccess('Cập nhật nhật ký thành công!');
+        setUserData(prev => ({
+          ...prev,
+          smokingStatus: {
+            ...prev.smokingStatus,
+            dailyLog: updatedLog
+          }
+        }));
+      } else {
+        setError('Cập nhật thất bại.');
+      }
+    } catch (error) {
+      setError(error.response?.data?.message || 'Cập nhật thất bại.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="my-progress-wrapper">
@@ -622,17 +702,6 @@ const MyProgressPage = () => {
                     {userData.role === 'member' ? 'Thành viên' : userData.role === 'guest' ? 'Khách' : userData.role === 'coach' ? 'Huấn luyện viên' : userData.role}
                   </span>
                 </p>
-                {userData.role !== 'coach' && userData.role !== 'admin' && (
-                  <p>
-                    <strong>Gói:</strong>
-                    <span className={`badge ms-2 ${userData.isMemberVip || userData.role === 'memberVip' ? 'bg-success' : 'bg-warning text-dark'}`}>
-                      {userData.isMemberVip || userData.role === 'memberVip' ? 'Premium' : 'Miễn phí'}
-                    </span>
-                    {!(userData.isMemberVip || userData.role === 'memberVip') && (
-                      <button onClick={() => navigate('/subscribe')} className="btn btn-sm btn-outline-success ms-2">Nâng cấp</button>
-                    )}
-                  </p>
-                )}
                 
                 {/* Coach Request/Chat */}
                 {(userData.isMemberVip || userData.role === 'memberVip') && userData.role !== 'coach' && userData.role !== 'admin' && (
@@ -669,11 +738,7 @@ const MyProgressPage = () => {
                     ) : userData.isMember ? (
                       <div className="alert alert-warning">
                         <p className="mb-1">Bạn chưa được phân công huấn luyện viên.</p>
-                        {!(userData.isMemberVip || userData.role === 'memberVip') ? (
-                          <p className="mb-0">Vui lòng nâng cấp tài khoản để yêu cầu huấn luyện viên.</p>
-                        ) : (
-                          <button onClick={() => navigate('/booking')} className="btn btn-info">Đặt lịch</button>
-                        )}
+                        <button onClick={() => navigate('/booking')} className="btn btn-info">Đặt lịch</button>
                       </div>
                     ) : null}
                   </div>
@@ -784,18 +849,84 @@ const MyProgressPage = () => {
                     <div><b>Ngày kết thúc:</b> {userData.currentUserSuggestedPlan.targetDate}</div>
                     <div className="my-3">
                       <label className="fw-bold">Tiến độ hiện tại:</label>
-                      <div className="progress" style={{ height: 24 }}>
-                        <div
-                          className="progress-bar bg-success"
-                          role="progressbar"
-                          style={{ width: `${getCurrentProgress(userData.currentUserSuggestedPlan)}%` }}
-                          aria-valuenow={getCurrentProgress(userData.currentUserSuggestedPlan)}
-                          aria-valuemin="0"
-                          aria-valuemax="100"
-                        >
-                          {getCurrentProgress(userData.currentUserSuggestedPlan)}%
-                        </div>
-                      </div>
+                      {(() => {
+                        const startDate = new Date(userData.currentUserSuggestedPlan.startDate);
+                        const endDate = new Date(userData.currentUserSuggestedPlan.targetDate);
+                        const today = new Date();
+
+                        // Nếu chưa đến ngày bắt đầu
+                        if (today < startDate) {
+                          return (
+                            <div>
+                              <div className="progress" style={{ height: 24 }}>
+                                <div className="progress-bar bg-secondary" style={{ width: '0%' }}>
+                                  0%
+                                </div>
+                              </div>
+                              <small className="text-muted">Kế hoạch chưa bắt đầu</small>
+                            </div>
+                          );
+                        }
+
+                        // Nếu đã kết thúc
+                        if (today > endDate) {
+                          const recentLogs = smokingHistory
+                            .filter(log => new Date(log.Date) >= startDate && new Date(log.Date) <= endDate)
+                            .sort((a, b) => new Date(b.Date) - new Date(a.Date));
+
+                          const noSmokingDays = recentLogs.filter(log => log.Cigarettes === 0).length;
+                          const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                          const successRate = Math.round((noSmokingDays / totalDays) * 100);
+
+                          return (
+                            <div>
+                              <div className="progress" style={{ height: 24 }}>
+                                <div 
+                                  className={`progress-bar ${successRate >= 70 ? 'bg-success' : successRate >= 40 ? 'bg-warning' : 'bg-danger'}`}
+                                  style={{ width: '100%' }}
+                                >
+                                  Hoàn thành - {successRate}% ngày không hút thuốc
+                                </div>
+                              </div>
+                              <small className="text-muted">Kế hoạch đã kết thúc</small>
+                            </div>
+                          );
+                        }
+
+                        // Đang trong quá trình thực hiện
+                        const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                        const daysPassed = Math.ceil((today - startDate) / (1000 * 60 * 60 * 24));
+                        const progressPercent = Math.round((daysPassed / totalDays) * 100);
+
+                        // Tính số ngày không hút thuốc
+                        const recentLogs = smokingHistory
+                          .filter(log => new Date(log.Date) >= startDate && new Date(log.Date) <= today)
+                          .sort((a, b) => new Date(b.Date) - new Date(a.Date));
+
+                        const noSmokingDays = recentLogs.filter(log => log.Cigarettes === 0).length;
+                        const successRate = noSmokingDays > 0 ? Math.round((noSmokingDays / daysPassed) * 100) : 0;
+
+                        return (
+                          <div>
+                            <div className="progress" style={{ height: 24 }}>
+                              <div 
+                                className={`progress-bar ${successRate >= 70 ? 'bg-success' : successRate >= 40 ? 'bg-warning' : 'bg-danger'}`}
+                                style={{ width: `${progressPercent}%` }}
+                              >
+                                {progressPercent}% - {successRate}% ngày không hút thuốc
+                              </div>
+                            </div>
+                            <div className="mt-2 d-flex justify-content-between">
+                              <small className="text-muted">
+                                {noSmokingDays} ngày không hút / {daysPassed} ngày đã qua
+                              </small>
+                              <small className="text-muted">
+                                Còn {totalDays - daysPassed} ngày
+                              </small>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                     <button
                       className="btn btn-outline-danger mt-3"
@@ -903,47 +1034,10 @@ const MyProgressPage = () => {
             <div className="card shadow-sm h-100">
               <div className="card-header bg-success text-white fw-bold">Nhật ký hàng ngày</div>
               <div className="card-body">
-                {/* Daily Log Inputs */}
-                <div className="mb-3">
-                  <label htmlFor="cigarettesDaily" className="form-label">Số điếu hút hôm nay</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    id="cigarettesDaily"
-                    value={userData.smokingStatus.dailyLog.cigarettes}
-                    onChange={(e) => setUserData(prev => ({
-                      ...prev,
-                      smokingStatus: {
-                        ...prev.smokingStatus,
-                        dailyLog: {
-                          ...prev.smokingStatus.dailyLog,
-                          cigarettes: Number(e.target.value)
-                        }
-                      }
-                    }))}
-                    min="0"
-                  />
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="feeling" className="form-label">Cảm nhận của bạn</label>
-                  <textarea
-                    className="form-control"
-                    id="feeling"
-                    rows="3"
-                    value={userData.smokingStatus.dailyLog.feeling}
-                    onChange={(e) => setUserData(prev => ({
-                      ...prev,
-                      smokingStatus: {
-                        ...prev.smokingStatus,
-                        dailyLog: {
-                          ...prev.smokingStatus.dailyLog,
-                          feeling: e.target.value
-                        }
-                      }
-                    }))}
-                  ></textarea>
-                </div>
-                <button onClick={handleUpdateDailyLog} className="btn btn-success btn-sm">Cập nhật Nhật ký</button>
+                <DailyLogSection 
+                  dailyLog={userData.smokingStatus.dailyLog}
+                  onUpdateLog={handleDailyLogUpdate}
+                />
               </div>
             </div>
           </div>
@@ -955,318 +1049,170 @@ const MyProgressPage = () => {
             <div className="card shadow-sm h-100">
               <div className="card-header bg-success text-white fw-bold d-flex justify-content-between align-items-center">
                 <span>Biểu đồ tiến độ hút thuốc</span>
+                <div className="btn-group btn-group-sm" role="group">
+                  <button 
+                    className="btn btn-light"
+                    onClick={() => setCurrentWeek(Math.max(1, currentWeek - 1))}
+                    disabled={currentWeek === 1}
+                  >
+                    <i className="fas fa-chevron-left"></i>
+                  </button>
+                  <div className="dropdown">
+                    <button 
+                      className="btn btn-light" 
+                      type="button"
+                      onClick={(e) => {
+                        const dropdownMenu = e.currentTarget.nextElementSibling;
+                        dropdownMenu.classList.toggle('show');
+                      }}
+                    >
+                      Tuần {currentWeek} <i className="fas fa-chevron-down ms-1"></i>
+                    </button>
+                    <div className="dropdown-menu" style={{maxHeight: '200px', overflowY: 'auto'}}>
+                      {Array.from({length: getTotalWeeks()}, (_, i) => (
+                        <button 
+                          key={i + 1}
+                          className="dropdown-item" 
+                          onClick={() => {
+                            setCurrentWeek(i + 1);
+                            // Đóng dropdown sau khi chọn
+                            document.querySelector('.dropdown-menu').classList.remove('show');
+                          }}
+                        >
+                          Tuần {i + 1}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <button 
+                    className="btn btn-light"
+                    onClick={() => setCurrentWeek(Math.min(getTotalWeeks(), currentWeek + 1))}
+                    disabled={currentWeek === getTotalWeeks()}
+                  >
+                    <i className="fas fa-chevron-right"></i>
+                  </button>
+                </div>
               </div>
               <div className="card-body">
                 {(() => {
-                  // Calculate statistics
-                  const totalDays = smokingHistory.length;
-                  const totalCigarettes = smokingHistory.reduce((sum, entry) => sum + (entry.Cigarettes || 0), 0);
-                  const averagePerDay = totalDays > 0 ? (totalCigarettes / totalDays).toFixed(1) : 0;
-                  const maxCigarettes = Math.max(...smokingHistory.map(entry => entry.Cigarettes || 0), 0);
-                  const daysWithoutSmoking = smokingHistory.filter(entry => (entry.Cigarettes || 0) === 0).length;
-                  const currentStreak = calculateCurrentStreak(smokingHistory);
+                  // Lấy dữ liệu của tuần từ kế hoạch cai thuốc
+                  const weekData = getWeekDataFromPlan(currentWeek);
                   
-                  // Prepare chart data based on view
-                  let chartLabels = [];
-                  let chartData = [];
-                  let targetData = [];
-                  let moneySavedData = [];
-                  let weekNavigation = null;
-                  let weekStatistics = null;
-                  
-                  if (chartView === 'plan' && userData.quitPlan) {
-                    // Quit plan weekly view
-                    const weeks = getQuitPlanWeeks();
-                    const currentWeekInfo = getCurrentWeekInfo();
-                    
-                    if (currentWeekInfo && weeks.length > 0) {
-                      const weekData = getWeekData(currentWeekInfo);
-                      chartLabels = weekData.labels;
-                      chartData = weekData.data;
-                      targetData = weekData.targetData;
-                      moneySavedData = weekData.moneySavedData;
-                      weekStatistics = getWeekStatistics(currentWeekInfo);
-                      
-                      // Week navigation
-                      weekNavigation = (
-                        <div className="d-flex justify-content-between align-items-center mb-3">
-                          <button 
-                            className="btn btn-outline-primary btn-sm"
-                            onClick={() => setCurrentWeek(Math.max(1, currentWeek - 1))}
-                            disabled={currentWeek === 1}
-                          >
-                            <i className="fas fa-chevron-left me-1"></i>Tuần trước
-                          </button>
-                          <div className="text-center">
-                            <h6 className="mb-0">{currentWeekInfo.label}</h6>
-                            <small className="text-muted">
-                              {currentWeekInfo.startDate.toLocaleDateString('vi-VN', { 
-                                day: '2-digit', 
-                                month: '2-digit', 
-                                year: 'numeric' 
-                              })} - {currentWeekInfo.endDate.toLocaleDateString('vi-VN', { 
-                                day: '2-digit', 
-                                month: '2-digit', 
-                                year: 'numeric' 
-                              })}
-                            </small>
-                          </div>
-                          <button 
-                            className="btn btn-outline-primary btn-sm"
-                            onClick={() => setCurrentWeek(Math.min(weeks.length, currentWeek + 1))}
-                            disabled={currentWeek === weeks.length}
-                          >
-                            Tuần sau<i className="fas fa-chevron-right ms-1"></i>
-                          </button>
-                        </div>
-                      );
-                    }
-                  } else if (smokingHistory.length > 0) {
-                    const sortedHistory = [...smokingHistory].sort((a, b) => new Date(a.Date) - new Date(b.Date));
-                    const startDate = new Date(sortedHistory[0].Date);
-                    const endDate = new Date(sortedHistory[sortedHistory.length - 1].Date);
-                    
-                    if (chartView === 'daily') {
-                      // Daily view - show last 30 days
-                      const thirtyDaysAgo = new Date();
-                      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                      const chartStartDate = new Date(Math.max(startDate, thirtyDaysAgo));
-                      
-                      for (let d = new Date(chartStartDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-                        const dateStr = d.toISOString().slice(0, 10);
-                        chartLabels.push(new Date(dateStr).toLocaleDateString('vi-VN', { 
-                          month: 'short', 
-                          day: 'numeric' 
-                        }));
-                        
-                        const entry = sortedHistory.find(e => e.Date.slice(0, 10) === dateStr);
-                        const cigarettes = entry ? entry.Cigarettes : 0;
-                        chartData.push(cigarettes);
-                        
-                        // Calculate money saved (assuming cost per pack from user data)
-                        const costPerCigarette = userData.smokingStatus.costPerPack ? userData.smokingStatus.costPerPack / 20 : 0;
-                        moneySavedData.push(cigarettes * costPerCigarette);
-                        
-                        // Target line if quit plan exists
-                        if (userData.quitPlan && userData.quitPlan.dailyReduction > 0) {
-                          const daysPassed = Math.floor((d.getTime() - new Date(userData.quitPlan.startDate).getTime()) / (1000 * 60 * 60 * 24));
-                          targetData.push(Math.max(0, userData.quitPlan.initialCigarettes - (userData.quitPlan.dailyReduction * daysPassed)));
-                        }
-                      }
-                    } else if (chartView === 'weekly') {
-                      // Weekly view - group by weeks
-                      const weeklyData = groupByWeek(sortedHistory);
-                      chartLabels = weeklyData.map(week => `Tuần ${week.weekNumber}`);
-                      chartData = weeklyData.map(week => week.totalCigarettes);
-                      moneySavedData = weeklyData.map(week => week.totalMoneySaved);
-                    } else if (chartView === 'monthly') {
-                      // Monthly view - group by months
-                      const monthlyData = groupByMonth(sortedHistory);
-                      chartLabels = monthlyData.map(month => month.monthLabel);
-                      chartData = monthlyData.map(month => month.totalCigarettes);
-                      moneySavedData = monthlyData.map(month => month.totalMoneySaved);
-                    }
-                  }
-                  
+                  // Tính toán thống kê
+                  const totalCigarettes = weekData.reduce((sum, entry) => sum + (entry.cigarettes || 0), 0);
+                  const averagePerDay = weekData.length > 0 ? (totalCigarettes / weekData.length).toFixed(1) : 0;
+                  const daysWithoutSmoking = weekData.filter(entry => (entry.cigarettes || 0) === 0).length;
+                  const currentStreak = calculateCurrentStreak(weekData);
+
                   return (
                     <div>
-                      {/* Week Navigation for Plan View */}
-                      {weekNavigation}
-                      
                       {/* Statistics Cards */}
                       <div className="row mb-4">
-                        {chartView === 'plan' && weekStatistics ? (
-                          // Week-specific statistics
-                          <>
-                            <div className="col-md-3">
-                              <div className="card bg-primary text-white">
-                                <div className="card-body text-center">
-                                  <h6 className="card-title">Tổng điếu tuần</h6>
-                                  <h4>{weekStatistics.totalCigarettes}</h4>
-                                </div>
-                              </div>
+                        <div className="col-md-3">
+                          <div className="card bg-primary text-white">
+                            <div className="card-body text-center">
+                              <h6 className="card-title">Tổng điếu tuần</h6>
+                              <h4>{totalCigarettes}</h4>
                             </div>
-                            <div className="col-md-3">
-                              <div className="card bg-success text-white">
-                                <div className="card-body text-center">
-                                  <h6 className="card-title">Trung bình/ngày</h6>
-                                  <h4>{weekStatistics.averagePerDay}</h4>
-                                </div>
-                              </div>
+                          </div>
+                        </div>
+                        <div className="col-md-3">
+                          <div className="card bg-success text-white">
+                            <div className="card-body text-center">
+                              <h6 className="card-title">Trung bình/ngày</h6>
+                              <h4>{averagePerDay}</h4>
                             </div>
-                            <div className="col-md-3">
-                              <div className="card bg-warning text-dark">
-                                <div className="card-body text-center">
-                                  <h6 className="card-title">Ngày không hút</h6>
-                                  <h4>{weekStatistics.daysWithoutSmoking}</h4>
-                                </div>
-                              </div>
+                          </div>
+                        </div>
+                        <div className="col-md-3">
+                          <div className="card bg-warning text-dark">
+                            <div className="card-body text-center">
+                              <h6 className="card-title">Ngày không hút</h6>
+                              <h4>{daysWithoutSmoking}</h4>
                             </div>
-                            <div className="col-md-3">
-                              <div className="card bg-info text-white">
-                                <div className="card-body text-center">
-                                  <h6 className="card-title">Tiết kiệm</h6>
-                                  <h4>{weekStatistics.moneySaved.toLocaleString()}đ</h4>
-                                </div>
-                              </div>
+                          </div>
+                        </div>
+                        <div className="col-md-3">
+                          <div className="card bg-info text-white">
+                            <div className="card-body text-center">
+                              <h6 className="card-title">Chuỗi hiện tại</h6>
+                              <h4>{currentStreak} ngày</h4>
                             </div>
-                          </>
-                        ) : (
-                          // Overall statistics
-                          <>
-                            <div className="col-md-3">
-                              <div className="card bg-primary text-white">
-                                <div className="card-body text-center">
-                                  <h6 className="card-title">Tổng ngày theo dõi</h6>
-                                  <h4>{totalDays}</h4>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="col-md-3">
-                              <div className="card bg-success text-white">
-                                <div className="card-body text-center">
-                                  <h6 className="card-title">Trung bình/ngày</h6>
-                                  <h4>{averagePerDay}</h4>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="col-md-3">
-                              <div className="card bg-warning text-dark">
-                                <div className="card-body text-center">
-                                  <h6 className="card-title">Ngày không hút</h6>
-                                  <h4>{daysWithoutSmoking}</h4>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="col-md-3">
-                              <div className="card bg-info text-white">
-                                <div className="card-body text-center">
-                                  <h6 className="card-title">Chuỗi hiện tại</h6>
-                                  <h4>{currentStreak} ngày</h4>
-                                </div>
-                              </div>
-                            </div>
-                          </>
-                        )}
+                          </div>
+                        </div>
                       </div>
-                      
+
                       {/* Chart */}
-                      {chartLabels.length > 0 ? (
-                        <div>
-                          <Line
-                            data={{
-                              labels: chartLabels,
-                              datasets: [
-                                {
-                                  label: 'Số điếu hút',
-                                  data: chartData,
-                                  borderColor: 'rgb(220, 53, 69)',
-                                  backgroundColor: 'rgba(220, 53, 69, 0.1)',
-                                  tension: 0.4,
-                                  fill: true,
-                                },
-                                userData.quitPlan && userData.quitPlan.dailyReduction > 0 && {
-                                  label: 'Mục tiêu giảm dần',
-                                  data: targetData,
-                                  borderColor: 'rgb(40, 167, 69)',
-                                  backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                                  tension: 0.4,
-                                  borderDash: [5, 5],
-                                  fill: false,
-                                },
-                                userData.smokingStatus.costPerPack > 0 && {
-                                  label: 'Tiền tiết kiệm (VNĐ)',
-                                  data: moneySavedData,
-                                  borderColor: 'rgb(255, 193, 7)',
-                                  backgroundColor: 'rgba(255, 193, 7, 0.1)',
-                                  tension: 0.4,
-                                  fill: false,
-                                  yAxisID: 'y1',
-                                },
-                              ].filter(Boolean),
-                            }}
-                            options={{
-                              responsive: true,
-                              interaction: {
-                                mode: 'index',
-                                intersect: false,
+                      {weekData.length > 0 ? (
+                        <Line
+                          data={{
+                            labels: weekData.map(entry => 
+                              new Date(entry.date).toLocaleDateString('vi-VN', { 
+                                weekday: 'short',
+                                day: '2-digit',
+                                month: '2-digit'
+                              })
+                            ),
+                            datasets: [
+                              {
+                                label: 'Số điếu hút',
+                                data: weekData.map(entry => entry.cigarettes || 0),
+                                borderColor: 'rgb(220, 53, 69)',
+                                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                                tension: 0.4,
+                                fill: true,
+                              }
+                            ],
+                          }}
+                          options={{
+                            responsive: true,
+                            interaction: {
+                              mode: 'index',
+                              intersect: false,
+                            },
+                            plugins: {
+                              legend: {
+                                position: 'top',
                               },
-                              plugins: {
-                                legend: {
-                                  position: 'top',
-                                },
-                                title: {
-                                  display: true,
-                                  text: chartView === 'plan' 
-                                    ? `Tuần ${currentWeek} - ${getCurrentWeekInfo()?.label || ''}`
-                                    : `Biểu đồ hút thuốc - ${chartView === 'daily' ? 'Hàng ngày' : chartView === 'weekly' ? 'Hàng tuần' : 'Hàng tháng'}`,
-                                },
-                                tooltip: {
-                                  callbacks: {
-                                    afterBody: function(context) {
-                                      const dataIndex = context[0].dataIndex;
-                                      const cigarettes = chartData[dataIndex];
-                                      const moneySaved = moneySavedData[dataIndex];
-                                      let tooltip = '';
-                                      if (cigarettes !== undefined) {
-                                        tooltip += `\nSố điếu: ${cigarettes}`;
-                                      }
-                                      if (moneySaved !== undefined && moneySaved > 0) {
-                                        tooltip += `\nTiết kiệm: ${moneySaved.toLocaleString()} VNĐ`;
-                                      }
-                                      return tooltip;
-                                    }
+                              title: {
+                                display: true,
+                                text: `Biểu đồ hút thuốc - Tuần ${currentWeek}`,
+                              },
+                              tooltip: {
+                                callbacks: {
+                                  afterBody: function(context) {
+                                    const dataIndex = context[0].dataIndex;
+                                    const cigarettes = weekData[dataIndex].cigarettes || 0;
+                                    return `\nSố điếu: ${cigarettes}`;
                                   }
                                 }
-                              },
-                              scales: {
-                                x: {
-                                  title: {
-                                    display: true,
-                                    text: chartView === 'plan' ? 'Ngày trong tuần' : 'Thời gian',
-                                  },
-                                },
-                                y: {
-                                  type: 'linear',
+                              }
+                            },
+                            scales: {
+                              x: {
+                                title: {
                                   display: true,
-                                  position: 'left',
-                                  title: {
-                                    display: true,
-                                    text: 'Số điếu thuốc',
-                                  },
-                                  min: 0,
-                                },
-                                y1: {
-                                  type: 'linear',
-                                  display: userData.smokingStatus.costPerPack > 0,
-                                  position: 'right',
-                                  title: {
-                                    display: true,
-                                    text: 'Tiền tiết kiệm (VNĐ)',
-                                  },
-                                  min: 0,
-                                  grid: {
-                                    drawOnChartArea: false,
-                                  },
+                                  text: 'Ngày trong tuần',
                                 },
                               },
-                            }}
-                          />
-                        </div>
+                              y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                title: {
+                                  display: true,
+                                  text: 'Số điếu thuốc',
+                                },
+                                min: 0,
+                              }
+                            },
+                          }}
+                        />
                       ) : (
                         <div className="text-center py-5">
                           <i className="fas fa-chart-line fa-3x text-muted mb-3"></i>
-                          {chartView === 'plan' ? (
-                            <>
-                              <p className="text-secondary">Chưa có kế hoạch cai thuốc hoặc dữ liệu để hiển thị.</p>
-                              <p className="text-muted small">Hãy tạo kế hoạch cai thuốc và cập nhật nhật ký hàng ngày!</p>
-                            </>
-                          ) : (
-                            <>
-                              <p className="text-secondary">Chưa có dữ liệu lịch sử hút thuốc để hiển thị biểu đồ.</p>
-                              <p className="text-muted small">Hãy cập nhật nhật ký hàng ngày để theo dõi tiến độ của bạn!</p>
-                            </>
-                          )}
+                          <p className="text-secondary">Chưa có dữ liệu cho tuần này.</p>
+                          <p className="text-muted small">Hãy cập nhật nhật ký hàng ngày để theo dõi tiến độ của bạn!</p>
                         </div>
                       )}
                     </div>
@@ -1296,19 +1242,7 @@ const MyProgressPage = () => {
               </div>
             </div>
           </div>
-        </div> {/* End of third row (Chart & Achievements) */}
-        {/* Footer from HomePage */}
-        <footer className="footer">
-          <div className="container">
-            <div className="social-icons">
-              <a href="https://www.facebook.com/loccphamxuan?locale=vi_VN" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><img src={facebookImage} alt="Facebook" style={{ width: '36px', height: '36px' }} /></a>
-              <a href="https://www.instagram.com/xlocpham/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><img src={instagramImage} alt="Instagram" style={{ width: '36px', height: '36px' }} /></a>
-            </div>
-            <p className="copyright">
-              &copy; 2024 Hỗ trợ cai nghiện. Đã đăng ký bản quyền.
-            </p>
-          </div>
-        </footer>
+        </div> {/* End of third row (Chart & Achievements) */}       
       </div>
     </div>
   );
