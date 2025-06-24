@@ -47,6 +47,9 @@ const Navbar = () => {
             {isMember && (
               <Link to="/subscribe" className="nav-item" onClick={() => handleNavClick('/subscribe')}>Mua gói</Link>
             )}
+            {isAuthenticated && (
+              <Link to="/achievements" className="nav-item" onClick={() => handleNavClick('/achievements')}>🏆 Thành tích</Link>
+            )}
           </nav>
         </div>
 
@@ -86,15 +89,19 @@ const Navbar = () => {
                 )}
                 {/* Menu riêng cho Admin */}
                 {isAdmin && (
-                  <Link to="/admin/users" className="dropdown-item" onClick={() => handleNavClick('/admin/users')}>
-                    Quản lý tài khoản
-                  </Link>
+                  <>
+                    <Link to="/admin/users" className="dropdown-item" onClick={() => handleNavClick('/admin/users')}>
+                      Quản lý tài khoản
+                    </Link>
+                  </>
                 )}
                 {/* Menu riêng cho Coach */}
                 {isCoach && (
-                  <Link to="/coach/dashboard" className="dropdown-item" onClick={() => handleNavClick('/coach/dashboard')}>
-                    Lịch tư vấn
-                  </Link>
+                  <>
+                    <Link to="/coach/dashboard" className="dropdown-item" onClick={() => handleNavClick('/coach/dashboard')}>
+                      Lịch tư vấn
+                    </Link>
+                  </>
                 )}
                 <button onClick={handleLogout} className="dropdown-item">
                   Đăng xuất
