@@ -722,6 +722,48 @@ exports.getUserBadges = async (req, res) => {
   }
 };
 
+// API endpoint để lấy huy hiệu của user cụ thể (cho coach)
+exports.getUserBadgesByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const coachId = req.user.id;
+    
+    console.log(`[getUserBadgesByUserId] ========== GET USER BADGES START ==========`);
+    console.log(`[getUserBadgesByUserId] Coach ${coachId} requesting badges for user ${userId}`);
+    
+    // Verify that the coach has access to this user
+    console.log(`[getUserBadgesByUserId] Checking coach access to user...`);
+    const memberCheck = await sql.query`
+      SELECT Id FROM Users 
+      WHERE Id = ${userId} AND CoachId = ${coachId}
+    `;
+    console.log(`[getUserBadgesByUserId] Member check result:`, memberCheck.recordset);
+    
+    if (memberCheck.recordset.length === 0) {
+      console.log(`[getUserBadgesByUserId] ❌ Coach doesn't have access to this user`);
+      return res.status(403).json({ message: 'Bạn không có quyền xem huy hiệu của thành viên này' });
+    }
+    
+    console.log(`[getUserBadgesByUserId] Fetching user badges...`);
+    const badgesResult = await sql.query`
+      SELECT b.*, ub.AwardedAt
+      FROM UserBadges ub
+      JOIN Badges b ON ub.BadgeId = b.Id
+      WHERE ub.UserId = ${userId}
+      ORDER BY ub.AwardedAt DESC
+    `;
+    console.log(`[getUserBadgesByUserId] Badges result:`, badgesResult.recordset);
+    console.log(`[getUserBadgesByUserId] Found ${badgesResult.recordset.length} badges for user ${userId}`);
+    console.log(`[getUserBadgesByUserId] ========== GET USER BADGES END ==========`);
+    
+    res.json({ badges: badgesResult.recordset });
+  } catch (error) {
+    console.error('[getUserBadgesByUserId] ❌ Error getting user badges by userId:', error);
+    console.error('[getUserBadgesByUserId] Error stack:', error.stack);
+    res.status(500).json({ message: 'Failed to get user badges', error: error.message });
+  }
+};
+
 // Lấy danh sách tất cả huấn luyện viên
 exports.getAllCoaches = async (req, res) => {
   try {
@@ -865,6 +907,22 @@ exports.getSuggestedQuitPlans = async (req, res) => {
   } catch (error) {
     console.error('Error getting suggested quit plans:', error);
     res.status(500).json({ message: 'Failed to get suggested quit plans', error: error.message });
+  }
+};
+
+// Lấy tất cả huy hiệu có trong hệ thống
+exports.getAllBadges = async (req, res) => {
+  try {
+    const badgesResult = await sql.query`
+      SELECT Id, Name, Description, BadgeType, Requirement
+      FROM Badges
+      ORDER BY Id ASC
+    `;
+    
+    res.json({ badges: badgesResult.recordset });
+  } catch (error) {
+    console.error('Error getting all badges:', error);
+    res.status(500).json({ message: 'Failed to get all badges', error: error.message });
   }
 };
 

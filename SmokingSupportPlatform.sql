@@ -81,8 +81,6 @@ CREATE TABLE QuitPlans (
     FOREIGN KEY (CoachId) REFERENCES Users(Id)
 );
 
-
-
 CREATE TABLE SuggestedQuitPlans (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     Title NVARCHAR(255) NOT NULL,
@@ -90,8 +88,6 @@ CREATE TABLE SuggestedQuitPlans (
     PlanDetail NVARCHAR(MAX),
     CreatedAt DATETIME DEFAULT GETDATE()
 );
-
-
 
 -- STATISTICS
 CREATE TABLE UserStatistics (
@@ -117,6 +113,19 @@ CREATE TABLE Notifications (
 );
 GO
 
+-- SMOKING DAILY LOG (Created before ALTER commands)
+CREATE TABLE SmokingDailyLog (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    UserId INT,
+    LogDate DATE DEFAULT GETDATE(),
+    Cigarettes INT DEFAULT 0,
+    Feeling NVARCHAR(255) DEFAULT '',
+    PlanId INT NULL, -- Nếu muốn gắn với kế hoạch
+    FOREIGN KEY (UserId) REFERENCES Users(Id),
+    FOREIGN KEY (PlanId) REFERENCES QuitPlans(Id)
+);
+
+-- Now we can safely ALTER the table
 ALTER TABLE SmokingDailyLog
 ADD SuggestedPlanId INT NULL;
 
@@ -136,7 +145,7 @@ CREATE TABLE Posts (
 );
 GO
 
-	-- COMMENTS
+-- COMMENTS
 CREATE TABLE Comments (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     PostId INT NOT NULL,
@@ -163,7 +172,7 @@ CREATE TABLE Booking (
 );
 GO
 
--- MESSAGES
+-- MESSAGES (Keeping the table, not dropping it)
 CREATE TABLE Messages (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     SenderId INT NOT NULL,
@@ -175,9 +184,6 @@ CREATE TABLE Messages (
     FOREIGN KEY (ReceiverId) REFERENCES Users(Id)
 );
 GO
-
-
-drop table Messages
 
 -- REPORTS (NO RATING)
 CREATE TABLE Reports (
@@ -199,17 +205,6 @@ CREATE TABLE Rankings (
     FOREIGN KEY (UserId) REFERENCES Users(Id)
 );
 GO
-
-CREATE TABLE SmokingDailyLog (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    UserId INT,
-    LogDate DATE DEFAULT GETDATE(),
-    Cigarettes INT DEFAULT 0,
-    Feeling NVARCHAR(255) DEFAULT '',
-    PlanId INT NULL, -- Nếu muốn gắn với kế hoạch
-    FOREIGN KEY (UserId) REFERENCES Users(Id),
-    FOREIGN KEY (PlanId) REFERENCES QuitPlans(Id)
-);
 
 CREATE TABLE UserSuggestedQuitPlans (
     Id INT IDENTITY(1,1) PRIMARY KEY,
@@ -248,8 +243,6 @@ INSERT INTO SmokingProfiles (UserId, CigarettesPerDay, CostPerPack, SmokingFrequ
 INSERT INTO QuitPlans (UserId, CoachId, PlanType, StartDate, TargetDate, PlanDetail, Status) VALUES
 (4, 2, N'suggested', '2025-06-01', '2025-07-01', N'Kế hoạch mẫu - giảm dần mỗi tuần', 'active'),
 (5, 3, N'custom', '2025-06-10', '2025-08-01', N'Tự lên kế hoạch - bỏ hoàn toàn sau 3 tuần', 'active');
-
-
 
 --- Dữ liệu mẫu cho Badges
 INSERT INTO Badges (Name, Description, BadgeType, Requirement) VALUES
@@ -304,12 +297,6 @@ INSERT INTO Booking (MemberId, CoachId, SlotDate, Slot, Status, Note) VALUES
 INSERT INTO Messages (SenderId, ReceiverId, Content) VALUES
 (4, 2, N'Cảm ơn coach đã hỗ trợ!'),
 (5, 3, N'Tôi đang gặp khó khăn vào buổi sáng.');
-    
-INSERT INTO MembershipPackages (Name, Description, Price, DurationInDays) VALUES
-(N'Gói cơ bản', N'Truy cập nội dung cơ bản và ghi nhận tiến trình cai thuốc.', 0, 0),
-(N'Gói VIP 1 tháng', N'Truy cập huấn luyện viên và theo dõi nâng cao trong 30 ngày.', 199000, 30),
-(N'Gói VIP 3 tháng', N'Hỗ trợ nâng cao trong 90 ngày với HLV.', 499000, 90);
-  
 
 
 
@@ -329,7 +316,7 @@ Tuần 4: Ổn định: Thay đổi thói quen. Tránh các môi trường có n
   N'KẾ HOẠCH CAI THUỐC TRONG 60 NGÀY (Dành cho người hút thuốc trung bình – nặng)',
   N'Ngưng hút thuốc hoàn toàn sau 30 ngày đầu. Làm quen với cuộc sống không thuốc trong 30 ngày tiếp theo.',
   N'
-Ngày 1-15: Giảm dần lượng thuốc (giảm 1-2 điếu mỗi 2 ngày). Xác định “triggers” gây thèm.
+Ngày 1-15: Giảm dần lượng thuốc (giảm 1-2 điếu mỗi 2 ngày). Xác định "triggers" gây thèm.
 Ngày 16-30: Ngày "D" – Ngưng hẳn. Tăng cường vận động, uống nhiều nước, giữ tay/mồm bận rộn.
 Ngày 31-45: Ổn định tinh thần: Xử lý stress, áp lực bằng thể thao, thiền, viết nhật ký.
 Ngày 46-60: Tái lập thói quen mới: Tập trung phát triển bản thân, kỹ năng mới, kết nối xã hội không thuốc.'

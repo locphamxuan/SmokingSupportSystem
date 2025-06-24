@@ -1,5 +1,6 @@
 .about-page {
   padding-top: 80px; // Account for fixed navbar
+  overflow-x: hidden; // Prevent horizontal scrolling for the entire page
 
   .container {
     max-width: 1200px;
@@ -164,25 +165,23 @@
   }
 }
 
-
 // Image below Harmful Effects Section
 .harmful-effects-image-container {
   position: relative;
-  width: 100vw; /* Chiều rộng toàn màn hình */
-  margin: 0; /* Không margin */
-  padding: 0; /* Không padding */
+  width: 100%;
+  max-width: 1200px;
+  margin: 4rem auto;
+  padding: 0 2rem;
 
   .harmful-effects-image {
     display: block;
-    width: 100vw;
+    width: 100%;
     height: auto;
-    object-fit: cover; /* Giữ tỷ lệ và phủ đầy chiều ngang */
-    border-radius: 0; /* Không bo góc */
-    box-shadow: none;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
 }
-
-
 
 // Benefits Section
 .benefits {
@@ -626,14 +625,17 @@
   }
 
   .articles-grid {
-    display: flex; /* Change to flexbox */
-    overflow-x: auto; /* Enable horizontal scrolling */
-    gap: 2rem; /* Space between articles */
-    padding-bottom: 1rem; /* Add some padding for scrollbar */
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
 
     .article-card {
-      flex: 0 0 auto; /* Prevent cards from growing or shrinking, keep their defined width */
-      width: 300px; /* Set a fixed width for each card */
       background: white;
       border-radius: 12px;
       overflow: hidden;
@@ -646,16 +648,12 @@
 
       img {
         width: 100%;
-        height: 200px; // Standard height for article images
+        height: 200px;
         object-fit: cover;
       }
 
       .article-content {
         padding: 1.5rem;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        height: calc(100% - 200px); // Adjust height based on image height
 
         h3 {
           color: black;
@@ -668,7 +666,7 @@
         .article-date {
           color: #666;
           font-size: 0.9rem;
-          margin-top: auto; // Pushes date to the bottom
+          margin-top: 1rem;
         }
       }
     }
@@ -677,17 +675,18 @@
 
 // Image after Benefits Section
 .post-quit-image-container {
-  width: 100vw; /* Full viewport width */
-  margin-left: calc(50% - 50vw); /* Center the element by offsetting the margin */
-  overflow: hidden; /* Ensure no horizontal scrollbar */
-  margin-top: 4rem; /* Add some space above the image */
-  margin-bottom: 4rem; /* Add some space below the image */
+  width: 100%;
+  max-width: 1200px;
+  margin: 4rem auto;
+  padding: 0 2rem;
 
   .post-quit-image {
-    width: 100%; /* Image takes full width of its container */
+    width: 100%;
     height: auto;
-    display: block; /* Remove extra space below image */
-    object-fit: cover; /* Cover the container while maintaining aspect ratio */
+    display: block;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -713,9 +712,18 @@
     .hero-section {
       padding: 6rem 0;
 
+      .container {
+        margin-left: 2rem; // Reduce margin on mobile
+      }
+
       h1 {
         font-size: 2.5rem;
       }
+    }
+
+    .benefits-grid {
+      grid-template-columns: 1fr;
+      gap: 2rem;
     }
 
     .faq-grid {
@@ -724,6 +732,12 @@
 
     .effect-card, .benefit-card, .step-card, .faq-item {
       margin: 0 1rem;
+    }
+
+    .harmful-effects-image-container,
+    .post-quit-image-container {
+      margin: 2rem auto;
+      padding: 0 1rem;
     }
   }
 }
