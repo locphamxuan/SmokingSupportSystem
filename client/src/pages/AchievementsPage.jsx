@@ -3,16 +3,22 @@ import { Container, Typography, Paper, Grid, Card, CardContent, CardActions, But
 import axios from 'axios';
 import Badge from '../components/Badge';
 import '../style/AchievementsPage.scss';
+import Badge1Day from '../assets/badges/huyhiệu1ngày.jpg';
+import Badge3Days from '../assets/badges/huyhiệu3ngày.jpg';
+import Badge5Days from '../assets/badges/huyhiệu5ngày.jpg';
+import Badge7Days from '../assets/badges/huyhiệu7ngày.jpg';
+import Badge14Days from '../assets/badges/huyhiệu14ngày.jpg';
+import Badge30Days from '../assets/badges/huyhiệu30ngày.jpg';
+import Badge60Days from '../assets/badges/huyhiệu60ngày.jpg';
 
-// Static badge data từ database - moved outside component to avoid dependency warning
-const staticBadges = [
-  { Id: 1, Name: '1 ngày không hút thuốc', Description: 'Chúc mừng bạn đã không hút thuốc 1 ngày!', BadgeType: 'loai1', Requirement: '1' },
-  { Id: 2, Name: '3 ngày không hút thuốc', Description: 'Tuyệt vời! Bạn đã giữ vững 3 ngày.', BadgeType: 'loai2', Requirement: '3' },
-  { Id: 3, Name: '5 ngày không hút thuốc', Description: 'Cố gắng tuyệt vời trong 5 ngày!', BadgeType: 'loai3', Requirement: '5' },
-  { Id: 4, Name: '7 ngày không hút thuốc', Description: '1 tuần trôi qua rồi!', BadgeType: 'loai4', Requirement: '7' },
-  { Id: 5, Name: '14 ngày không hút thuốc', Description: '2 tuần rồi đó!', BadgeType: 'loai5', Requirement: '14' },
-  { Id: 6, Name: '30 ngày không hút thuốc', Description: '1 tháng đầy kiên cường!', BadgeType: 'loai6', Requirement: '30' },
-  { Id: 7, Name: '60 ngày không hút thuốc', Description: '2 tháng chinh phục!', BadgeType: 'loai7', Requirement: '60' }
+const badges = [
+    { id: 1, name: "1 Ngày Không Hút Thuốc", description: "Bạn đã vượt qua ngày đầu tiên không hút thuốc!", image: Badge1Day, daysRequired: 1 },
+    { id: 2, name: "3 Ngày Kiên Trì", description: "Ba ngày liên tiếp không hút thuốc - một thành tích đáng nể!", image: Badge3Days, daysRequired: 3 },
+    { id: 3, name: "5 Ngày Mạnh Mẽ", description: "Năm ngày không hút thuốc - bạn đang làm rất tốt!", image: Badge5Days, daysRequired: 5 },
+    { id: 4, name: "1 Tuần Thành Công", description: "Một tuần không hút thuốc - một cột mốc quan trọng!", image: Badge7Days, daysRequired: 7 },
+    { id: 5, name: "2 Tuần Kiên Định", description: "Hai tuần không hút thuốc - bạn đang thay đổi thói quen!", image: Badge14Days, daysRequired: 14 },
+    { id: 6, name: "1 Tháng Phi Thường", description: "Một tháng không hút thuốc - thành tích xuất sắc!", image: Badge30Days, daysRequired: 30 },
+    { id: 7, name: "2 Tháng Chiến Thắng", description: "Hai tháng không hút thuốc - bạn đã thực sự thay đổi!", image: Badge60Days, daysRequired: 60 }
 ];
 
 const AchievementsPage = () => {
@@ -20,6 +26,9 @@ const AchievementsPage = () => {
   const [allBadges, setAllBadges] = useState([]);
   const [userBadges, setUserBadges] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [quitPlan, setQuitPlan] = useState(null);
+  const [smokeFreeStreak, setSmokeFreeStreak] = useState(0);
 
   useEffect(() => {
     const fetchAchievements = async () => {
@@ -49,11 +58,11 @@ const AchievementsPage = () => {
           const allBadgesRes = await axios.get('http://localhost:5000/api/auth/all-badges', {
             headers: { Authorization: `Bearer ${token}` }
           });
-          setAllBadges(allBadgesRes.data.badges || staticBadges);
+          setAllBadges(allBadgesRes.data.badges || badges);
           console.log('All badges from API:', allBadgesRes.data.badges);
         } catch (allBadgesError) {
           console.log('API all-badges not available, using static data');
-          setAllBadges(staticBadges);
+          setAllBadges(badges);
         }
         
         // Legacy achievements for compatibility
@@ -70,7 +79,7 @@ const AchievementsPage = () => {
       } catch (error) {
         console.error('Error fetching achievements:', error);
         // Use static badges as fallback
-        setAllBadges(staticBadges);
+        setAllBadges(badges);
         setUserBadges([]);
         setAchievements([]);
       } finally {

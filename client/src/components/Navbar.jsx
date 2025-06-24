@@ -48,7 +48,7 @@ const Navbar = () => {
               <Link to="/subscribe" className="nav-item" onClick={() => handleNavClick('/subscribe')}>Mua gói</Link>
             )}
             {isAuthenticated && (
-              <Link to="/achievements" className="nav-item" onClick={() => handleNavClick('/achievements')}>🏆 Thành tích</Link>
+              <Link to="/achievements" className="nav-item" onClick={() => handleNavClick('/achievements')}> Thành tích</Link>
             )}
           </nav>
         </div>

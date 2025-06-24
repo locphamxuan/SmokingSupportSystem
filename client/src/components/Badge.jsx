@@ -1,13 +1,13 @@
 import React from 'react';
 
-// Import all badge SVG files
-import badge1Day from '../assets/badges/badge-1day.svg';
-import badge3Days from '../assets/badges/badge-3days.svg';
-import badge5Days from '../assets/badges/badge-5days.svg';
-import badge1Week from '../assets/badges/badge-1week.svg';
-import badge2Weeks from '../assets/badges/badge-2weeks.svg';
-import badge1Month from '../assets/badges/badge-1month.svg';
-import badge2Months from '../assets/badges/badge-2months.svg';
+// Import all badge images
+import badge1Day from '../assets/badges/huyhiệu1ngày.jpg';
+import badge3Days from '../assets/badges/huyhiệu3ngày.jpg';
+import badge5Days from '../assets/badges/huyhiệu5ngày.jpg';
+import badge1Week from '../assets/badges/huyhiệu7ngày.jpg';
+import badge2Weeks from '../assets/badges/huyhiệu14ngày.jpg';
+import badge1Month from '../assets/badges/huyhiệu30ngày.jpg';
+import badge2Months from '../assets/badges/huyhiệu60ngày.jpg';
 
 const Badge = ({ badgeType, name, description, size = 64, showAnimation = false }) => {
   const getBadgeImage = (type) => {
@@ -30,7 +30,9 @@ const Badge = ({ badgeType, name, description, size = 64, showAnimation = false 
     cursor: 'pointer',
     transition: 'transform 0.3s ease',
     filter: showAnimation ? 'drop-shadow(0 0 10px rgba(255, 215, 0, 0.6))' : 'none',
-    animation: showAnimation ? 'pulse 2s infinite' : 'none'
+    animation: showAnimation ? 'pulse 2s infinite' : 'none',
+    objectFit: 'contain',
+    background: 'transparent'  // Đảm bảo không có background
   };
 
   return (
@@ -39,7 +41,8 @@ const Badge = ({ badgeType, name, description, size = 64, showAnimation = false 
       style={{
         display: 'inline-block',
         margin: '4px',
-        position: 'relative'
+        position: 'relative',
+        background: 'transparent'  // Đảm bảo container cũng không có background
       }}
     >
       <img 
