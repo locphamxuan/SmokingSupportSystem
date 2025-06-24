@@ -271,40 +271,7 @@ const SubscriptionPlans = () => {
         </div>
       </section>
 
-      {/* Contact Section */}
-      <footer className="footer">
-        <div className="container">
-          <div className="social-icons">
-            <a
-              href="https://www.facebook.com/loccphamxuan?locale=vi_VN"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Facebook"
-            >
-              <img
-                src={facebookImage}
-                alt="Facebook"
-                style={{ width: "36px", height: "36px" }}
-              />
-            </a>
-            <a
-              href="https://www.instagram.com/xlocpham/"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Instagram"
-            >
-              <img
-                src={instagramImage}
-                alt="Instagram"
-                style={{ width: "36px", height: "36px" }}
-              />
-            </a>
-          </div>
-          <p className="copyright">
-            &copy; 2024 Hỗ trợ cai nghiện. Đã đăng ký bản quyền.
-          </p>
-        </div>
-      </footer>
+    
     </div>
   );
 };

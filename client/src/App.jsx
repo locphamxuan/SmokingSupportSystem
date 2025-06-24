@@ -22,7 +22,6 @@ import CoachChatPage from './pages/CoachChatPage.jsx';
 import AboutPage from './pages/AboutPage.jsx';
 import BookingPage from './pages/BookingPage.jsx';
 import CreatePostPage from './pages/CreatePostPage.jsx';
-import TestPage from './pages/TestPage.jsx';
 
 const theme = createTheme({
   palette: {
@@ -85,7 +84,6 @@ const AppRoutes = () => {
       {/* Routes with MainLayout */}
       <Route element={<MainLayout />}>
         <Route path="/" element={<HomePage />} />
-        <Route path="/test" element={<TestPage />} />
         <Route path="/blog" element={<CommunityPage />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/about" element={<AboutPage />} />
