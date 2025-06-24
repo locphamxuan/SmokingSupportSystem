@@ -6,11 +6,7 @@ import '../style/MyProgressPage.scss'; // Assuming you'll create this file for c
 import facebookImage from '../assets/images/facebook.jpg'; // Import Facebook image for footer
 import instagramImage from '../assets/images/instragram.jpg'; // Import Instagram image for footer
 import { 
-  getUserStatistics, 
-  getUserNotifications, 
-  getDailyLog, 
-  addDailyLog,
-  getRankings 
+  addDailyLog
 } from '../services/extraService';
 
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
@@ -266,22 +262,7 @@ const MyProgressPage = () => {
     setSuccess('');
   };
 
-  const handleRequestCoach = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:5000/api/users/request-coach', {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setSuccess('Huấn luyện viên đã được phân công cho bạn!');
-      await fetchUserData();
-      // Navigate to chat interface if coach is assigned
-      if (response.data.coachId) {
-        navigate(`/chat-coach/${response.data.coachId}`);
-      }
-    } catch (error) {
-      setError(error.response?.data?.message || 'Gửi yêu cầu thất bại.');
-    }
-  };
+
 
   const handleCancelCoachRequest = async () => {
     try {

@@ -26,8 +26,16 @@ const ChatCoachPage = () => {
   const navigate = useNavigate();
   // Ref để cuộn xuống cuối danh sách tin nhắn
   const messagesEndRef = useRef(null);
+  const messageListRef = useRef(null);
   // State để lưu trữ socket
   const [socket, setSocket] = useState(null);
+
+  // Hàm cuộn xuống cuối
+  const scrollToBottom = () => {
+    if (messageListRef.current) {
+      messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
+    }
+  };
 
   useEffect(() => {
     const newSocket = io("http://localhost:5000", {
@@ -44,8 +52,14 @@ const ChatCoachPage = () => {
     socket.on("messageHistory", (history) => {
       setMessages(history);
       setLoading(false);
+      setTimeout(scrollToBottom, 100);
     });
-    socket.on("newMessage", (message) => setMessages(prev => [...prev, message]));
+    
+    socket.on("newMessage", (message) => {
+      setMessages(prev => [...prev, message]);
+      setTimeout(scrollToBottom, 100);
+    });
+    
     socket.on("error", (msg) => setError(msg));
 
     socket.emit("joinChat", { userId: user.id, coachId: parseInt(coachId) });
@@ -58,7 +72,7 @@ const ChatCoachPage = () => {
   }, [socket, user, coachId]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    scrollToBottom();
   }, [messages]);
 
   // Hàm gửi tin nhắn
@@ -100,8 +114,9 @@ const ChatCoachPage = () => {
             <div className="text-muted small">Huấn luyện viên chuyên nghiệp</div>
           </div>
         </div>
+        
         {/* Messages Area */}
-        <div className="message-list flex-grow-1 mb-2">
+        <div className="message-list" ref={messageListRef}>
           {loading ? (
             <div className="d-flex justify-content-center align-items-center h-100">
               <div className="spinner-border text-primary" role="status">
@@ -134,6 +149,7 @@ const ChatCoachPage = () => {
             </div>
           )}
         </div>
+        
         {/* Input Area */}
         <form className="input-area mt-auto" onSubmit={e => { e.preventDefault(); sendMessage(); }}>
           <input
