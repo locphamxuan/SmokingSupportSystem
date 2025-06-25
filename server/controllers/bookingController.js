@@ -52,6 +52,16 @@ const bookingController = {
                 return res.status(400).json({ message: 'Huấn luyện viên, ngày và khung giờ là bắt buộc.' });
             }
 
+            // Kiểm tra người dùng có phải là thành viên VIP không
+            const userResult = await sql.query`
+                SELECT IsMemberVip FROM Users WHERE Id = ${memberId}
+            `;
+            const user = userResult.recordset[0];
+
+            if (!user || !user.IsMemberVip) {
+                return res.status(403).json({ message: 'Chỉ thành viên VIP mới có thể đặt lịch với huấn luyện viên.' });
+            }
+
             await sql.query`
                 INSERT INTO Booking (MemberId, CoachId, Slot, SlotDate, Note, Status, CreatedAt)
                 VALUES (${memberId}, ${coachId}, ${slot}, ${slotDate}, ${note || null}, N'đang chờ xác nhận', GETDATE())

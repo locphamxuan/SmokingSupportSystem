@@ -140,28 +140,57 @@ const MyProgressPage = () => {
         feeling: fetchedUserData.smokingStatus.dailyLog.feeling || '',
       };
 
-      // Fetch quit plan if available
+      // Fetch custom quit plan from QuitPlans table if available
       try {
-        const quitPlanResponse = await axios.get('http://localhost:5000/api/auth/quit-plan', {
+        const customQuitPlanResponse = await axios.get('http://localhost:5000/api/auth/custom-quit-plan', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        fetchedUserData.quitPlan = {
-          id: quitPlanResponse.data.quitPlan.id || 0,
-          startDate: quitPlanResponse.data.quitPlan.startDate || '',
-          targetDate: quitPlanResponse.data.quitPlan.targetDate || '',
-          planType: quitPlanResponse.data.quitPlan.planType || '',
-          initialCigarettes: quitPlanResponse.data.quitPlan.initialCigarettes || 0,
-          dailyReduction: quitPlanResponse.data.quitPlan.dailyReduction || 0,
-          milestones: quitPlanResponse.data.quitPlan.milestones || [],
-          currentProgress: quitPlanResponse.data.quitPlan.currentProgress || 0,
-          planDetail: quitPlanResponse.data.quitPlan.planDetail || '',
-          status: quitPlanResponse.data.quitPlan.status || 'active',
-          createdAt: quitPlanResponse.data.quitPlan.createdAt || null,
-        };
-      } catch (quitPlanError) {
-        // It's okay if no quit plan exists (404), log other errors
-        if (quitPlanError.response && quitPlanError.response.status !== 404) {
-          console.error("Lỗi khi tải kế hoạch cai thuốc:", quitPlanError);
+        
+        if (customQuitPlanResponse.data.quitPlan) {
+          fetchedUserData.quitPlan = {
+            id: customQuitPlanResponse.data.quitPlan.id || 0,
+            startDate: customQuitPlanResponse.data.quitPlan.startDate || '',
+            targetDate: customQuitPlanResponse.data.quitPlan.targetDate || '',
+            planType: 'custom',
+            initialCigarettes: customQuitPlanResponse.data.quitPlan.initialCigarettes || 0,
+            dailyReduction: customQuitPlanResponse.data.quitPlan.dailyReduction || 0,
+            milestones: [],
+            currentProgress: 0,
+            planDetail: customQuitPlanResponse.data.quitPlan.planDetail || '',
+            status: 'active',
+            createdAt: customQuitPlanResponse.data.quitPlan.createdAt || null,
+            planSource: 'custom'
+          };
+        } else {
+          // If no custom plan, try the old quit-plan endpoint
+          try {
+            const quitPlanResponse = await axios.get('http://localhost:5000/api/auth/quit-plan', {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            fetchedUserData.quitPlan = {
+              id: quitPlanResponse.data.quitPlan.id || 0,
+              startDate: quitPlanResponse.data.quitPlan.startDate || '',
+              targetDate: quitPlanResponse.data.quitPlan.targetDate || '',
+              planType: quitPlanResponse.data.quitPlan.planType || '',
+              initialCigarettes: quitPlanResponse.data.quitPlan.initialCigarettes || 0,
+              dailyReduction: quitPlanResponse.data.quitPlan.dailyReduction || 0,
+              milestones: quitPlanResponse.data.quitPlan.milestones || [],
+              currentProgress: quitPlanResponse.data.quitPlan.currentProgress || 0,
+              planDetail: quitPlanResponse.data.quitPlan.planDetail || '',
+              status: quitPlanResponse.data.quitPlan.status || 'active',
+              createdAt: quitPlanResponse.data.quitPlan.createdAt || null,
+            };
+          } catch (oldQuitPlanError) {
+            if (oldQuitPlanError.response && oldQuitPlanError.response.status !== 404) {
+              console.error("Lỗi khi tải kế hoạch cai thuốc cũ:", oldQuitPlanError);
+            }
+            fetchedUserData.quitPlan = null;
+          }
+        }
+      } catch (customQuitPlanError) {
+        // It's okay if no custom quit plan exists (404), log other errors
+        if (customQuitPlanError.response && customQuitPlanError.response.status !== 404) {
+          console.error("Lỗi khi tải kế hoạch cai thuốc tự tạo:", customQuitPlanError);
         }
         fetchedUserData.quitPlan = null; // Ensure it's null if not found or error
       }
@@ -556,6 +585,16 @@ const MyProgressPage = () => {
   }, []);
 
   const getTotalWeeks = () => {
+    // Kiểm tra kế hoạch tự tạo trước
+    if (userData.quitPlan && userData.quitPlan.startDate && userData.quitPlan.targetDate) {
+      const startDate = new Date(userData.quitPlan.startDate);
+      const endDate = new Date(userData.quitPlan.targetDate);
+      const diffTime = Math.abs(endDate - startDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return Math.ceil(diffDays / 7);
+    }
+    
+    // Fallback to suggested plan
     if (!userData.currentUserSuggestedPlan) return 0;
     
     const startDate = new Date(userData.currentUserSuggestedPlan.startDate);
@@ -566,9 +605,18 @@ const MyProgressPage = () => {
   };
 
   const getWeekDataFromPlan = (weekNumber) => {
-    if (!userData.currentUserSuggestedPlan) return [];
+    let activePlan = null;
+    
+    // Kiểm tra kế hoạch tự tạo trước
+    if (userData.quitPlan && userData.quitPlan.startDate && userData.quitPlan.targetDate) {
+      activePlan = userData.quitPlan;
+    } else if (userData.currentUserSuggestedPlan) {
+      activePlan = userData.currentUserSuggestedPlan;
+    }
+    
+    if (!activePlan) return [];
 
-    const startDate = new Date(userData.currentUserSuggestedPlan.startDate);
+    const startDate = new Date(activePlan.startDate);
     const weekStartDate = new Date(startDate);
     weekStartDate.setDate(startDate.getDate() + (weekNumber - 1) * 7);
     
@@ -578,7 +626,7 @@ const MyProgressPage = () => {
       currentDate.setDate(weekStartDate.getDate() + i);
       
       // Nếu ngày hiện tại vượt quá ngày kết thúc kế hoạch, dừng lại
-      if (currentDate > new Date(userData.currentUserSuggestedPlan.targetDate)) break;
+      if (currentDate > new Date(activePlan.targetDate)) break;
       
       // Tìm dữ liệu nhật ký cho ngày này
       const logEntry = smokingHistory.find(entry => 
@@ -857,9 +905,108 @@ const MyProgressPage = () => {
           {/* Kế hoạch Cai thuốc */}
           <div className="col-md-6 mb-4">
             <div className="card shadow-sm h-100">
-              <div className="card-header bg-success text-white fw-bold">Kế hoạch Cai thuốc</div>
+              <div className="card-header bg-success text-white fw-bold d-flex justify-content-between align-items-center">
+                <span>Kế hoạch Cai thuốc</span>
+                {(userData.quitPlan || userData.currentUserSuggestedPlan) && (
+                  <span className={`badge ${userData.quitPlan ? 'bg-primary' : 'bg-info'}`}>
+                    {userData.quitPlan ? '📝 Tự tạo' : '🤖 Mẫu'}
+                  </span>
+                )}
+              </div>
               <div className="card-body">
-                {userData.currentUserSuggestedPlan ? (
+                {userData.quitPlan ? (
+                  <div>
+                    <h5>Kế hoạch cai thuốc tự tạo</h5>
+                    <div><b>Chi tiết:</b> {userData.quitPlan.planDetail}</div>
+                    <div><b>Ngày bắt đầu:</b> {userData.quitPlan.startDate}</div>
+                    <div><b>Ngày kết thúc:</b> {userData.quitPlan.targetDate}</div>
+                    <div><b>Số điếu ban đầu:</b> {userData.quitPlan.initialCigarettes}</div>
+                    <div><b>Giảm mỗi ngày:</b> {userData.quitPlan.dailyReduction}</div>
+                    <div className="my-3">
+                      <label className="fw-bold">Tiến độ hiện tại:</label>
+                      {(() => {
+                        const startDate = new Date(userData.quitPlan.startDate);
+                        const endDate = new Date(userData.quitPlan.targetDate);
+                        const today = new Date();
+
+                        if (today < startDate) {
+                          return (
+                            <div>
+                              <div className="progress" style={{ height: 24 }}>
+                                <div className="progress-bar bg-secondary" style={{ width: '0%' }}>
+                                  0%
+                                </div>
+                              </div>
+                              <small className="text-muted">Kế hoạch chưa bắt đầu</small>
+                            </div>
+                          );
+                        }
+
+                        if (today > endDate) {
+                          const recentLogs = smokingHistory
+                            .filter(log => new Date(log.Date) >= startDate && new Date(log.Date) <= endDate)
+                            .sort((a, b) => new Date(b.Date) - new Date(a.Date));
+
+                          const noSmokingDays = recentLogs.filter(log => log.Cigarettes === 0).length;
+                          const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                          const successRate = Math.round((noSmokingDays / totalDays) * 100);
+
+                          return (
+                            <div>
+                              <div className="progress" style={{ height: 24 }}>
+                                <div 
+                                  className={`progress-bar ${successRate >= 70 ? 'bg-success' : successRate >= 40 ? 'bg-warning' : 'bg-danger'}`}
+                                  style={{ width: '100%' }}
+                                >
+                                  Hoàn thành - {successRate}% ngày không hút thuốc
+                                </div>
+                              </div>
+                              <small className="text-muted">Kế hoạch đã kết thúc</small>
+                            </div>
+                          );
+                        }
+
+                        const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                        const daysPassed = Math.ceil((today - startDate) / (1000 * 60 * 60 * 24));
+                        const progressPercent = Math.round((daysPassed / totalDays) * 100);
+
+                        const recentLogs = smokingHistory
+                          .filter(log => new Date(log.Date) >= startDate && new Date(log.Date) <= today)
+                          .sort((a, b) => new Date(b.Date) - new Date(a.Date));
+
+                        const noSmokingDays = recentLogs.filter(log => log.Cigarettes === 0).length;
+                        const successRate = noSmokingDays > 0 ? Math.round((noSmokingDays / daysPassed) * 100) : 0;
+
+                        return (
+                          <div>
+                            <div className="progress" style={{ height: 24 }}>
+                              <div 
+                                className={`progress-bar ${successRate >= 70 ? 'bg-success' : successRate >= 40 ? 'bg-warning' : 'bg-danger'}`}
+                                style={{ width: `${progressPercent}%` }}
+                              >
+                                {progressPercent}% - {successRate}% ngày không hút thuốc
+                              </div>
+                            </div>
+                            <div className="mt-2 d-flex justify-content-between">
+                              <small className="text-muted">
+                                {noSmokingDays} ngày không hút / {daysPassed} ngày đã qua
+                              </small>
+                              <small className="text-muted">
+                                Còn {totalDays - daysPassed} ngày
+                              </small>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                    <button
+                      className="btn btn-outline-warning mt-3"
+                      onClick={() => setShowCreateForm(true)}
+                    >
+                      Chỉnh sửa kế hoạch
+                    </button>
+                  </div>
+                ) : userData.currentUserSuggestedPlan ? (
                   <div>
                     <h5>{userData.currentUserSuggestedPlan.title}</h5>
                     <p>{userData.currentUserSuggestedPlan.description}</p>
@@ -998,7 +1145,13 @@ const MyProgressPage = () => {
                           setShowDateForm(true);
                         }}
                       >
-                        Chọn
+                        Chọn kế hoạch mẫu
+                      </button>
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => setShowCreateForm(true)}
+                      >
+                        Tự tạo kế hoạch
                       </button>
                       {showDateForm && selectedPlan && (
                         <form
@@ -1034,6 +1187,133 @@ const MyProgressPage = () => {
                           </div>
                           <button type="submit" className="btn btn-success">Lưu kế hoạch</button>
                           <button type="button" className="btn btn-secondary ms-2" onClick={() => setShowDateForm(false)}>Hủy</button>
+                        </form>
+                      )}
+
+                      {/* Form tự tạo kế hoạch */}
+                      {showCreateForm && (
+                        <form
+                          className="mt-4 p-3 border rounded"
+                          onSubmit={async e => {
+                            e.preventDefault();
+                            const token = localStorage.getItem('token');
+                            try {
+                              await axios.post('http://localhost:5000/api/auth/create-quit-plan', {
+                                startDate: newPlan.startDate,
+                                targetDate: newPlan.targetDate,
+                                planDetail: newPlan.planDetail,
+                                initialCigarettes: Number(newPlan.initialCigarettes),
+                                dailyReduction: Number(newPlan.dailyReduction)
+                              }, {
+                                headers: { Authorization: `Bearer ${token}` }
+                              });
+                              setSuccess('Đã tạo kế hoạch cai thuốc thành công!');
+                              setShowCreateForm(false);
+                              setNewPlan({
+                                startDate: '',
+                                targetDate: '',
+                                planDetail: '',
+                                initialCigarettes: 0,
+                                dailyReduction: 0,
+                                milestones: ''
+                              });
+                              fetchUserData();
+                            } catch (error) {
+                              setError(error.response?.data?.message || 'Tạo kế hoạch thất bại.');
+                            }
+                          }}
+                        >
+                          <h6 className="mb-3 text-primary">🛠️ Tự tạo kế hoạch cai thuốc</h6>
+                          
+                          <div className="row">
+                            <div className="col-md-6 mb-3">
+                              <label className="form-label">Ngày bắt đầu *</label>
+                              <input 
+                                type="date" 
+                                className="form-control" 
+                                value={newPlan.startDate} 
+                                onChange={e => setNewPlan({ ...newPlan, startDate: e.target.value })} 
+                                required 
+                              />
+                            </div>
+                            <div className="col-md-6 mb-3">
+                              <label className="form-label">Ngày kết thúc *</label>
+                              <input 
+                                type="date" 
+                                className="form-control" 
+                                value={newPlan.targetDate} 
+                                onChange={e => setNewPlan({ ...newPlan, targetDate: e.target.value })} 
+                                required 
+                              />
+                            </div>
+                          </div>
+
+                          <div className="row">
+                            <div className="col-md-6 mb-3">
+                              <label className="form-label">Số điếu ban đầu *</label>
+                              <input 
+                                type="number" 
+                                className="form-control" 
+                                value={newPlan.initialCigarettes} 
+                                onChange={e => setNewPlan({ ...newPlan, initialCigarettes: e.target.value })} 
+                                min="0"
+                                placeholder="Số điếu hút hiện tại"
+                                required 
+                              />
+                              <small className="form-text text-muted">Số điếu thuốc bạn đang hút mỗi ngày</small>
+                            </div>
+                            <div className="col-md-6 mb-3">
+                              <label className="form-label">Giảm mỗi ngày</label>
+                              <input 
+                                type="number" 
+                                className="form-control" 
+                                value={newPlan.dailyReduction} 
+                                onChange={e => setNewPlan({ ...newPlan, dailyReduction: e.target.value })} 
+                                min="0"
+                                step="0.1"
+                                placeholder="0.5"
+                              />
+                              <small className="form-text text-muted">Số điếu giảm mỗi ngày (có thể để 0)</small>
+                            </div>
+                          </div>
+
+                          <div className="mb-3">
+                            <label className="form-label">Chi tiết kế hoạch *</label>
+                            <textarea 
+                              className="form-control" 
+                              rows="4"
+                              value={newPlan.planDetail} 
+                              onChange={e => setNewPlan({ ...newPlan, planDetail: e.target.value })} 
+                              placeholder="Mô tả chi tiết về kế hoạch cai thuốc của bạn..."
+                              required 
+                            />
+                            <small className="form-text text-muted">
+                              Ví dụ: &quot;Tuần 1: Giảm từ 20 xuống 15 điếu/ngày. Tuần 2: Giảm xuống 10 điếu/ngày...&quot;
+                            </small>
+                          </div>
+
+                          <div className="d-flex gap-2">
+                            <button type="submit" className="btn btn-primary">
+                              <i className="fas fa-plus me-2"></i>Tạo kế hoạch
+                            </button>
+                            <button 
+                              type="button" 
+                              className="btn btn-secondary" 
+                              onClick={() => {
+                                setShowCreateForm(false);
+                                setNewPlan({
+                                  startDate: '',
+                                  targetDate: '',
+                                  planDetail: '',
+                                  initialCigarettes: 0,
+                                  dailyReduction: 0,
+                                  milestones: ''
+                                });
+                              }}
+                            >
+                              Hủy
+                            </button>
+                          </div>
                         </form>
                       )}
                     </div>

@@ -45,7 +45,7 @@ exports.addDailyLog = async (req, res) => {
     });
 
     const userId = req.user.id;
-    const { cigarettes, feeling, logDate, planId, suggestedPlanId } = req.body;
+    let { cigarettes, feeling, logDate, planId, suggestedPlanId } = req.body;
     
     console.log('[addDailyLog] Parsed data:', { userId, cigarettes, feeling, logDate, planId, suggestedPlanId });
     
@@ -53,6 +53,37 @@ exports.addDailyLog = async (req, res) => {
       console.log('[addDailyLog] Invalid cigarettes type:', typeof cigarettes, cigarettes);
       return res.status(400).json({ message: 'Cigarettes is required and must be a number' });
     }
+
+    // Nếu không có planId hoặc suggestedPlanId, tự động xác định
+    if (!planId && !suggestedPlanId) {
+      console.log('[addDailyLog] No planId or suggestedPlanId provided, auto-detecting...');
+      
+      // Kiểm tra user có kế hoạch tự tạo không
+      const customPlanResult = await sql.query`
+        SELECT TOP 1 Id FROM QuitPlans 
+        WHERE UserId = ${userId} 
+        ORDER BY CreatedAt DESC
+      `;
+      
+      if (customPlanResult.recordset.length > 0) {
+        planId = customPlanResult.recordset[0].Id;
+        console.log('[addDailyLog] Found custom plan ID:', planId);
+      } else {
+        // Nếu không có kế hoạch tự tạo, kiểm tra kế hoạch mẫu
+        const suggestedPlanResult = await sql.query`
+          SELECT TOP 1 SuggestedPlanId FROM UserSuggestedQuitPlans 
+          WHERE UserId = ${userId} 
+          ORDER BY CreatedAt DESC
+        `;
+        
+        if (suggestedPlanResult.recordset.length > 0) {
+          suggestedPlanId = suggestedPlanResult.recordset[0].SuggestedPlanId;
+          console.log('[addDailyLog] Found suggested plan ID:', suggestedPlanId);
+        }
+      }
+    }
+
+    console.log('[addDailyLog] Final plan IDs:', { planId, suggestedPlanId });
 
     const currentDate = logDate || new Date().toISOString().slice(0, 10);
     
@@ -69,15 +100,18 @@ exports.addDailyLog = async (req, res) => {
       console.log('[addDailyLog] Updating existing log with ID:', logId);
       await sql.query`
         UPDATE SmokingDailyLog 
-        SET Cigarettes = ${cigarettes}, Feeling = ${feeling || ''}
+        SET Cigarettes = ${cigarettes}, 
+            Feeling = ${feeling || ''}, 
+            PlanId = ${planId || null}, 
+            SuggestedPlanId = ${suggestedPlanId || null}
         WHERE Id = ${logId}
       `;
     } else {
       // Insert new log
       console.log('[addDailyLog] Inserting new log for date:', currentDate);
       const result = await sql.query`
-        INSERT INTO SmokingDailyLog (UserId, Cigarettes, Feeling, LogDate)
-        VALUES (${userId}, ${cigarettes}, ${feeling || ''}, ${currentDate});
+        INSERT INTO SmokingDailyLog (UserId, Cigarettes, Feeling, LogDate, PlanId, SuggestedPlanId)
+        VALUES (${userId}, ${cigarettes}, ${feeling || ''}, ${currentDate}, ${planId || null}, ${suggestedPlanId || null});
         SELECT SCOPE_IDENTITY() AS Id;
       `;
       logId = result.recordset[0].Id;
