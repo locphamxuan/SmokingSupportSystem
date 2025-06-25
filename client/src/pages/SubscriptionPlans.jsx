@@ -4,8 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Payment from '../components/Payment';
 import axios from 'axios';
-import facebookImage from "../assets/images/facebook.jpg";
-import instagramImage from "../assets/images/instragram.jpg";
+
 import "../style/SubscriptionPlans.scss";
 import { getMembershipPackages } from '../services/extraService';
 
@@ -17,23 +16,6 @@ const SubscriptionPlans = () => {
   const [user, setUser] = useState(null);
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const features = {
-    free: [
-      'Theo dõi thời gian cai thuốc',
-      'Nhật ký cai thuốc cơ bản',
-      'Thống kê đơn giản',
-      'Cộng đồng hỗ trợ'
-    ],
-    premium: [
-      'Tất cả tính năng của gói Miễn phí',
-      'Nhật ký chi tiết với hình ảnh',
-      'Thống kê nâng cao',
-      'Tư vấn chuyên gia',
-      'Kế hoạch cai thuốc cá nhân hóa',
-      'Ứng dụng không quảng cáo'
-    ]
-  };
 
   const handleUpgrade = () => {
     setPaymentOpen(true);
@@ -132,7 +114,7 @@ const SubscriptionPlans = () => {
           },
           {
             id: 2,
-            name: 'Gói Premium',
+            name: 'Gói thành viên VIP',
             price: 99000,
             durationInDays: 30,
             description: 'Truy cập đầy đủ tất cả tính năng cao cấp'
@@ -176,10 +158,10 @@ const SubscriptionPlans = () => {
               <div className="card premium-status-card text-center mb-4">
                 <i className="fas fa-award fa-5x mb-3"></i>
                 <h2>
-                  🎉 Bạn đã đăng ký gói Premium!
+                   Bạn đã đăng ký gói thành viên VIP
                 </h2>
                 <p>
-                  Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ Premium của chúng tôi.
+                  Cảm ơn bạn đã tin tưởng và sử dụng gói thành viên VIP của chúng tôi.
                 </p>
                 <button
                   className="btn btn-lg rounded-pill"
@@ -190,22 +172,48 @@ const SubscriptionPlans = () => {
               </div>
 
               <h3 className="text-center mb-4">
-                Các tính năng Premium bạn đang sử dụng
+                Các tính năng của thành viên VIP bạn đang sử dụng
               </h3>
               <div className="row justify-content-center">
                 <div className="col-12 col-md-8">
                   <div className="card h-100">
                     <div className="card-body">
                       <h4 className="card-title mb-4">
-                        Gói Premium - Đang hoạt động
+                        Gói thành viên VIP - Đang hoạt động
                       </h4>
                       <ul className="list-unstyled mb-0">
-                        {features.premium.map((feature, index) => (
-                          <li key={index} className="d-flex align-items-center py-2">
-                            <i className="fas fa-check-circle me-3"></i>
-                            <span>{feature}</span>
-                          </li>
-                        ))}
+                        {((user.features && Array.isArray(user.features))
+                          ? user.features
+                          : String(user.features || '').split(/\r?\n|\\n/)
+                        ).filter(f => f.trim()).length > 0
+                          ? ((Array.isArray(user.features)
+                              ? user.features
+                              : String(user.features || '').split(/\r?\n|\\n/))
+                            ).filter(f => f.trim()).map((feature, index) => (
+                              <li key={index} className="d-flex align-items-center py-2">
+                                <i className="fas fa-check-circle me-3"></i>
+                                <span>{feature}</span>
+                              </li>
+                            ))
+                          : (user.role === 'memberVip'
+                              ? [
+                                  'Tất cả tính năng của gói Miễn phí',
+                                  'Đặt lịch với huấn luyện viên',
+                                  'Kế hoạch cai thuốc cá nhân hóa và hệ thống đề xuất',
+                                  'Thống kê nâng cao'
+                                ]
+                              : [
+                                  'Theo dõi thời gian cai thuốc',
+                                  'Nhật ký cai thuốc cơ bản',
+                                  'Thống kê đơn giản',
+                                  'Cộng đồng hỗ trợ'
+                                ]
+                          ).map((feature, index) => (
+                            <li key={index} className="d-flex align-items-center py-2">
+                              <i className="fas fa-check-circle me-3"></i>
+                              <span>{feature}</span>
+                            </li>
+                          ))}
                       </ul>
                     </div>
                   </div>
@@ -215,40 +223,67 @@ const SubscriptionPlans = () => {
           ) : (
             <>
               <h2>
-                Chọn gói phù hợp với bạn
+                Chọn gói thành viên phù hợp với bạn
               </h2>
               <p>
-                Nâng cấp lên Premium để trải nghiệm đầy đủ tính năng.
+                Nâng cấp lên <b>thành viên VIP</b> để trải nghiệm đầy đủ tính năng.
               </p>
               <div className="row justify-content-center">
-                {packages.map((pkg) => (
-                  <div key={pkg.id} className="col-12 col-md-6 col-lg-5 mb-4">
-                    <div className="card h-100">
-                      <div className="card-body">
-                        <h4>{pkg.name}</h4>
-                        <h3>
-                          {pkg.price === 0 ? 'Miễn phí' : `${pkg.price.toLocaleString()} VNĐ`}
-                          {pkg.durationInDays > 0 && <span className="text-muted">/{pkg.durationInDays} ngày</span>}
-                        </h3>
-                        <p>{pkg.description}</p>
-                        <hr className="my-3" />
-                        <ul className="list-unstyled mb-0">
-                          {(pkg.price === 0 ? features.free : features.premium).map((feature, index) => (
-                            <li key={index} className="d-flex align-items-center py-2">
-                              <i className="fas fa-check-circle me-3"></i>
-                              <span>{feature}</span>
-                            </li>
-                          ))}
-                        </ul>
-                        {pkg.price === 0 ? (
-                          <button className="btn btn-lg btn-outline-secondary mt-4 rounded-pill" disabled>Đang sử dụng</button>
-                        ) : (
-                          <button className="btn btn-lg rounded-pill mt-4" onClick={handleUpgrade}>Nâng cấp ngay</button>
-                        )}
+                {packages
+                  .map((pkg) => (
+                    <div key={pkg.id} className="col-12 col-md-6 col-lg-5 mb-4">
+                      <div className="card h-100">
+                        <div className="card-body">
+                          <h4>{pkg.name === 'Gói Premium' ? 'Gói thành viên VIP' : pkg.name}</h4>
+                          <h3>
+                            {pkg.price === 0 ? 'Miễn phí' : `${pkg.price.toLocaleString()} VNĐ`}
+                            {pkg.durationInDays > 0 && <span className="text-muted">/{pkg.durationInDays} ngày</span>}
+                          </h3>
+                          <p>{pkg.name === 'Gói Premium' ? 'Truy cập đầy đủ tất cả tính năng VIP' : pkg.description}</p>
+                          <hr className="my-3" />
+                          <ul className="list-unstyled mb-0">
+                            {((pkg.features && Array.isArray(pkg.features))
+                              ? pkg.features
+                              : String(pkg.features || '').split(/\r?\n|\\n/)
+                            ).filter(f => f.trim()).length > 0
+                              ? ((Array.isArray(pkg.features)
+                                  ? pkg.features
+                                  : String(pkg.features || '').split(/\r?\n|\\n/))
+                                ).filter(f => f.trim()).map((feature, index) => (
+                                  <li key={index} className="d-flex align-items-center py-2">
+                                    <i className="fas fa-check-circle me-3"></i>
+                                    <span>{feature}</span>
+                                  </li>
+                                ))
+                              : (pkg.price === 0
+                                  ? [
+                                      'Theo dõi thời gian cai thuốc',
+                                      'Nhật ký cai thuốc cơ bản',
+                                      'Thống kê đơn giản',
+                                      'Cộng đồng hỗ trợ'
+                                    ]
+                                  : [
+                                      'Tất cả tính năng của gói Miễn phí',
+                                      'Đặt lịch với huấn luyện viên',
+                                      'Kế hoạch cai thuốc cá nhân hóa và hệ thống đề xuất',
+                                      'Thống kê nâng cao'
+                                    ]
+                                ).map((feature, index) => (
+                                  <li key={index} className="d-flex align-items-center py-2">
+                                    <i className="fas fa-check-circle me-3"></i>
+                                    <span>{feature}</span>
+                                  </li>
+                                ))}
+                          </ul>
+                          {pkg.price === 0 ? (
+                            <button className="btn btn-lg btn-outline-secondary mt-4 rounded-pill" disabled>Đang sử dụng</button>
+                          ) : (
+                            <button className="btn btn-lg rounded-pill mt-4" onClick={handleUpgrade}>Nâng cấp thành viên VIP</button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </>
           )}

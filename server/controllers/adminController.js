@@ -80,6 +80,48 @@ const adminController = {
                         quitReason: profile.QuitReason || ''
                     };
                     console.log('Smoking profile found:', userDetail.smokingProfile);
+
+                    // Lấy nhật ký hút thuốc 7 ngày gần nhất
+                    const today = new Date();
+                    const sevenDaysAgo = new Date(today);
+                    sevenDaysAgo.setDate(today.getDate() - 7);
+
+                    const dailyLogResult = await sql.query`
+                        SELECT LogDate, Cigarettes, Feeling
+                        FROM SmokingDailyLog 
+                        WHERE UserId = ${userId}
+                        AND LogDate >= ${sevenDaysAgo.toISOString().split('T')[0]}
+                        ORDER BY LogDate DESC
+                    `;
+
+                    userDetail.smokingProfile.dailyLogs = dailyLogResult.recordset.map(log => ({
+                        date: log.LogDate,
+                        cigarettes: log.Cigarettes || 0,
+                        feeling: log.Feeling || ''
+                    }));
+
+                    // Lấy kế hoạch cai thuốc hiện tại
+                    const quitPlanResult = await sql.query`
+                        SELECT TOP 1 usp.*, sp.Title, sp.Description, sp.PlanDetail
+                        FROM UserSuggestedQuitPlans usp
+                        JOIN SuggestedQuitPlans sp ON usp.SuggestedPlanId = sp.Id
+                        WHERE usp.UserId = ${userId}
+                        ORDER BY usp.StartDate DESC
+                    `;
+
+                    if (quitPlanResult.recordset.length > 0) {
+                        const plan = quitPlanResult.recordset[0];
+                        userDetail.quitPlan = {
+                            id: plan.Id,
+                            title: plan.Title,
+                            description: plan.Description,
+                            planDetail: plan.PlanDetail,
+                            startDate: plan.StartDate,
+                            targetDate: plan.TargetDate,
+                            progress: plan.Progress || 0
+                        };
+                    }
+
                 } else {
                     console.log('No smoking profile found for user:', userId);
                     userDetail.smokingProfile = {
@@ -88,7 +130,8 @@ const adminController = {
                         smokingFrequency: '',
                         healthStatus: '',
                         cigaretteType: '',
-                        quitReason: ''
+                        quitReason: '',
+                        dailyLogs: []
                     };
                 }
             } catch (profileError) {
@@ -99,7 +142,8 @@ const adminController = {
                     smokingFrequency: '',
                     healthStatus: '',
                     cigaretteType: '',
-                    quitReason: ''
+                    quitReason: '',
+                    dailyLogs: []
                 };
             }
 
@@ -113,25 +157,62 @@ const adminController = {
                         FROM Users u
                         WHERE u.CoachId = ${userId}
                     `;
-                    
-                    userDetail.assignedMembers = assignedMembersResult.recordset.map(member => ({
-                        id: member.Id,
-                        username: member.Username,
-                        email: member.Email,
-                        phoneNumber: member.PhoneNumber || 'N/A',
-                        cigarettesPerDay: 0,
-                        quitReason: 'Chưa cập nhật',
-                        bookingStatus: 'Chưa có',
-                        scheduledTime: null
-                    }));
+                    // Lấy thông tin booking và profile hút thuốc cho từng member
+                    const assignedMembers = [];
+                    for (const member of assignedMembersResult.recordset) {
+                        // Lấy booking gần nhất giữa coach và member này
+                        let bookingInfo = null;
+                        try {
+                            const bookingResult = await sql.query`
+                                SELECT TOP 1 * FROM Booking
+                                WHERE MemberId = ${member.Id} AND CoachId = ${userId}
+                                ORDER BY CreatedAt DESC
+                            `;
+                            if (bookingResult.recordset.length > 0) {
+                                bookingInfo = bookingResult.recordset[0];
+                            }
+                        } catch (err) {
+                            console.log('Error fetching booking for member', member.Id, err.message);
+                        }
+                        // Lấy profile hút thuốc
+                        let smokingProfile = null;
+                        try {
+                            const profileResult = await sql.query`
+                                SELECT * FROM SmokingProfiles WHERE UserId = ${member.Id}
+                            `;
+                            if (profileResult.recordset.length > 0) {
+                                smokingProfile = profileResult.recordset[0];
+                            }
+                        } catch (err) {
+                            console.log('Error fetching smoking profile for member', member.Id, err.message);
+                        }
+                        assignedMembers.push({
+                            id: member.Id,
+                            username: member.Username,
+                            email: member.Email,
+                            phoneNumber: member.PhoneNumber || 'N/A',
+                            // Thông tin hút thuốc
+                            cigarettesPerDay: smokingProfile ? smokingProfile.CigarettesPerDay : 0,
+                            costPerPack: smokingProfile ? smokingProfile.CostPerPack : 0,
+                            smokingFrequency: smokingProfile ? smokingProfile.SmokingFrequency : '',
+                            healthStatus: smokingProfile ? smokingProfile.HealthStatus : '',
+                            cigaretteType: smokingProfile ? smokingProfile.CigaretteType : '',
+                            quitReason: smokingProfile ? smokingProfile.QuitReason : 'Chưa cập nhật',
+                            // Thông tin booking
+                            bookingStatus: bookingInfo ? bookingInfo.Status : 'Chưa có',
+                            slot: bookingInfo ? bookingInfo.Slot : null,
+                            slotDate: bookingInfo ? bookingInfo.SlotDate : null,
+                            scheduledTime: bookingInfo ? bookingInfo.SlotDate : null,
+                            bookingNote: bookingInfo ? bookingInfo.Note : null
+                        });
+                    }
+                    userDetail.assignedMembers = assignedMembers;
                     console.log('Assigned members found:', userDetail.assignedMembers.length);
                 } catch (coachError) {
                     console.log('Error getting coach data:', coachError.message);
                     userDetail.assignedMembers = [];
                 }
-                
                 userDetail.recentProgress = [];
-                
             } else if (userRole === 'member' || userRole === 'guest') {
                 try {
                     console.log('Fetching coach info for user:', userId, 'CoachId:', user.CoachId);
@@ -264,22 +345,29 @@ const adminController = {
         
         try {
             const userId = req.params.id;
+            console.log('Starting delete process for user:', userId);
+            
             await transaction.begin();
+            console.log('Transaction began');
 
-            // Check if user exists
+            // Check if user exists and get their role
             const userCheck = await new sql.Request(transaction)
                 .input('userId', sql.Int, userId)
-                .query('SELECT Id, Role FROM Users WHERE Id = @userId');
+                .query('SELECT Id, Role, CoachId FROM Users WHERE Id = @userId');
+            
+            console.log('User check result:', userCheck.recordset);
                 
             if (userCheck.recordset.length === 0) {
                 await transaction.rollback();
                 return res.status(404).json({ message: 'User not found' });
             }
 
-            // Update any users that reference this user as their coach
-            await new sql.Request(transaction)
+            // First, update any users that reference this user as their coach
+            const updateCoachResult = await new sql.Request(transaction)
                 .input('userId', sql.Int, userId)
                 .query('UPDATE Users SET CoachId = NULL WHERE CoachId = @userId');
+            
+            console.log('Updated users with CoachId reference:', updateCoachResult.rowsAffected);
 
             // Delete related records in correct order (handling foreign key constraints)
             const deleteQueries = [
@@ -289,30 +377,56 @@ const adminController = {
                 'DELETE FROM Comments WHERE UserId = @userId',
                 'DELETE FROM Reports WHERE UserId = @userId',
                 'DELETE FROM Rankings WHERE UserId = @userId',
-                'DELETE FROM UserStatistics WHERE UserId = @userId',
                 'DELETE FROM Notifications WHERE UserId = @userId',
                 'DELETE FROM SmokingProfiles WHERE UserId = @userId',
                 'DELETE FROM QuitPlans WHERE UserId = @userId OR CoachId = @userId',
                 'DELETE FROM Booking WHERE MemberId = @userId OR CoachId = @userId',
                 'DELETE FROM Posts WHERE UserId = @userId',
+                'DELETE FROM UserSuggestedQuitPlans WHERE UserId = @userId',
                 'DELETE FROM Users WHERE Id = @userId'
             ];
 
+            // Execute each delete query in sequence
             for (const query of deleteQueries) {
-                await new sql.Request(transaction)
-                    .input('userId', sql.Int, userId)
-                    .query(query);
+                try {
+                    const result = await new sql.Request(transaction)
+                        .input('userId', sql.Int, userId)
+                        .query(query);
+                    console.log(`Executed query: ${query}`, result.rowsAffected);
+                } catch (queryError) {
+                    console.error(`Error executing query: ${query}`, queryError);
+                    throw queryError;
+                }
             }
 
             await transaction.commit();
+            console.log('Transaction committed successfully');
             res.json({ message: 'User deleted successfully' });
 
         } catch (error) {
             console.error('Delete user error:', error);
-            await transaction.rollback();
+            console.error('Error details:', {
+                message: error.message,
+                code: error.code,
+                number: error.number,
+                state: error.state,
+                class: error.class,
+                lineNumber: error.lineNumber,
+                serverName: error.serverName,
+                procName: error.procName
+            });
+            
+            try {
+                await transaction.rollback();
+                console.log('Transaction rolled back');
+            } catch (rollbackError) {
+                console.error('Rollback failed:', rollbackError);
+            }
+            
             res.status(500).json({ 
                 message: 'Failed to delete user', 
-                error: error.message 
+                error: error.message,
+                details: error.code ? `SQL Error Code: ${error.code}` : undefined
             });
         }
     },

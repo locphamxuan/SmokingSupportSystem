@@ -817,7 +817,13 @@ exports.getAllPosts = async (req, res) => {
 exports.createPost = async (req, res) => {
   try {
     const userId = req.user.id; // Lấy userId từ token đã xác thực
+    const userRole = req.user.role; // Lấy role từ token
     const { title, content } = req.body;
+
+    // Kiểm tra không cho admin tạo bài viết
+    if (userRole === 'admin') {
+      return res.status(403).json({ message: 'Admin không được phép tạo bài viết.' });
+    }
 
     if (!title || !content) {
       return res.status(400).json({ message: 'Title and content are required' });
@@ -866,8 +872,13 @@ exports.getCommentsForPost = async (req, res) => {
 exports.addComment = async (req, res) => {
   try {
     const userId = req.user.id;
+    const userRole = req.user.role;
     const { postId } = req.params;
     const { content } = req.body;
+
+    if (userRole === 'admin') {
+      return res.status(403).json({ message: 'Admin không được phép bình luận.' });
+    }
 
     if (!content) {
       return res.status(400).json({ message: 'Content is required' });

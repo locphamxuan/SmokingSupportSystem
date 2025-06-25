@@ -81,10 +81,18 @@ export const updateUser = async (id, userData) => {
 
 export const deleteUser = async (id) => {
   const token = getToken();
-  const response = await axios.delete(`${API_URL}/admin/user/${id}`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-  return response.data;
+  try {
+    const response = await axios.delete(`${API_URL}/admin/user/${id}`, {
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Delete user error:', error);
+    throw error;
+  }
 };
 
 export const getStatistics = async () => {
@@ -122,6 +130,45 @@ export const updateBlog = async (id, blogData) => {
 export const deleteBlog = async (id) => {
   const token = getToken();
   const response = await axios.delete(`${API_URL}/admin/blogs/${id}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+// Membership Package Management (Admin)
+export const getAdminPackages = async () => {
+  const token = getToken();
+  const response = await axios.get(`${API_URL}/admin/packages`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+export const createAdminPackage = async (pkg) => {
+  const token = getToken();
+  const response = await axios.post(`${API_URL}/admin/packages`, pkg, {
+    headers: { 
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  return response.data;
+};
+
+export const updateAdminPackage = async (id, pkg) => {
+  const token = getToken();
+  const response = await axios.put(`${API_URL}/admin/packages/${id}`, pkg, {
+    headers: { 
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  return response.data;
+};
+
+export const deleteAdminPackage = async (id) => {
+  const token = getToken();
+  const response = await axios.delete(`${API_URL}/admin/packages/${id}`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return response.data;

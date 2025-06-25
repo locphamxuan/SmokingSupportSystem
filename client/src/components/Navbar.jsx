@@ -47,7 +47,7 @@ const Navbar = () => {
             {isMember && (
               <Link to="/subscribe" className="nav-item" onClick={() => handleNavClick('/subscribe')}>Mua gói</Link>
             )}
-            {isAuthenticated && (
+            {isAuthenticated && isMember && (
               <Link to="/achievements" className="nav-item" onClick={() => handleNavClick('/achievements')}> Thành tích</Link>
             )}
           </nav>
@@ -92,6 +92,9 @@ const Navbar = () => {
                   <>
                     <Link to="/admin/users" className="dropdown-item" onClick={() => handleNavClick('/admin/users')}>
                       Quản lý tài khoản
+                    </Link>
+                    <Link to="/admin/packages" className="dropdown-item" onClick={() => handleNavClick('/admin/packages')}>
+                      Quản lý gói thành viên
                     </Link>
                   </>
                 )}
