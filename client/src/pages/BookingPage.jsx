@@ -14,6 +14,8 @@ const BookingPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [bookingHistory, setBookingHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
 
   // Available time slots as defined in the database
   const availableSlots = [
@@ -22,6 +24,36 @@ const BookingPage = () => {
     { value: '13h-15h', label: '13:00 - 15:00' },
     { value: '16h-18h', label: '16:00 - 18:00' }
   ];
+
+  // Fetch booking history
+  const fetchBookingHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.log('No token found, skipping booking history fetch');
+        setHistoryLoading(false);
+        return;
+      }
+
+      console.log('Fetching booking history...');
+      const response = await axios.get('http://localhost:5000/api/booking/history', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      console.log('Booking history response:', response.data);
+      console.log('Bookings array:', response.data.bookings);
+      
+      setBookingHistory(response.data.bookings || []);
+    } catch (err) {
+      console.error('Lỗi khi tải lịch sử đặt lịch:', err);
+      console.error('Error response:', err.response?.data);
+      console.error('Error status:', err.response?.status);
+      setError(`Lỗi khi tải lịch sử đặt lịch: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchUserAndCoaches = async () => {
@@ -66,6 +98,7 @@ const BookingPage = () => {
     };
 
     fetchUserAndCoaches();
+    fetchBookingHistory();
   }, [navigate]);
 
   const handleSubmit = async (e) => {
@@ -113,9 +146,18 @@ const BookingPage = () => {
 
       console.log("BookingPage - Booking response:", response.data);
       setSuccess('Lịch hẹn của bạn đã được gửi thành công!');
+      
+      // Refresh booking history after successful booking
+      fetchBookingHistory();
+      
+      // Reset form
+      setSlotDate('');
+      setSelectedSlot('');
+      setNote('');
+      
       setTimeout(() => {
-        navigate('/my-progress');
-      }, 2000);
+        setSuccess('');
+      }, 3000);
     } catch (err) {
       console.error('Lỗi khi đặt lịch hẹn:', err);
       console.error('Error details:', err.response?.data);
@@ -183,6 +225,48 @@ const BookingPage = () => {
           setTimeout(() => setError(''), 3000); // Clear error after 3 seconds
         }
       }
+    }
+  };
+
+  // Helper function to format date
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  // Helper function to display status text for member view
+  const getDisplayStatus = (status) => {
+    switch (status) {
+      case 'đang chờ xác nhận':
+        return 'Đang chờ xác nhận';
+      case 'đã xác nhận':
+        return 'Đã xác nhận';
+      case 'khách hàng đã hủy':
+        return 'Bạn đã hủy'; // Member xem lịch mình đã hủy
+      case 'coach đã hủy':
+        return 'Coach đã hủy'; // Member xem lịch coach đã hủy
+      default:
+        return status;
+    }
+  };
+
+  // Helper function to get status badge class
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case 'đang chờ xác nhận':
+        return 'badge bg-warning text-dark';
+      case 'đã xác nhận':
+        return 'badge bg-success';
+      case 'khách hàng đã hủy':
+        return 'badge bg-secondary';
+      case 'coach đã hủy':
+        return 'badge bg-danger';
+      default:
+        return 'badge bg-primary';
     }
   };
 
@@ -323,6 +407,120 @@ const BookingPage = () => {
           </div>
           <button type="submit" className="btn btn-success">Gửi yêu cầu đặt lịch</button>
         </form>
+
+        {/* Booking History Section */}
+        <div className="booking-history">
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h4 className="mb-0 fw-bold text-success">Lịch sử đặt lịch</h4>
+            <div>
+              <button 
+                className="btn btn-outline-info btn-sm me-2"
+                onClick={async () => {
+                  try {
+                    const token = localStorage.getItem('token');
+                    const response = await axios.get('http://localhost:5000/api/booking/test-auth', {
+                      headers: { Authorization: `Bearer ${token}` }
+                    });
+                    console.log('Auth test response:', response.data);
+                    alert(`Auth test successful! User ID: ${response.data.user?.id}`);
+                  } catch (err) {
+                    console.error('Auth test failed:', err);
+                    alert(`Auth test failed: ${err.response?.data?.message || err.message}`);
+                  }
+                }}
+              >
+                Test Auth
+              </button>
+              <button 
+                className="btn btn-outline-success btn-sm"
+                onClick={fetchBookingHistory}
+              >
+                <i className="fas fa-refresh me-1"></i>
+                Tải lại
+              </button>
+            </div>
+          </div>
+          {historyLoading ? (
+            <div className="d-flex justify-content-center">
+              <div className="spinner-border text-success" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          ) : bookingHistory.length === 0 ? (
+            <div className="alert alert-info">
+              <i className="fas fa-info-circle me-2"></i>
+              Bạn chưa có lịch hẹn nào.
+            </div>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-hover">
+                <thead className="table-success">
+                  <tr>
+                    <th>Ngày hẹn</th>
+                    <th>Khung giờ</th>
+                    <th>Huấn luyện viên</th>
+                    <th>Trạng thái</th>
+                    <th>Ghi chú</th>
+                    <th>Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bookingHistory.map((booking) => (
+                    <tr key={booking.Id}>
+                      <td>{formatDate(booking.SlotDate)}</td>
+                      <td>
+                        <span className="badge bg-light text-dark">
+                          {getSlotLabel(booking.Slot)}
+                        </span>
+                      </td>
+                      <td>{booking.CoachName || 'Chưa có thông tin'}</td>
+                      <td>
+                        <span className={getStatusBadgeClass(booking.Status)}>
+                          {getDisplayStatus(booking.Status)}
+                        </span>
+                      </td>
+                      <td>
+                        {booking.Note ? (
+                          <span className="text-muted">{booking.Note}</span>
+                        ) : (
+                          <span className="text-muted fst-italic">Không có ghi chú</span>
+                        )}
+                      </td>
+                      <td>
+                        {(booking.Status === 'đang chờ xác nhận' || booking.Status === 'đã xác nhận') && (
+                          <button
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={async () => {
+                              if (window.confirm('Bạn có chắc chắn muốn hủy lịch hẹn này?')) {
+                                try {
+                                  const token = localStorage.getItem('token');
+                                  await axios.post(`http://localhost:5000/api/booking/${booking.Id}/cancel-by-member`, {}, {
+                                    headers: { Authorization: `Bearer ${token}` }
+                                  });
+                                  setSuccess('Đã hủy lịch hẹn thành công!');
+                                  fetchBookingHistory(); // Refresh danh sách
+                                } catch (err) {
+                                  console.error('Lỗi khi hủy lịch hẹn:', err);
+                                  setError(err.response?.data?.message || 'Không thể hủy lịch hẹn.');
+                                }
+                              }
+                            }}
+                          >
+                            <i className="fas fa-times me-1"></i>
+                            Hủy
+                          </button>
+                        )}
+                        {(booking.Status === 'khách hàng đã hủy' || booking.Status === 'coach đã hủy') && (
+                          <span className="text-muted fst-italic">Đã hủy</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

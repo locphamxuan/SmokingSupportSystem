@@ -9,6 +9,9 @@ const rankingController = require('../controllers/rankingController');
 const dailyLogController = require('../controllers/dailyLogController');
 const membershipController = require('../controllers/membershipController');
 
+// Test database connection
+router.get('/test-db', dailyLogController.testConnection);
+
 // Các tuyến đường công khai (không yêu cầu xác thực)
 router.post('/login', authController.login);
 router.post('/register', authController.register);

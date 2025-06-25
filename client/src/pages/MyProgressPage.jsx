@@ -280,19 +280,6 @@ const MyProgressPage = () => {
     setSuccess('');
   };
 
-  const handleCancelCoachRequest = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/users/cancel-coach-request', {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setSuccess('Đã hủy yêu cầu hỗ trợ từ huấn luyện viên.');
-      fetchUserData();
-    } catch (error) {
-      setError(error.response?.data?.message || 'Hủy yêu cầu thất bại.');
-    }
-  };
-
   const handleJoinQuitPlan = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -609,26 +596,65 @@ const MyProgressPage = () => {
 
   const handleDailyLogUpdate = async (updatedLog) => {
     try {
-      const response = await addDailyLog({
-        cigarettes: updatedLog.cigarettes,
-        feeling: updatedLog.feeling,
-        logDate: updatedLog.date
-      });
+      console.log('🎯 [handleDailyLogUpdate] ===================');
+      console.log('🎯 [handleDailyLogUpdate] Input updatedLog:', updatedLog);
+      console.log('🎯 [handleDailyLogUpdate] userData.currentUserSuggestedPlan:', userData.currentUserSuggestedPlan);
+      console.log('🎯 [handleDailyLogUpdate] userData.quitPlan:', userData.quitPlan);
       
-      if (response.success) {
-        setSuccess('Cập nhật nhật ký thành công!');
+      // Chuẩn bị payload cho API call
+      let payload = {
+        cigarettes: updatedLog.cigarettes || 0,
+        feeling: updatedLog.feeling || '',
+        logDate: updatedLog.date || new Date().toISOString().slice(0, 10)
+      };
+      
+      // Thêm planId hoặc suggestedPlanId nếu có
+      if (userData.currentUserSuggestedPlan) {
+        payload.suggestedPlanId = userData.currentUserSuggestedPlan.id;
+        console.log('🎯 [handleDailyLogUpdate] Added suggestedPlanId:', payload.suggestedPlanId);
+      } else if (userData.quitPlan && userData.quitPlan.id) {
+        payload.planId = userData.quitPlan.id;
+        console.log('🎯 [handleDailyLogUpdate] Added planId:', payload.planId);
+      }
+
+      console.log('🎯 [handleDailyLogUpdate] Final payload:', payload);
+      console.log('🎯 [handleDailyLogUpdate] Calling addDailyLog...');
+
+      const response = await addDailyLog(payload);
+      
+      console.log('Daily log response:', response); // Debug log
+      
+      setSuccess('Cập nhật nhật ký thành công!');
+      
+      // Cập nhật state local
+      setUserData(prev => ({
+        ...prev,
+        smokingStatus: {
+          ...prev.smokingStatus,
+          dailyLog: {
+            cigarettes: updatedLog.cigarettes || 0,
+            feeling: updatedLog.feeling || '',
+            date: updatedLog.date || new Date().toISOString().slice(0, 10)
+          }
+        }
+      }));
+
+      // Thêm huy hiệu mới nếu có
+      if (response.newBadges && response.newBadges.length > 0) {
         setUserData(prev => ({
           ...prev,
-          smokingStatus: {
-            ...prev.smokingStatus,
-            dailyLog: updatedLog
-          }
+          achievements: [...prev.achievements, ...response.newBadges]
         }));
-      } else {
-        setError('Cập nhật thất bại.');
+        setSuccess(`Cập nhật nhật ký thành công! Bạn đã nhận được ${response.newBadges.length} huy hiệu mới!`);
       }
+
+      // Tải lại dữ liệu để đảm bảo đồng bộ
+      await fetchUserData();
+      await fetchSmokingHistory();
+      
     } catch (error) {
-      setError(error.response?.data?.message || 'Cập nhật thất bại.');
+      console.error('Daily log update error:', error); // Debug log
+      setError(error.message || 'Cập nhật nhật ký thất bại.');
     }
   };
 
@@ -721,12 +747,6 @@ const MyProgressPage = () => {
                           >
                             <i className="fas fa-comments me-2"></i>Nhắn tin với Coach
                           </button>
-                          <button onClick={() => navigate('/booking')} className="btn btn-info">
-                            <i className="fas fa-calendar-plus me-2"></i>Đặt lịch hẹn
-                          </button>
-                          <button onClick={handleCancelCoachRequest} className="btn btn-outline-danger">
-                            <i className="fas fa-times me-2"></i>Hủy yêu cầu Coach
-                          </button>
                         </div>
                         {userData.coach?.bookingStatus && (
                           <p className="mt-2 mb-0">
@@ -737,8 +757,7 @@ const MyProgressPage = () => {
                       </div>
                     ) : userData.isMember ? (
                       <div className="alert alert-warning">
-                        <p className="mb-1">Bạn chưa được phân công huấn luyện viên.</p>
-                        <button onClick={() => navigate('/booking')} className="btn btn-info">Đặt lịch</button>
+                        <p className="mb-0">Bạn chưa được phân công huấn luyện viên.</p>
                       </div>
                     ) : null}
                   </div>
