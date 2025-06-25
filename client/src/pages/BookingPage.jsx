@@ -16,6 +16,7 @@ const BookingPage = () => {
   const [success, setSuccess] = useState('');
   const [bookingHistory, setBookingHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState(null);
 
   // Available time slots as defined in the database
   const availableSlots = [
@@ -70,6 +71,14 @@ const BookingPage = () => {
         });
 
         console.log("BookingPage - User Profile:", profileResponse.data);
+        setUserProfile(profileResponse.data);
+
+        // Check if user has permission to book appointments
+        if (profileResponse.data.role !== 'memberVip' || !profileResponse.data.isMemberVip) {
+          setError('Chỉ thành viên VIP đã mua gói mới có thể đặt lịch tư vấn.');
+          setLoading(false);
+          return;
+        }
 
         // If user has assigned coach, use that coach
         if (profileResponse.data.coachId) {
@@ -275,6 +284,50 @@ const BookingPage = () => {
       <div className="d-flex justify-content-center align-items-center vh-100">
         <div className="spinner-border text-success" role="status">
           <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if no access permission
+  if (userProfile && (userProfile.role !== 'memberVip' || !userProfile.isMemberVip)) {
+    return (
+      <div className="booking-page-wrapper">
+        <div className="booking-page-container">
+          <div className="d-flex align-items-center mb-3">
+            <button
+              onClick={() => navigate('/my-progress')}
+              className="btn btn-outline-success me-2"
+            >
+              <i className="fas fa-arrow-left me-2"></i> Quay lại
+            </button>
+          </div>
+
+          <div className="card p-4 shadow-sm text-center">
+            <h2 className="mb-4 text-danger">
+              <i className="fas fa-lock me-2"></i> Không có quyền truy cập
+            </h2>
+            <div className="alert alert-warning">
+              <h4>Chỉ thành viên VIP đã mua gói mới có thể đặt lịch tư vấn!</h4>
+              <p>Để đặt lịch hẹn với huấn luyện viên, bạn cần:</p>
+              <ul className="list-unstyled">
+                <li>✓ Nâng cấp tài khoản lên VIP</li>
+                <li>✓ Mua gói thành viên</li>
+              </ul>
+              <button 
+                className="btn btn-success me-2"
+                onClick={() => navigate('/subscribe')}
+              >
+                <i className="fas fa-crown me-2"></i>Nâng cấp VIP
+              </button>
+              <button 
+                className="btn btn-outline-secondary"
+                onClick={() => navigate('/my-progress')}
+              >
+                <i className="fas fa-arrow-left me-2"></i>Quay lại
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );

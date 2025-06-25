@@ -235,7 +235,6 @@ const CoachDashboardPage = () => {
                   <th>Thành viên</th>
                   <th>Email</th>
                   <th>SĐT</th>
-                  <th>Loại</th>
                   <th>Ngày hẹn</th>
                   <th>Trạng thái</th>
                   <th className="text-end">Thao tác</th>
@@ -249,22 +248,6 @@ const CoachDashboardPage = () => {
                     </td>
                     <td>{member.Email}</td>
                     <td>{member.PhoneNumber}</td>
-                    <td>
-                      {member.IsMemberVip ? (
-                        <Chip 
-                          label="VIP" 
-                          color="warning" 
-                          size="small"
-                          sx={{ fontWeight: 'bold' }}
-                        />
-                      ) : (
-                        <Chip 
-                          label="Thường" 
-                          color="default" 
-                          size="small"
-                        />
-                      )}
-                    </td>
                     <td>
                       {member.appointment?.slotDate
                         ? `${new Date(member.appointment.slotDate).toLocaleDateString()} (${member.appointment.slot})`
@@ -363,20 +346,16 @@ const CoachDashboardPage = () => {
           <ListItemText>Xem tiến trình</ListItemText>
         </MenuItem>
         
-        {menuMember?.IsMemberVip && (
-          <>
-            <Divider />
-            <MenuItem onClick={() => {
-              handleOpenBadgeModal(menuMember);
-              handleMenuClose();
-            }}>
-              <ListItemIcon>
-                <BadgeIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Trao huy hiệu VIP</ListItemText>
-            </MenuItem>
-          </>
-        )}
+        <Divider />
+        <MenuItem onClick={() => {
+          handleOpenBadgeModal(menuMember);
+          handleMenuClose();
+        }}>
+          <ListItemIcon>
+            <BadgeIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Trao huy hiệu</ListItemText>
+        </MenuItem>
       </Menu>
       
       {/* Badge Award Modal */}

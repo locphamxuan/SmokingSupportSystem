@@ -987,3 +987,114 @@ exports.addDailyLog = async (req, res) => {
     res.status(500).json({ message: 'Lỗi khi cập nhật nhật ký.', error: error.message });
   }
 };
+
+// Tạo kế hoạch cai thuốc tự tạo (chỉ cho memberVip)
+exports.createQuitPlan = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { startDate, targetDate, planDetail, initialCigarettes, dailyReduction } = req.body;
+
+    console.log(`[createQuitPlan] User ${userId} creating quit plan:`, req.body);
+
+    // Kiểm tra user có phải memberVip không
+    const userCheck = await sql.query`
+      SELECT Id, Role, IsMemberVip, CoachId FROM Users WHERE Id = ${userId}
+    `;
+
+    if (userCheck.recordset.length === 0) {
+      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+    }
+
+    const user = userCheck.recordset[0];
+    if (user.Role !== 'memberVip' && !user.IsMemberVip) {
+      return res.status(403).json({ message: 'Chỉ thành viên VIP mới có thể tự tạo kế hoạch cai thuốc' });
+    }
+
+    // Validate input
+    if (!startDate || !targetDate || !planDetail) {
+      return res.status(400).json({ message: 'Vui lòng điền đầy đủ thông tin bắt buộc' });
+    }
+
+    if (new Date(startDate) >= new Date(targetDate)) {
+      return res.status(400).json({ message: 'Ngày kết thúc phải sau ngày bắt đầu' });
+    }
+
+    // Xóa kế hoạch cũ nếu có (để user chỉ có 1 kế hoạch active)
+    await sql.query`
+      DELETE FROM QuitPlans WHERE UserId = ${userId}
+    `;
+
+    // Tạo kế hoạch mới
+    const insertResult = await sql.query`
+      INSERT INTO QuitPlans (UserId, CoachId, StartDate, TargetDate, PlanDetail, InitialCigarettes, DailyReduction, CreatedAt)
+      VALUES (${userId}, ${user.CoachId || null}, ${startDate}, ${targetDate}, ${planDetail}, ${initialCigarettes || 0}, ${dailyReduction || 0}, GETDATE());
+      SELECT SCOPE_IDENTITY() AS Id;
+    `;
+
+    const newPlanId = insertResult.recordset[0].Id;
+    console.log(`[createQuitPlan] Created quit plan with ID: ${newPlanId}`);
+
+    // Lấy thông tin kế hoạch vừa tạo
+    const planResult = await sql.query`
+      SELECT * FROM QuitPlans WHERE Id = ${newPlanId}
+    `;
+
+    const createdPlan = planResult.recordset[0];
+
+    res.status(201).json({ 
+      message: 'Đã tạo kế hoạch cai thuốc thành công!',
+      plan: {
+        id: createdPlan.Id,
+        startDate: createdPlan.StartDate ? createdPlan.StartDate.toISOString().slice(0, 10) : null,
+        targetDate: createdPlan.TargetDate ? createdPlan.TargetDate.toISOString().slice(0, 10) : null,
+        planDetail: createdPlan.PlanDetail,
+        initialCigarettes: createdPlan.InitialCigarettes,
+        dailyReduction: createdPlan.DailyReduction,
+        planType: 'custom',
+        status: 'active'
+      }
+    });
+  } catch (error) {
+    console.error('Error creating quit plan:', error);
+    res.status(500).json({ message: 'Lỗi khi tạo kế hoạch cai thuốc', error: error.message });
+  }
+};
+
+// Lấy kế hoạch cai thuốc tự tạo
+exports.getCustomQuitPlan = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    console.log(`[getCustomQuitPlan] Getting custom quit plan for user ${userId}`);
+
+    // Lấy kế hoạch tự tạo từ bảng QuitPlans
+    const planResult = await sql.query`
+      SELECT * FROM QuitPlans WHERE UserId = ${userId} ORDER BY CreatedAt DESC
+    `;
+
+    if (planResult.recordset.length === 0) {
+      return res.json({ quitPlan: null, message: 'Không có kế hoạch tự tạo' });
+    }
+
+    const plan = planResult.recordset[0];
+
+    const quitPlan = {
+      id: plan.Id,
+      startDate: plan.StartDate ? plan.StartDate.toISOString().slice(0, 10) : null,
+      targetDate: plan.TargetDate ? plan.TargetDate.toISOString().slice(0, 10) : null,
+      planDetail: plan.PlanDetail,
+      initialCigarettes: plan.InitialCigarettes,
+      dailyReduction: plan.DailyReduction,
+      createdAt: plan.CreatedAt,
+      planType: 'custom',
+      status: 'active'
+    };
+
+    console.log(`[getCustomQuitPlan] Found custom quit plan:`, quitPlan);
+
+    res.json({ quitPlan });
+  } catch (error) {
+    console.error('Error getting custom quit plan:', error);
+    res.status(500).json({ message: 'Lỗi khi lấy kế hoạch cai thuốc', error: error.message });
+  }
+};

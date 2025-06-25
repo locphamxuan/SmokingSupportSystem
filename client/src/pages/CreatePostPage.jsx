@@ -18,6 +18,8 @@ const CreatePostPage = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [user, setUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
+  const [accessChecked, setAccessChecked] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,23 +28,43 @@ const CreatePostPage = () => {
       setUser(JSON.parse(userStr));
     }
 
-    const fetchUserAchievements = async () => {
+    const checkAccessAndFetchData = async () => {
       const token = localStorage.getItem("token");
       if (!token) {
-        setError("Bạn cần đăng nhập để xem thành tích.");
+        setError("Bạn cần đăng nhập để tạo bài đăng.");
+        setAccessChecked(true);
         return;
       }
+
       try {
+        // Check user profile first
+        const profileResponse = await axios.get("http://localhost:5000/api/auth/profile", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        
+        setUserProfile(profileResponse.data);
+
+        // Check if user has permission to create posts
+        if (profileResponse.data.role !== 'memberVip' || !profileResponse.data.isMemberVip) {
+          setError("Chỉ thành viên VIP đã mua gói mới có thể tạo bài đăng.");
+          setAccessChecked(true);
+          return;
+        }
+
+        // If access is granted, fetch achievements
         const response = await axios.get("http://localhost:5000/api/auth/badges", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUserAchievements(response.data.badges || []);
+        setAccessChecked(true);
       } catch (error) {
-        console.error("Error fetching user achievements:", error);
-        setError("Không thể tải thành tích. Vui lòng thử lại sau.");
+        console.error("Error fetching data:", error);
+        setError("Không thể tải dữ liệu. Vui lòng thử lại sau.");
+        setAccessChecked(true);
       }
     };
-    fetchUserAchievements();
+
+    checkAccessAndFetchData();
   }, []);
 
   const handleAchievementSelect = (event) => {
@@ -102,6 +124,52 @@ const CreatePostPage = () => {
       setCreatingPost(false);
     }
   };
+
+  // Show loading while checking access
+  if (!accessChecked) {
+    return (
+      <Container className="my-5 text-center">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Đang kiểm tra quyền truy cập...</span>
+        </Spinner>
+        <p className="mt-2">Đang kiểm tra quyền truy cập...</p>
+      </Container>
+    );
+  }
+
+  // Show error if no access permission
+  if (userProfile && (userProfile.role !== 'memberVip' || !userProfile.isMemberVip)) {
+    return (
+      <Container className="my-5">
+        <div className="card p-4 shadow-sm text-center">
+          <h2 className="mb-4 text-danger">
+            <i className="fas fa-lock me-2"></i> Không có quyền truy cập
+          </h2>
+          <BAlert variant="warning">
+            <h4>Chỉ thành viên VIP đã mua gói mới có thể tạo bài đăng!</h4>
+            <p>Để tạo bài đăng trong cộng đồng, bạn cần:</p>
+            <ul className="list-unstyled">
+              <li>✓ Nâng cấp tài khoản lên VIP</li>
+              <li>✓ Mua gói thành viên</li>
+            </ul>
+            <Button 
+              variant="success" 
+              onClick={() => navigate('/subscribe')}
+              className="me-2"
+            >
+              <i className="fas fa-crown me-2"></i>Nâng cấp VIP
+            </Button>
+            <Button 
+              variant="outline-secondary" 
+              onClick={() => navigate('/blog')}
+            >
+              <i className="fas fa-arrow-left me-2"></i>Quay lại cộng đồng
+            </Button>
+          </BAlert>
+        </div>
+      </Container>
+    );
+  }
 
   return (
     <Container className="my-5">
