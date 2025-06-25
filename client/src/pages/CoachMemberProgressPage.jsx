@@ -6,6 +6,19 @@ import '../style/CoachMemberProgressPage.scss';
 import facebookImage from '../assets/images/facebook.jpg';
 import instagramImage from '../assets/images/instragram.jpg';
 
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
 const CoachMemberProgressPage = () => {
   const { memberId } = useParams();
   const navigate = useNavigate();
@@ -16,6 +29,8 @@ const CoachMemberProgressPage = () => {
   const [allBadges, setAllBadges] = useState([]);
   const [memberBadges, setMemberBadges] = useState([]);
   const [awardingBadgeId, setAwardingBadgeId] = useState(null);
+  const [smokingHistory, setSmokingHistory] = useState([]);
+  const [currentWeek, setCurrentWeek] = useState(1);
 
   const fetchMemberProgress = async () => {
     try {
@@ -76,6 +91,21 @@ const CoachMemberProgressPage = () => {
     }
   };
 
+  const fetchMemberSmokingHistory = async () => {
+    try {
+      console.log('🔍 Fetching smoking history for memberId:', memberId);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:5000/api/hlv/member/${memberId}/smoking-history`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      console.log('✅ Member smoking history response:', response.data);
+      setSmokingHistory(response.data.history || []);
+    } catch (err) {
+      console.error('❌ Error fetching member smoking history:', err);
+      setSmokingHistory([]);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       if (memberId) {
@@ -83,7 +113,8 @@ const CoachMemberProgressPage = () => {
         await Promise.all([
           fetchMemberProgress(),
           fetchAllBadges(),
-          fetchMemberBadges()
+          fetchMemberBadges(),
+          fetchMemberSmokingHistory()
         ]);
         setLoading(false);
       } else {
@@ -141,6 +172,61 @@ const CoachMemberProgressPage = () => {
 
   const isBadgeAwarded = (badgeId) => {
     return memberBadges.some(badge => badge.Id === badgeId);
+  };
+
+  // Helper functions for chart calculations
+  const calculateCurrentStreak = (history) => {
+    if (!history || history.length === 0) return 0;
+    
+    const sortedHistory = [...history].sort((a, b) => new Date(b.Date) - new Date(a.Date));
+    let streak = 0;
+    
+    for (const entry of sortedHistory) {
+      if ((entry.Cigarettes || 0) === 0) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    
+    return streak;
+  };
+
+  const getTotalWeeks = () => {
+    if (!quitPlan) return 0;
+    
+    const startDate = new Date(quitPlan.startDate);
+    const endDate = new Date(quitPlan.targetDate);
+    const diffTime = Math.abs(endDate - startDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.ceil(diffDays / 7);
+  };
+
+  const getWeekDataFromPlan = (weekNumber) => {
+    if (!quitPlan) return [];
+
+    const startDate = new Date(quitPlan.startDate);
+    const weekStartDate = new Date(startDate);
+    weekStartDate.setDate(startDate.getDate() + (weekNumber - 1) * 7);
+    
+    const weekData = [];
+    for (let i = 0; i < 7; i++) {
+      const currentDate = new Date(weekStartDate);
+      currentDate.setDate(weekStartDate.getDate() + i);
+      
+      if (currentDate > new Date(quitPlan.targetDate)) break;
+      
+      const logEntry = smokingHistory.find(entry => 
+        new Date(entry.Date).toISOString().slice(0, 10) === currentDate.toISOString().slice(0, 10)
+      );
+      
+      weekData.push({
+        date: currentDate,
+        cigarettes: logEntry ? logEntry.Cigarettes : 0
+      });
+    }
+    
+    return weekData;
   };
 
   if (loading) {
@@ -222,18 +308,32 @@ const CoachMemberProgressPage = () => {
 
         {/* Nhật ký tiến trình mới nhất */}
         <div className="card my-4">
-          <div className="card-header">
-            <h5>📈 Nhật ký tiến trình mới nhất</h5>
+          <div className="card-header d-flex justify-content-between align-items-center">
+            <h5 className="mb-0">📈 Nhật ký tiến trình mới nhất</h5>
+            {latestProgress && (
+              <small className="text-light">
+                ID: #{latestProgress.id} | Cập nhật gần nhất
+              </small>
+            )}
           </div>
           <div className="card-body">
             {latestProgress ? (
               <div className="row mt-2">
                 <div className="col-md-6">
-                  <p><b>Ngày:</b> {latestProgress.date ? new Date(latestProgress.date).toLocaleDateString() : 'Chưa có'}</p>
-                  <p><b>Số điếu hút:</b> {latestProgress.cigarettes || 0}</p>
+                  <p><b>Ngày ghi nhận:</b> {latestProgress.date ? new Date(latestProgress.date).toLocaleDateString('vi-VN') : 'Chưa có'}</p>
+                  <p><b>Số điếu hút:</b> 
+                    <span className={`badge ms-2 ${latestProgress.cigarettes === 0 ? 'bg-success' : latestProgress.cigarettes <= 5 ? 'bg-warning' : 'bg-danger'}`}>
+                      {latestProgress.cigarettes || 0} điếu
+                    </span>
+                  </p>
                 </div>
                 <div className="col-md-6">
-                  <p><b>Cảm nhận:</b> {latestProgress.feeling || 'Không có'}</p>
+                  <p><b>Cảm nhận:</b> {latestProgress.feeling || 'Không có ghi chú'}</p>
+                  <p><b>Trạng thái:</b> 
+                    <span className={`badge ms-2 ${latestProgress.cigarettes === 0 ? 'bg-success' : 'bg-primary'}`}>
+                      {latestProgress.cigarettes === 0 ? '🎉 Không hút thuốc' : '📝 Có hút thuốc'}
+                    </span>
+                  </p>
                 </div>
               </div>
             ) : (
@@ -244,8 +344,13 @@ const CoachMemberProgressPage = () => {
 
         {/* Kế hoạch cai thuốc */}
         <div className="card my-4">
-          <div className="card-header">
-            <h5>🎯 Kế hoạch cai thuốc</h5>
+          <div className="card-header d-flex justify-content-between align-items-center">
+            <h5 className="mb-0">🎯 Kế hoạch cai thuốc</h5>
+            {quitPlan && (
+              <span className={`badge ${quitPlan.planSource === 'custom' ? 'bg-primary' : 'bg-success'}`}>
+                {quitPlan.planSource === 'custom' ? '📝 Kế hoạch tự tạo' : '🤖 Kế hoạch gợi ý'}
+              </span>
+            )}
           </div>
           <div className="card-body">
             {quitPlan ? (
@@ -263,6 +368,86 @@ const CoachMemberProgressPage = () => {
                   </div>
                 </div>
                 <p className="mt-2"><b>Chi tiết kế hoạch:</b> {quitPlan.planDetail || 'Không có'}</p>
+                
+                {/* Tiến độ hiện tại */}
+                <div className="my-3">
+                  <label className="fw-bold">Tiến độ hiện tại:</label>
+                  {(() => {
+                    const startDate = new Date(quitPlan.startDate);
+                    const endDate = new Date(quitPlan.targetDate);
+                    const today = new Date();
+
+                    if (today < startDate) {
+                      return (
+                        <div>
+                          <div className="progress" style={{ height: 24 }}>
+                            <div className="progress-bar bg-secondary" style={{ width: '0%' }}>
+                              0%
+                            </div>
+                          </div>
+                          <small className="text-muted">Kế hoạch chưa bắt đầu</small>
+                        </div>
+                      );
+                    }
+
+                    if (today > endDate) {
+                      const recentLogs = smokingHistory
+                        .filter(log => new Date(log.Date) >= startDate && new Date(log.Date) <= endDate)
+                        .sort((a, b) => new Date(b.Date) - new Date(a.Date));
+
+                      const noSmokingDays = recentLogs.filter(log => log.Cigarettes === 0).length;
+                      const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                      const successRate = Math.round((noSmokingDays / totalDays) * 100);
+
+                      return (
+                        <div>
+                          <div className="progress" style={{ height: 24 }}>
+                            <div 
+                              className={`progress-bar ${successRate >= 70 ? 'bg-success' : successRate >= 40 ? 'bg-warning' : 'bg-danger'}`}
+                              style={{ width: '100%' }}
+                            >
+                              Hoàn thành - {successRate}% ngày không hút thuốc
+                            </div>
+                          </div>
+                          <small className="text-muted">Kế hoạch đã kết thúc</small>
+                        </div>
+                      );
+                    }
+
+                    const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                    const daysPassed = Math.ceil((today - startDate) / (1000 * 60 * 60 * 24));
+                    const progressPercent = Math.round((daysPassed / totalDays) * 100);
+
+                    const recentLogs = smokingHistory
+                      .filter(log => new Date(log.Date) >= startDate && new Date(log.Date) <= today)
+                      .sort((a, b) => new Date(b.Date) - new Date(a.Date));
+
+                    const noSmokingDays = recentLogs.filter(log => log.Cigarettes === 0).length;
+                    const successRate = noSmokingDays > 0 ? Math.round((noSmokingDays / daysPassed) * 100) : 0;
+
+                    return (
+                      <div>
+                        <div className="progress" style={{ height: 24 }}>
+                          <div 
+                            className={`progress-bar ${successRate >= 70 ? 'bg-success' : successRate >= 40 ? 'bg-warning' : 'bg-danger'}`}
+                            style={{ width: `${progressPercent}%` }}
+                          >
+                            {progressPercent}% - {successRate}% ngày không hút thuốc
+                          </div>
+                        </div>
+                        <div className="mt-2 d-flex justify-content-between">
+                          <small className="text-muted">
+                            {noSmokingDays} ngày không hút / {daysPassed} ngày đã qua
+                          </small>
+                          <small className="text-muted">
+                            Còn {totalDays - daysPassed} ngày
+                          </small>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
                 <h6 className="mt-2 fw-bold">Các mốc kế hoạch:</h6>
                 {Array.isArray(quitPlan.milestones) && quitPlan.milestones.length > 0 ? (
                   <ul className="list-group">
@@ -286,6 +471,181 @@ const CoachMemberProgressPage = () => {
             )}
           </div>
         </div>
+
+        {/* Biểu đồ tiến độ hút thuốc */}
+        {quitPlan && (
+          <div className="card my-4">
+            <div className="card-header bg-success text-white fw-bold d-flex justify-content-between align-items-center">
+              <span>📊 Biểu đồ tiến độ hút thuốc</span>
+              <div className="btn-group btn-group-sm" role="group">
+                <button 
+                  className="btn btn-light"
+                  onClick={() => setCurrentWeek(Math.max(1, currentWeek - 1))}
+                  disabled={currentWeek === 1}
+                >
+                  <i className="fas fa-chevron-left"></i>
+                </button>
+                <div className="dropdown">
+                  <button 
+                    className="btn btn-light" 
+                    type="button"
+                    onClick={(e) => {
+                      const dropdownMenu = e.currentTarget.nextElementSibling;
+                      dropdownMenu.classList.toggle('show');
+                    }}
+                  >
+                    Tuần {currentWeek} <i className="fas fa-chevron-down ms-1"></i>
+                  </button>
+                  <div className="dropdown-menu" style={{maxHeight: '200px', overflowY: 'auto'}}>
+                    {Array.from({length: getTotalWeeks()}, (_, i) => (
+                      <button 
+                        key={i + 1}
+                        className="dropdown-item" 
+                        onClick={() => {
+                          setCurrentWeek(i + 1);
+                          document.querySelector('.dropdown-menu').classList.remove('show');
+                        }}
+                      >
+                        Tuần {i + 1}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button 
+                  className="btn btn-light"
+                  onClick={() => setCurrentWeek(Math.min(getTotalWeeks(), currentWeek + 1))}
+                  disabled={currentWeek === getTotalWeeks()}
+                >
+                  <i className="fas fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+            <div className="card-body">
+              {(() => {
+                const weekData = getWeekDataFromPlan(currentWeek);
+                
+                const totalCigarettes = weekData.reduce((sum, entry) => sum + (entry.cigarettes || 0), 0);
+                const averagePerDay = weekData.length > 0 ? (totalCigarettes / weekData.length).toFixed(1) : 0;
+                const daysWithoutSmoking = weekData.filter(entry => (entry.cigarettes || 0) === 0).length;
+                const currentStreak = calculateCurrentStreak(weekData);
+
+                return (
+                  <div>
+                    {/* Statistics Cards */}
+                    <div className="row mb-4">
+                      <div className="col-md-3">
+                        <div className="card bg-primary text-white">
+                          <div className="card-body text-center">
+                            <h6 className="card-title">Tổng điếu tuần</h6>
+                            <h4>{totalCigarettes}</h4>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-md-3">
+                        <div className="card bg-success text-white">
+                          <div className="card-body text-center">
+                            <h6 className="card-title">Trung bình/ngày</h6>
+                            <h4>{averagePerDay}</h4>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-md-3">
+                        <div className="card bg-warning text-dark">
+                          <div className="card-body text-center">
+                            <h6 className="card-title">Ngày không hút</h6>
+                            <h4>{daysWithoutSmoking}</h4>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-md-3">
+                        <div className="card bg-info text-white">
+                          <div className="card-body text-center">
+                            <h6 className="card-title">Chuỗi hiện tại</h6>
+                            <h4>{currentStreak} ngày</h4>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Chart */}
+                    {weekData.length > 0 ? (
+                      <Line
+                        data={{
+                          labels: weekData.map(entry => 
+                            new Date(entry.date).toLocaleDateString('vi-VN', { 
+                              weekday: 'short',
+                              day: '2-digit',
+                              month: '2-digit'
+                            })
+                          ),
+                          datasets: [
+                            {
+                              label: 'Số điếu hút',
+                              data: weekData.map(entry => entry.cigarettes || 0),
+                              borderColor: 'rgb(220, 53, 69)',
+                              backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                              tension: 0.4,
+                              fill: true,
+                            }
+                          ],
+                        }}
+                        options={{
+                          responsive: true,
+                          interaction: {
+                            mode: 'index',
+                            intersect: false,
+                          },
+                          plugins: {
+                            legend: {
+                              position: 'top',
+                            },
+                            title: {
+                              display: true,
+                              text: `Biểu đồ hút thuốc - Tuần ${currentWeek}`,
+                            },
+                            tooltip: {
+                              callbacks: {
+                                afterBody: function(context) {
+                                  const dataIndex = context[0].dataIndex;
+                                  const cigarettes = weekData[dataIndex].cigarettes || 0;
+                                  return `\nSố điếu: ${cigarettes}`;
+                                }
+                              }
+                            }
+                          },
+                          scales: {
+                            x: {
+                              title: {
+                                display: true,
+                                text: 'Ngày trong tuần',
+                              },
+                            },
+                            y: {
+                              type: 'linear',
+                              display: true,
+                              position: 'left',
+                              title: {
+                                display: true,
+                                text: 'Số điếu thuốc',
+                              },
+                              min: 0,
+                            }
+                          },
+                        }}
+                      />
+                    ) : (
+                      <div className="text-center py-5">
+                        <i className="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                        <p className="text-secondary">Chưa có dữ liệu cho tuần này.</p>
+                        <p className="text-muted small">Thành viên chưa cập nhật nhật ký cho tuần này!</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
 
         {/* Huy hiệu và trao thưởng */}
         <div className="card my-4">

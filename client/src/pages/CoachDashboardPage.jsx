@@ -132,7 +132,7 @@ const CoachDashboardPage = () => {
       });
       setMembers(prevMembers => prevMembers.map(m => 
         m.Id === member.Id 
-          ? { ...m, appointment: { ...m.appointment, status: 'đã hủy' } }
+          ? { ...m, appointment: { ...m.appointment, status: 'coach đã hủy' } }
           : m
       ));
       // Re-fetch members to ensure up-to-date status
@@ -186,10 +186,14 @@ const CoachDashboardPage = () => {
     const statusConfig = {
       'đang chờ xác nhận': { label: 'Đang chờ', color: 'warning' },
       'đã xác nhận': { label: 'Đã xác nhận', color: 'success' },
-      'đã hủy': { label: 'Đã hủy', color: 'error' },
+      'khách hàng đã hủy': { label: 'Khách hàng đã hủy', color: 'secondary' }, // Coach xem lịch member đã hủy
+      'coach đã hủy': { label: 'Bạn đã hủy', color: 'danger' }, // Coach xem lịch mình đã hủy
     };
     const config = statusConfig[status] || statusConfig['đang chờ xác nhận'];
-    return <span className={`badge bg-${config.color === 'warning' ? 'warning' : config.color === 'success' ? 'success' : 'danger'} text-dark`}>{config.label}</span>;
+    const colorClass = config.color === 'warning' ? 'warning' : 
+                      config.color === 'success' ? 'success' : 
+                      config.color === 'secondary' ? 'secondary' : 'danger';
+    return <span className={`badge bg-${colorClass} ${config.color === 'warning' ? 'text-dark' : ''}`}>{config.label}</span>;
   };
 
   const handleMenuOpen = (event, member) => {
@@ -231,7 +235,6 @@ const CoachDashboardPage = () => {
                   <th>Thành viên</th>
                   <th>Email</th>
                   <th>SĐT</th>
-                  <th>Loại</th>
                   <th>Ngày hẹn</th>
                   <th>Trạng thái</th>
                   <th className="text-end">Thao tác</th>
@@ -245,22 +248,6 @@ const CoachDashboardPage = () => {
                     </td>
                     <td>{member.Email}</td>
                     <td>{member.PhoneNumber}</td>
-                    <td>
-                      {member.IsMemberVip ? (
-                        <Chip 
-                          label="VIP" 
-                          color="warning" 
-                          size="small"
-                          sx={{ fontWeight: 'bold' }}
-                        />
-                      ) : (
-                        <Chip 
-                          label="Thường" 
-                          color="default" 
-                          size="small"
-                        />
-                      )}
-                    </td>
                     <td>
                       {member.appointment?.slotDate
                         ? `${new Date(member.appointment.slotDate).toLocaleDateString()} (${member.appointment.slot})`
@@ -359,20 +346,16 @@ const CoachDashboardPage = () => {
           <ListItemText>Xem tiến trình</ListItemText>
         </MenuItem>
         
-        {menuMember?.IsMemberVip && (
-          <>
-            <Divider />
-            <MenuItem onClick={() => {
-              handleOpenBadgeModal(menuMember);
-              handleMenuClose();
-            }}>
-              <ListItemIcon>
-                <BadgeIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Trao huy hiệu VIP</ListItemText>
-            </MenuItem>
-          </>
-        )}
+        <Divider />
+        <MenuItem onClick={() => {
+          handleOpenBadgeModal(menuMember);
+          handleMenuClose();
+        }}>
+          <ListItemIcon>
+            <BadgeIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Trao huy hiệu</ListItemText>
+        </MenuItem>
       </Menu>
       
       {/* Badge Award Modal */}
