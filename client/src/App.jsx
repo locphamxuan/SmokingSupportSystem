@@ -22,6 +22,7 @@ import CoachChatPage from './pages/CoachChatPage.jsx';
 import AboutPage from './pages/AboutPage.jsx';
 import BookingPage from './pages/BookingPage.jsx';
 import CreatePostPage from './pages/CreatePostPage.jsx';
+import AdminPackagePage from './pages/AdminPackagePage.jsx';
 
 const theme = createTheme({
   palette: {
@@ -182,6 +183,14 @@ const AppRoutes = () => {
               <BookingPage />
             </ProtectedRoute>
           }
+        />
+        <Route 
+          path="/admin/packages" 
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminPackagePage />
+            </ProtectedRoute>
+          } 
         />
 
         {/* Fallback route */}

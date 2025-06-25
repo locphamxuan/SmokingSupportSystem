@@ -25,10 +25,20 @@ const CreatePostPage = () => {
   useEffect(() => {
     const userStr = localStorage.getItem("user");
     if (userStr && userStr !== 'undefined') {
-      setUser(JSON.parse(userStr));
+      const parsedUser = JSON.parse(userStr);
+      setUser(parsedUser);
+      // Nếu là admin, chuyển hướng ngay
+      if (parsedUser.role === 'admin') {
+        navigate('/blog');
+        return; // Dừng thực thi useEffect
+      }
+    } else {
+      // Nếu chưa đăng nhập, chuyển về trang login
+      navigate('/login');
+      return; // Dừng thực thi useEffect
     }
 
-    const checkAccessAndFetchData = async () => {
+    const fetchUserAchievements = async () => {
       const token = localStorage.getItem("token");
       if (!token) {
         setError("Bạn cần đăng nhập để tạo bài đăng.");
@@ -63,9 +73,8 @@ const CreatePostPage = () => {
         setAccessChecked(true);
       }
     };
-
-    checkAccessAndFetchData();
-  }, []);
+    fetchUserAchievements();
+  }, [navigate]);
 
   const handleAchievementSelect = (event) => {
     const achievementId = event.target.value;

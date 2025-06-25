@@ -1,45 +1,8 @@
 // Giao diện trang quản lý người dùng cho admin
-import React, { useState, useEffect, useCallback } from "react";
-import {
-  Container,
-  Typography,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  IconButton,
-  Box,
-  Snackbar,
-  Alert,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Grid,
-  Card,
-  CardContent,
-  Chip,
-  Tooltip
-} from "@mui/material";
-import { 
-  Edit as EditIcon, 
-  Delete as DeleteIcon,
-  People as PeopleIcon,
-  WorkspacePremium as PremiumIcon,
-  SupportAgent as CoachIcon,
-  Search as SearchIcon,
-  Dashboard as DashboardIcon
-} from "@mui/icons-material";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { getUsers, getUserDetail, updateUser, deleteUser } from "../services/adminService";
+import Chart from 'chart.js/auto';
+import '../style/AdminUserPage.scss';
 
 const AdminUserPage = () => {
   const [users, setUsers] = useState([]);
@@ -63,6 +26,8 @@ const AdminUserPage = () => {
     message: "",
     severity: "success",
   });
+  const chartRef = useRef(null);
+  const chartInstance = useRef(null);
 
   const getUserRole = (user) => {
     if (user.role) {
@@ -267,7 +232,7 @@ const AdminUserPage = () => {
     if (window.confirm("Bạn có chắc chắn muốn xóa người dùng này không?")) {
       try {
         await deleteUser(userId);
-        setUsers(users.filter(user => user.id !== userId)); // Xóa người dùng khỏi danh sách
+        await fetchUsers(); // Cập nhật lại danh sách từ server
         setSnackbar({
           open: true,
           message: "Xóa người dùng thành công!",
@@ -297,7 +262,14 @@ const AdminUserPage = () => {
     try {
       const data = await getUserDetail(userId);
       setSelectedUserDetail(data);
-      setDetailOpen(true); // Mở dialog chi tiết
+      setDetailOpen(true);
+      
+      // Sau khi modal mở và dữ liệu được load, tạo biểu đồ
+      setTimeout(() => {
+        if (data.smokingProfile?.dailyLogs?.length > 0) {
+          createSmokingChart(data.smokingProfile.dailyLogs);
+        }
+      }, 100);
     } catch (error) {
       console.error("Lỗi khi tải chi tiết người dùng:", error);
       let errorMessage = "Không thể tải chi tiết người dùng.";
@@ -313,8 +285,66 @@ const AdminUserPage = () => {
   };
 
   const handleCloseDetail = () => {
+    if (chartInstance.current) {
+      chartInstance.current.destroy();
+    }
     setDetailOpen(false);
     setSelectedUserDetail(null);
+  };
+
+  const createSmokingChart = (dailyLogs) => {
+    const ctx = document.getElementById('smokingChart');
+    if (!ctx) return;
+
+    if (chartInstance.current) {
+      chartInstance.current.destroy();
+    }
+
+    const sortedLogs = [...dailyLogs].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const dates = sortedLogs.map(log => new Date(log.date).toLocaleDateString('vi-VN'));
+    const cigarettes = sortedLogs.map(log => log.cigarettes);
+
+    chartInstance.current = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: dates,
+        datasets: [{
+          label: 'Số điếu thuốc',
+          data: cigarettes,
+          borderColor: 'rgb(75, 192, 192)',
+          tension: 0.1,
+          fill: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          title: {
+            display: true,
+            text: 'Biểu đồ hút thuốc 7 ngày gần đây'
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'Số điếu'
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: 'Ngày'
+            }
+          }
+        }
+      }
+    });
   };
 
   const handleSnackbarClose = () => {
@@ -324,684 +354,368 @@ const AdminUserPage = () => {
   const { coachCount, memberOnlyCount, memberVipCount, totalUsers } = getStatistics();
 
   return (
-    <Box sx={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #28a745 0%, #20c997 50%, #17a2b8 100%)',
-      pt: { xs: 15, sm: 16, md: 18 },
-      pb: 3
-    }}>
-      <Container maxWidth="xl" sx={{ 
-        pt: 2
-      }}>
-        <Box sx={{
-          background: 'rgba(45, 55, 72, 0.95)',
-          backdropFilter: 'blur(10px)',
-          borderRadius: 3,
-          p: 4,
-          position: 'relative',
-          overflow: 'hidden',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '4px',
-            background: 'linear-gradient(90deg, #28a745, #20c997, #17a2b8)'
-          }
-        }}>
-          <Typography variant="h5" component="h1" gutterBottom sx={{ 
-            color: '#e2e8f0', 
-            fontWeight: 'bold',
-            mb: 3,
-            textAlign: 'center'
-          }}>
-            <DashboardIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> Quản Lý Người Dùng
-          </Typography>
+    <div className="container-fluid py-4" style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #28a745 0%, #20c997 50%, #17a2b8 100%)' }}>
+      <div className="container-xl">
+        <div className="bg-white rounded-3 shadow p-4 mb-4 position-relative overflow-hidden">
+          <div className="position-absolute top-0 start-0 w-100" style={{ height: '4px', background: 'linear-gradient(90deg, #28a745, #20c997, #17a2b8)' }} />
+          <h2 className="fw-bold text-center mb-4 text-success"><i className="bi bi-speedometer2 me-2"></i>Quản Lý Người Dùng</h2>
 
-          {/* Thẻ thống kê người dùng */}
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={6} sm={3} md={3}>
-              <Card elevation={0} sx={{ 
-                borderRadius: 2, 
-                background: 'linear-gradient(135deg, #28a745 30%, #20c997 90%)', 
-                color: 'white',
-                height: '100px',
-                transition: 'transform 0.3s ease',
-                '&:hover': {
-                  transform: 'translateY(-2px)'
-                }
-              }}>
-                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '100%' }}>
-                    <Box>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                        Tổng số Người dùng
-                      </Typography>
-                      <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{totalUsers}</Typography>
-                    </Box>
-                    <PeopleIcon sx={{ fontSize: 32, opacity: 0.8 }} />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={6} sm={3} md={3}>
-              <Card elevation={0} sx={{ 
-                borderRadius: 2, 
-                background: 'linear-gradient(135deg, #20c997 30%, #17a2b8 90%)', 
-                color: 'white',
-                height: '100px',
-                transition: 'transform 0.3s ease',
-                '&:hover': {
-                  transform: 'translateY(-2px)'
-                }
-              }}>
-                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '100%' }}>
-                    <Box>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                        Thành viên Vip
-                      </Typography>
-                      <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{memberVipCount}</Typography>
-                    </Box>
-                    <PremiumIcon sx={{ fontSize: 32, opacity: 0.8 }} />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={6} sm={3} md={3}>
-              <Card elevation={0} sx={{ 
-                borderRadius: 2, 
-                background: 'linear-gradient(135deg, #17a2b8 30%, #28a745 90%)', 
-                color: 'white',
-                height: '100px',
-                transition: 'transform 0.3s ease',
-                '&:hover': {
-                  transform: 'translateY(-2px)'
-                }
-              }}>
-                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '100%' }}>
-                    <Box>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                        Huấn luyện viên
-                      </Typography>
-                      <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{coachCount}</Typography>
-                    </Box>
-                    <CoachIcon sx={{ fontSize: 32, opacity: 0.8 }} />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={6} sm={3} md={3}>
-              <Card elevation={0} sx={{ 
-                borderRadius: 2, 
-                background: 'linear-gradient(135deg, #6c757d 30%, #495057 90%)', 
-                color: 'white',
-                height: '100px',
-                transition: 'transform 0.3s ease',
-                '&:hover': {
-                  transform: 'translateY(-2px)'
-                }
-              }}>
-                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '100%' }}>
-                    <Box>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                        Thành viên
-                      </Typography>
-                      <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{memberOnlyCount}</Typography>
-                    </Box>
-                    <PeopleIcon sx={{ fontSize: 32, opacity: 0.8 }} />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+          {/* Thẻ thống kê */}
+          <div className="row mb-4 g-3">
+            <div className="col-6 col-md-3">
+              <div className="card text-white bg-success h-100">
+                <div className="card-body d-flex align-items-center justify-content-between">
+                  <div>
+                    <div className="small fw-bold">Tổng số Người dùng</div>
+                    <div className="h3 fw-bold">{totalUsers}</div>
+                  </div>
+                  <i className="bi bi-people-fill fs-2 opacity-75"></i>
+                </div>
+              </div>
+            </div>
+            <div className="col-6 col-md-3">
+              <div className="card text-white bg-info h-100">
+                <div className="card-body d-flex align-items-center justify-content-between">
+                  <div>
+                    <div className="small fw-bold">Thành viên Vip</div>
+                    <div className="h3 fw-bold">{memberVipCount}</div>
+                  </div>
+                  <i className="bi bi-gem fs-2 opacity-75"></i>
+                </div>
+              </div>
+            </div>
+            <div className="col-6 col-md-3">
+              <div className="card text-white bg-primary h-100">
+                <div className="card-body d-flex align-items-center justify-content-between">
+                  <div>
+                    <div className="small fw-bold">Huấn luyện viên</div>
+                    <div className="h3 fw-bold">{coachCount}</div>
+                  </div>
+                  <i className="bi bi-person-badge-fill fs-2 opacity-75"></i>
+                </div>
+              </div>
+            </div>
+            <div className="col-6 col-md-3">
+              <div className="card text-white bg-secondary h-100">
+                <div className="card-body d-flex align-items-center justify-content-between">
+                  <div>
+                    <div className="small fw-bold">Thành viên</div>
+                    <div className="h3 fw-bold">{memberOnlyCount}</div>
+                  </div>
+                  <i className="bi bi-person-fill fs-2 opacity-75"></i>
+                </div>
+              </div>
+            </div>
+          </div>
 
-          <Paper elevation={2} sx={{ 
-            p: 3, 
-            borderRadius: 2, 
-            background: 'white'
-          }}>
-            {/* Thanh tìm kiếm và bộ lọc vai trò */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
-              <TextField
-                label="Tìm kiếm (Tên đăng nhập/Email)"
-                variant="outlined"
-                size="small"
-                sx={{ 
-                  flexGrow: 1, 
-                  mr: 2, 
-                  mb: { xs: 2, sm: 0 },
-                  '& .MuiOutlinedInput-root': {
-                    '&:hover fieldset': {
-                      borderColor: '#28a745'
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#28a745'
-                    }
-                  },
-                  '& .MuiInputLabel-root': {
-                    '&.Mui-focused': {
-                      color: '#28a745'
-                    }
-                  }
-                }}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  endAdornment: (
-                    <SearchIcon color="action" />
-                  ),
-                }}
-              />
-              <FormControl sx={{ 
-                minWidth: 180,
-                '& .MuiOutlinedInput-root': {
-                  '&:hover fieldset': {
-                    borderColor: '#28a745'
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#28a745'
-                  }
-                },
-                '& .MuiInputLabel-root': {
-                  '&.Mui-focused': {
-                    color: '#28a745'
-                  }
-                }
-              }} size="small">
-                <InputLabel>Lọc theo vai trò</InputLabel>
-                <Select
-                  value={roleFilter}
-                  label="Lọc theo vai trò"
-                  onChange={(e) => setRoleFilter(e.target.value)}
-                >
-                  <MenuItem value="all">Tất cả</MenuItem>
-                  <MenuItem value="member">Thành viên</MenuItem>
-                  <MenuItem value="coach">Huấn luyện viên</MenuItem>
-                  <MenuItem value="guest">Khách hàng</MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
+          {/* Thanh tìm kiếm và bộ lọc vai trò */}
+          <form className="row g-2 align-items-center mb-3">
+            <div className="col-md-6">
+              <input type="text" className="form-control" placeholder="Tìm kiếm (Tên đăng nhập/Email)" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+            </div>
+            <div className="col-md-4">
+              <select className="form-select" value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
+                <option value="all">Tất cả</option>
+                <option value="member">Thành viên</option>
+                <option value="coach">Huấn luyện viên</option>
+                <option value="guest">Khách hàng</option>
+              </select>
+            </div>
+          </form>
 
             {/* Bảng danh sách người dùng */}
-            <TableContainer component={Paper} elevation={0}>
-              <Table sx={{ minWidth: 650 }} aria-label="Bảng người dùng" size="small">
-                <TableHead>
-                  <TableRow sx={{ 
-                    background: 'linear-gradient(90deg, #28a745, #20c997, #17a2b8)',
-                  }}>
-                    <TableCell sx={{ fontWeight: 'bold', py: 1, color: 'white' }}>ID</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', py: 1, color: 'white' }}>Tên đăng nhập</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', py: 1, color: 'white' }}>Email</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', py: 1, color: 'white' }}>Số điện thoại</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', py: 1, color: 'white' }}>Vai trò</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 'bold', py: 1, color: 'white' }}>Hành động</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
+          <div className="table-responsive mb-4">
+            <table className="table table-bordered table-hover align-middle">
+              <thead className="table-success">
+                <tr>
+                  <th>ID</th>
+                  <th>Tên đăng nhập</th>
+                  <th>Email</th>
+                  <th>Số điện thoại</th>
+                  <th>Vai trò</th>
+                  <th className="text-end">Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
                   {filteredUsers.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ py: 2 }}>
-                        Không tìm thấy người dùng nào.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredUsers.map((user) => (
-                      <TableRow key={user.id} sx={{ 
-                        '&:hover': { 
-                          backgroundColor: '#f5f5f5'
-                        }
-                      }}>
-                        <TableCell sx={{ py: 1 }}>{user.id}</TableCell>
-                        <TableCell sx={{ py: 1 }}>{user.username}</TableCell>
-                        <TableCell sx={{ py: 1 }}>{user.email}</TableCell>
-                        <TableCell sx={{ py: 1 }}>{user.phoneNumber}</TableCell>
-                        <TableCell sx={{ py: 1 }}>
-                          <Chip 
-                            label={getRoleLabel(getUserRole(user))}
-                            size="small"
-                            sx={{ 
-                              backgroundColor: getRoleColor(getUserRole(user)), 
-                              color: 'white',
-                              fontWeight: 'bold',
-                              fontSize: '0.75rem'
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell align="right" sx={{ py: 1 }}>
-                          <Tooltip title="Chỉnh sửa">
-                            <IconButton 
-                              onClick={() => handleEdit(user)} 
-                              color="primary"
-                              size="small"
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Xóa">
-                            <IconButton 
-                              onClick={() => handleDelete(user.id)} 
-                              color="secondary"
-                              size="small"
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Xem chi tiết">
-                            <Button 
-                              variant="outlined" 
-                              size="small" 
-                              sx={{ 
-                                ml: 0.5, 
-                                fontSize: '0.75rem', 
-                                px: 1
-                              }} 
-                              onClick={() => handleViewUserDetail(user.id)}
-                            >
-                              Chi tiết
-                            </Button>
-                          </Tooltip>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+                  <tr><td colSpan={6} className="text-center py-3">Không tìm thấy người dùng nào.</td></tr>
+                ) : (
+                  filteredUsers.map(user => (
+                    <tr key={user.id}>
+                      <td>{user.id}</td>
+                      <td>{user.username}</td>
+                      <td>{user.email}</td>
+                      <td>{user.phoneNumber || 'N/A'}</td>
+                      <td><span className={`badge ${getUserRole(user) === 'coach' ? 'bg-primary' : getUserRole(user) === 'membervip' ? 'bg-success' : getUserRole(user) === 'member' ? 'bg-warning text-dark' : 'bg-secondary'}`}>{getRoleLabel(getUserRole(user))}</span></td>
+                      <td className="text-end">
+                        <button className="btn btn-sm btn-outline-primary me-1" onClick={() => handleEdit(user)}><i className="bi bi-pencil-square"></i> Sửa</button>
+                        <button className="btn btn-sm btn-outline-danger me-1" onClick={() => handleDelete(user.id)}><i className="bi bi-trash"></i> Xóa</button>
+                        <button className="btn btn-sm btn-outline-info" onClick={() => handleViewUserDetail(user.id)}><i className="bi bi-info-circle"></i> Chi tiết</button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
 
-          {/* Dialog chỉnh sửa người dùng */}
-          <Dialog 
-            open={open} 
-            onClose={handleClose}
-          >
-            <DialogTitle>
-              Chỉnh sửa Người dùng
-            </DialogTitle>
-            <DialogContent>
-              <TextField
-                margin="dense"
-                label="Tên đăng nhập"
-                type="text"
-                fullWidth
-                variant="outlined"
-                name="username"
-                value={formData.username}
-                onChange={handleInputChange}
-              />
-              <TextField
-                margin="dense"
-                label="Email"
-                type="email"
-                fullWidth
-                variant="outlined"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-              />
-              <TextField
-                margin="dense"
-                label="Số điện thoại"
-                type="text"
-                fullWidth
-                variant="outlined"
-                name="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={handleInputChange}
-              />
-              <TextField
-                margin="dense"
-                label="Địa chỉ"
-                type="text"
-                fullWidth
-                variant="outlined"
-                name="address"
-                value={formData.address}
-                onChange={handleInputChange}
-              />
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={handleClose}>Hủy</Button>
-              <Button onClick={handleSave} variant="contained" color="primary">
-                Lưu
-              </Button>
-            </DialogActions>
-          </Dialog>
+          {/* Modal chỉnh sửa người dùng */}
+          <div className={`modal fade${open ? ' show d-block' : ''}`} tabIndex="-1" style={{ background: open ? 'rgba(0,0,0,0.3)' : 'none' }}>
+            <div className="modal-dialog modal-lg modal-dialog-centered">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Chỉnh sửa Người dùng - {formData.username}</h5>
+                  <button type="button" className="btn-close" onClick={handleClose}></button>
+                </div>
+                <div className="modal-body">
+                  <form>
+                    <div className="row">
+                      <div className="col-md-6 mb-3">
+                        <label className="form-label">Tên đăng nhập</label>
+                        <input type="text" className="form-control" name="username" value={formData.username} onChange={handleInputChange} />
+                      </div>
+                      <div className="col-md-6 mb-3">
+                        <label className="form-label">Email</label>
+                        <input type="email" className="form-control" name="email" value={formData.email} onChange={handleInputChange} />
+                      </div>
+                    </div>
+                    <div className="row">
+                      <div className="col-md-6 mb-3">
+                        <label className="form-label">Số điện thoại</label>
+                        <input type="text" className="form-control" name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} />
+                      </div>
+                      <div className="col-md-6 mb-3">
+                        <label className="form-label">Vai trò</label>
+                        <select className="form-select" name="role" value={formData.role} onChange={handleInputChange}>
+                          <option value="guest">Khách hàng</option>
+                          <option value="member">Thành viên</option>
+                          <option value="membervip">Thành viên Vip</option>
+                          <option value="coach">Huấn luyện viên</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label">Địa chỉ</label>
+                      <textarea className="form-control" name="address" rows="2" value={formData.address} onChange={handleInputChange}></textarea>
+                    </div>
+                  </form>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={handleClose}>Hủy</button>
+                  <button type="button" className="btn btn-primary" onClick={handleSave}>Lưu thay đổi</button>
+                </div>
+              </div>
+            </div>
+          </div>
 
-          {/* Dialog xem chi tiết người dùng */}
-          <Dialog 
-            open={detailOpen} 
-            onClose={handleCloseDetail} 
-            maxWidth="md" 
-            fullWidth
-          >
-            <DialogTitle sx={{ borderBottom: '1px solid #eee', pb: 2 }}>
-              Chi tiết Người dùng - {selectedUserDetail ? getRoleLabel(selectedUserDetail.role) : ''}
-            </DialogTitle>
-        <DialogContent sx={{ pt: 3 }}>
+          {/* Modal chi tiết người dùng */}
+          <div className={`modal fade${detailOpen ? ' show d-block' : ''}`} tabIndex="-1" style={{ background: detailOpen ? 'rgba(0,0,0,0.3)' : 'none' }}>
+            <div className="modal-dialog modal-xl modal-dialog-centered">
+              <div className="modal-content">
+                <div className="modal-header border-bottom">
+                  <h5 className="modal-title">Chi tiết tài khoản</h5>
+                  <button type="button" className="btn-close" onClick={handleCloseDetail}></button>
+                </div>
+                <div className="modal-body">
           {selectedUserDetail ? (
-            <Box>
-              {/* Thông tin cơ bản */}
-              <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: '#1976d2' }}>
-                  📋 Thông tin cá nhân
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" color="textSecondary">ID:</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.id}</Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" color="textSecondary">Tên đăng nhập:</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.username}</Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" color="textSecondary">Email:</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.email}</Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" color="textSecondary">Số điện thoại:</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.phoneNumber || 'Chưa cập nhật'}</Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" color="textSecondary">Địa chỉ:</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.address || 'Chưa cập nhật'}</Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" color="textSecondary">Ngày tạo:</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: '500' }}>
-                      {selectedUserDetail.createdAt ? new Date(selectedUserDetail.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
-                    </Typography>
-                  </Grid>
-                </Grid>
-              </Paper>
-
-              {/* Thông tin hút thuốc */}
-              {selectedUserDetail.smokingProfile && (
+                    <div>
+                      {/* Thông tin cá nhân */}
+                      <div className="card mb-3">
+                        <div className="card-header bg-primary text-white"><strong>📋 Thông tin cá nhân</strong></div>
+                        <div className="card-body row g-2">
+                          <div className="col-md-4"><strong>ID:</strong> {selectedUserDetail.id}</div>
+                          <div className="col-md-4"><strong>Tên đăng nhập:</strong> {selectedUserDetail.username}</div>
+                          <div className="col-md-4"><strong>Email:</strong> {selectedUserDetail.email}</div>
+                          <div className="col-md-4"><strong>Số điện thoại:</strong> {selectedUserDetail.phoneNumber || 'Chưa cập nhật'}</div>
+                          <div className="col-md-4"><strong>Địa chỉ:</strong> {selectedUserDetail.address || 'Chưa cập nhật'}</div>
+                          <div className="col-md-4"><strong>Ngày tạo:</strong> {selectedUserDetail.createdAt ? new Date(selectedUserDetail.createdAt).toLocaleDateString('vi-VN') : 'N/A'}</div>
+                        </div>
+                      </div>
+                    
+                      {/* Thông tin theo role Coach */}
+                      {selectedUserDetail.role === 'coach' && (
+                        <div className="mb-3">
+                          <div className="fw-bold mb-2">Thành viên được phụ trách ({selectedUserDetail.assignedMembers?.length || 0} người):</div>
+                          <div className="member-list-wrapper">
+                            {selectedUserDetail.assignedMembers && selectedUserDetail.assignedMembers.length > 0 ? (
+                              selectedUserDetail.assignedMembers.map(member => (
+                                <div className="col-12 mb-4" key={member.id}>
+                                  <div className="card member-detail-card shadow-sm p-0">
+                                    <div className="row g-0 flex-wrap">
+                                      {/* Thông tin cá nhân */}
+                                      <div className="col-md-3 border-end bg-light p-3 d-flex flex-column justify-content-center">
+                                        <div className="section-label text-primary mb-3"><i className="bi bi-person-fill me-2"></i>Thông tin cá nhân</div>
+                                        <div className="info-row"><span className="info-label">Tên:</span> <span className="info-value">{member.username}</span></div>
+                                        <div className="info-row"><span className="info-label">Email:</span> <span className="info-value">{member.email}</span></div>
+                                        <div className="info-row"><span className="info-label">SĐT:</span> <span className="info-value">{member.phoneNumber}</span></div>
+                                      </div>
+                                      {/* Thông tin hút thuốc */}
+                                      <div className="col-md-5 border-end bg-success-subtle p-3 d-flex flex-column justify-content-center">
+                                        <div className="section-label text-success mb-3"><i className="bi bi-emoji-smile me-2"></i>Thông tin hút thuốc</div>
+                                        <div className="smoking-info-table">
+                                          <div className="row info-row align-items-center mb-2">
+                                            <div className="col-6 info-label">Điếu/ngày:</div>
+                                            <div className="col-6 info-value">{member.cigarettesPerDay}</div>
+                                          </div>
+                                          <div className="row info-row align-items-center mb-2">
+                                            <div className="col-6 info-label">Giá/gói:</div>
+                                            <div className="col-6 info-value">{member.costPerPack?.toLocaleString('vi-VN') || 'N/A'} VNĐ</div>
+                                          </div>
+                                          <div className="row info-row align-items-center mb-2">
+                                            <div className="col-6 info-label">Tần suất hút:</div>
+                                            <div className="col-6 info-value">{member.smokingFrequency || 'Chưa cập nhật'}</div>
+                                          </div>
+                                          <div className="row info-row align-items-center mb-2">
+                                            <div className="col-6 info-label">Loại thuốc:</div>
+                                            <div className="col-6 info-value">{member.cigaretteType || 'Chưa cập nhật'}</div>
+                                          </div>
+                                          <div className="row info-row align-items-center mb-2">
+                                            <div className="col-6 info-label">Tình trạng sức khỏe:</div>
+                                            <div className="col-6 info-value">{member.healthStatus || 'Chưa cập nhật'}</div>
+                                          </div>
+                                          <div className="row info-row align-items-center">
+                                            <div className="col-6 info-label">Lý do cai:</div>
+                                            <div className="col-6 info-value">{member.quitReason || 'Chưa cập nhật'}</div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      {/* Thông tin booking */}
+                                      <div className="col-md-4 bg-warning-subtle p-3 d-flex flex-column justify-content-center">
+                                        <div className="section-label text-warning mb-3"><i className="bi bi-calendar-check me-2"></i>Thông tin đặt lịch</div>
+                                        <div className="row g-1">
+                                          <div className="col-12 info-row mb-2">
+                                            <span className="info-label">Trạng thái đặt lịch:</span>
+                                            <span className={`badge fw-bold px-3 py-2 rounded-pill ${member.bookingStatus === 'đã xác nhận' ? 'bg-success' : member.bookingStatus === 'đã hủy' ? 'bg-danger' : 'bg-warning text-dark'}`}>{member.bookingStatus || 'Chưa có'}</span>
+                                          </div>
+                                          <div className="col-6 info-row"><span className="info-label">Khung giờ:</span> <span className="info-value">{member.slot || 'Chưa có'}</span></div>
+                                          <div className="col-6 info-row"><span className="info-label">Ngày hẹn:</span> <span className="info-value">{member.slotDate ? new Date(member.slotDate).toLocaleDateString('vi-VN') : 'Chưa có'}</span></div>
+                                          <div className="col-12 info-row"><span className="info-label">Ghi chú booking:</span> <span className="info-value">{member.bookingNote || 'Không có'}</span></div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-secondary">Chưa có thành viên được phân công</div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+              {/* Thông tin hút thuốc - Chỉ hiển thị nếu không phải là Coach */}
+              {selectedUserDetail.role !== 'coach' && selectedUserDetail.smokingProfile && (
                 <div className="card mb-3">
-                  <div className="card-header bg-warning text-white">
+                          <div className="card-header bg-info text-white">
                     <strong>🚬 Thông tin hút thuốc</strong>
                   </div>
                   <div className="card-body">
-                    <div className="row mb-2">
-                      <div className="col-md-6">
-                        <strong>Số điếu/ngày:</strong> {selectedUserDetail.smokingProfile.cigarettesPerDay ?? 'N/A'}
+                            <div className="row g-3">
+                              <div className="col-md-4">
+                                <strong>Số điếu/ngày:</strong> {selectedUserDetail.smokingProfile.cigarettesPerDay}
                       </div>
-                      <div className="col-md-6">
-                        <strong>Giá/gói:</strong> {selectedUserDetail.smokingProfile.costPerPack?.toLocaleString('vi-VN') ?? 'N/A'} VNĐ
+                              <div className="col-md-4">
+                                <strong>Chi phí/gói:</strong> {selectedUserDetail.smokingProfile.costPerPack.toLocaleString('vi-VN')}đ
                       </div>
+                              <div className="col-md-4">
+                                <strong>Tần suất:</strong> {selectedUserDetail.smokingProfile.smokingFrequency || 'Chưa cập nhật'}
                     </div>
-                    <div className="row mb-2">
-                      <div className="col-md-6">
-                        <strong>Tần suất hút:</strong> {selectedUserDetail.smokingProfile.smokingFrequency || 'Chưa cập nhật'}
+                              <div className="col-md-4">
+                                <strong>Tình trạng sức khỏe:</strong> {selectedUserDetail.smokingProfile.healthStatus || 'Chưa cập nhật'}
                       </div>
-                      <div className="col-md-6">
+                              <div className="col-md-4">
                         <strong>Loại thuốc:</strong> {selectedUserDetail.smokingProfile.cigaretteType || 'Chưa cập nhật'}
                       </div>
+                              <div className="col-md-4">
+                                <strong>Lý do cai thuốc:</strong> {selectedUserDetail.smokingProfile.quitReason || 'Chưa cập nhật'}
                     </div>
-                    <div className="row mb-2">
-                      <div className="col-md-6">
-                        <strong>Tình trạng sức khỏe:</strong> {selectedUserDetail.smokingProfile.healthStatus || 'Chưa cập nhật'}
                       </div>
-                      <div className="col-md-6">
-                        <strong>Lý do cai thuốc:</strong> {selectedUserDetail.smokingProfile.quitReason || 'Chưa cập nhật'}
+
+                            {/* Biểu đồ nhật ký hút thuốc */}
+                            {selectedUserDetail.smokingProfile.dailyLogs && selectedUserDetail.smokingProfile.dailyLogs.length > 0 && (
+                              <div className="mt-4">
+                                <h6 className="mb-3">📊 Nhật ký hút thuốc 7 ngày gần đây</h6>
+                                <div className="chart-container" style={{ position: 'relative', height: '200px' }}>
+                                  <canvas id="smokingChart"></canvas>
                       </div>
+                                <div className="table-responsive mt-3">
+                                  <table className="table table-sm table-bordered">
+                                    <thead>
+                                      <tr>
+                                        <th>Ngày</th>
+                                        <th>Số điếu</th>
+                                        <th>Cảm xúc</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {selectedUserDetail.smokingProfile.dailyLogs.map((log, index) => (
+                                        <tr key={index}>
+                                          <td>{new Date(log.date).toLocaleDateString('vi-VN')}</td>
+                                          <td>{log.cigarettes}</td>
+                                          <td>{log.feeling || 'Không ghi chú'}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
                     </div>
+                              </div>
+                            )}
                   </div>
                 </div>
-              )}
-
-              {/* Thông tin theo role Coach */}
-              {selectedUserDetail.role === 'coach' && (
-                <>
-                  <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: '#e3f2fd' }}>
-                    <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: '#1976d2' }}>
-                      👨‍⚕️ Thông tin Huấn luyện viên
-                    </Typography>
-                    
-                    {selectedUserDetail.assignedMembers && selectedUserDetail.assignedMembers.length > 0 ? (
-                      <Box>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2 }}>
-                          Thành viên được phụ trách ({selectedUserDetail.assignedMembers.length} người):
-                        </Typography>
-                        <Grid container spacing={2}>
-                          {selectedUserDetail.assignedMembers.map(member => (
-                            <Grid item xs={12} key={member.id}>
-                              <Card variant="outlined" sx={{ p: 2 }}>
-                                <Grid container spacing={2}>
-                                  <Grid item xs={4}>
-                                    <Typography variant="body2" color="textSecondary">Tên:</Typography>
-                                    <Typography variant="body1" sx={{ fontWeight: '500' }}>{member.username}</Typography>
-                                  </Grid>
-                                  <Grid item xs={4}>
-                                    <Typography variant="body2" color="textSecondary">Email:</Typography>
-                                    <Typography variant="body1" sx={{ fontWeight: '500' }}>{member.email}</Typography>
-                                  </Grid>
-                                                                     <Grid item xs={4}>
-                                     <Typography variant="body2" color="textSecondary">Điếu/ngày:</Typography>
-                                     <Typography variant="body1" sx={{ fontWeight: '500' }}>{member.cigarettesPerDay}</Typography>
-                                   </Grid>
-                                   <Grid item xs={6}>
-                                     <Typography variant="body2" color="textSecondary">Trạng thái booking:</Typography>
-                                     <Chip 
-                                       label={member.bookingStatus || 'Chưa có'} 
-                                       size="small"
-                                       color={member.bookingStatus === 'đã xác nhận' ? 'success' : 
-                                              member.bookingStatus === 'đã hủy' ? 'error' : 'warning'}
-                                     />
-                                   </Grid>
-                                   <Grid item xs={6}>
-                                     <Typography variant="body2" color="textSecondary">Lịch hẹn:</Typography>
-                                     <Typography variant="body1" sx={{ fontWeight: '500' }}>
-                                       {member.scheduledTime ? new Date(member.scheduledTime).toLocaleDateString('vi-VN') : 'Chưa có'}
-                                     </Typography>
-                                   </Grid>
-                                   <Grid item xs={12}>
-                                     <Typography variant="body2" color="textSecondary">Lý do cai:</Typography>
-                                     <Typography variant="body1" sx={{ fontWeight: '500' }}>{member.quitReason || 'Chưa cập nhật'}</Typography>
-                                   </Grid>
-                                </Grid>
-                              </Card>
-                            </Grid>
-                          ))}
-                        </Grid>
-                      </Box>
-                    ) : (
-                      <Typography variant="body1" color="textSecondary">
-                        Chưa có thành viên được phân công
-                      </Typography>
-                    )}
-                  </Paper>
-
-                  {/* Tiến độ gần đây của members */}
-                  {selectedUserDetail.recentProgress && selectedUserDetail.recentProgress.length > 0 && (
-                    <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: '#388e3c' }}>
-                        📈 Tiến độ gần đây (7 ngày)
-                      </Typography>
-                      <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
-                        {selectedUserDetail.recentProgress.map((progress, index) => (
-                          <Card key={index} variant="outlined" sx={{ mb: 1, p: 2 }}>
-                            <Grid container spacing={2}>
-                              <Grid item xs={3}>
-                                <Typography variant="body2" color="textSecondary">Thành viên:</Typography>
-                                <Typography variant="body1" sx={{ fontWeight: '500' }}>{progress.username}</Typography>
-                              </Grid>
-                              <Grid item xs={3}>
-                                <Typography variant="body2" color="textSecondary">Ngày:</Typography>
-                                <Typography variant="body1" sx={{ fontWeight: '500' }}>
-                                  {new Date(progress.date).toLocaleDateString('vi-VN')}
-                                </Typography>
-                              </Grid>
-                              <Grid item xs={3}>
-                                <Typography variant="body2" color="textSecondary">Điếu hút:</Typography>
-                                <Typography variant="body1" sx={{ fontWeight: '500' }}>{progress.cigarettesSmoked}</Typography>
-                              </Grid>
-                              <Grid item xs={3}>
-                                <Typography variant="body2" color="textSecondary">Ghi chú:</Typography>
-                                <Typography variant="body1" sx={{ fontWeight: '500' }}>{progress.notes || 'Không có'}</Typography>
-                              </Grid>
-                            </Grid>
-                          </Card>
-                        ))}
-                      </Box>
-                    </Paper>
-                  )}
-                </>
-              )}
-
-              {/* Thông tin theo role Member/Guest */}
-              {(selectedUserDetail.role === 'member' || selectedUserDetail.role === 'guest') && (
-                <>
-                  {/* Thông tin coach được assign */}
-                  {selectedUserDetail.assignedCoach ? (
-                    <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: '#f3e5f5' }}>
-                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: '#7b1fa2' }}>
-                        👨‍⚕️ Huấn luyện viên phụ trách
-                      </Typography>
-                                             <Grid container spacing={2}>
-                         <Grid item xs={4}>
-                           <Typography variant="body2" color="textSecondary">Tên:</Typography>
-                           <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.assignedCoach.username}</Typography>
-                         </Grid>
-                         <Grid item xs={4}>
-                           <Typography variant="body2" color="textSecondary">Email:</Typography>
-                           <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.assignedCoach.email}</Typography>
-                         </Grid>
-                         <Grid item xs={4}>
-                           <Typography variant="body2" color="textSecondary">SĐT:</Typography>
-                           <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.assignedCoach.phoneNumber || 'N/A'}</Typography>
-                         </Grid>
-                         <Grid item xs={6}>
-                           <Typography variant="body2" color="textSecondary">Trạng thái booking:</Typography>
-                           <Chip 
-                             label={selectedUserDetail.assignedCoach.bookingStatus || 'Chưa có'} 
-                             size="small"
-                             color={selectedUserDetail.assignedCoach.bookingStatus === 'đã xác nhận' ? 'success' : 
-                                    selectedUserDetail.assignedCoach.bookingStatus === 'đã hủy' ? 'error' : 'warning'}
-                           />
-                         </Grid>
-                         <Grid item xs={6}>
-                           <Typography variant="body2" color="textSecondary">Lịch hẹn:</Typography>
-                           <Typography variant="body1" sx={{ fontWeight: '500' }}>
-                             {selectedUserDetail.assignedCoach.scheduledTime ? 
-                               new Date(selectedUserDetail.assignedCoach.scheduledTime).toLocaleString('vi-VN') : 'Chưa có'}
-                           </Typography>
-                         </Grid>
-                         {selectedUserDetail.assignedCoach.bookingNote && (
-                           <Grid item xs={12}>
-                             <Typography variant="body2" color="textSecondary">Ghi chú booking:</Typography>
-                             <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.assignedCoach.bookingNote}</Typography>
-                           </Grid>
-                         )}
-                       </Grid>
-                    </Paper>
-                  ) : (
-                    <Paper elevation={1} sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: '#fff3e0' }}>
-                      <Typography variant="body1" color="textSecondary" align="center">
-                        🔍 Chưa được phân công huấn luyện viên
-                      </Typography>
-                    </Paper>
                   )}
 
                   {/* Kế hoạch cai thuốc */}
                   {selectedUserDetail.quitPlan && (
-                    <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: '#e8f5e8' }}>
-                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: '#2e7d32' }}>
-                        🎯 Kế hoạch cai thuốc
-                      </Typography>
-                      <Grid container spacing={2}>
-                        <Grid item xs={6}>
-                          <Typography variant="body2" color="textSecondary">Ngày bắt đầu:</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: '500' }}>
-                            {new Date(selectedUserDetail.quitPlan.startDate).toLocaleDateString('vi-VN')}
-                          </Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2" color="textSecondary">Ngày kết thúc:</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: '500' }}>
-                            {new Date(selectedUserDetail.quitPlan.endDate).toLocaleDateString('vi-VN')}
-                          </Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2" color="textSecondary">Loại mục tiêu:</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.quitPlan.goalType}</Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2" color="textSecondary">Giá trị mục tiêu:</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.quitPlan.goalValue}</Typography>
-                        </Grid>
-                        <Grid item xs={12}>
-                          <Typography variant="body2" color="textSecondary">Mô tả:</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: '500' }}>{selectedUserDetail.quitPlan.description}</Typography>
-                        </Grid>
-                      </Grid>
-                    </Paper>
-                  )}
-
-                  {/* Tiến độ cá nhân */}
-                  {selectedUserDetail.progress && selectedUserDetail.progress.length > 0 && (
-                    <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: '#1976d2' }}>
-                        📊 Tiến độ cá nhân
-                      </Typography>
-                      <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
-                        {selectedUserDetail.progress.slice(0, 10).map((progress, index) => (
-                          <Card key={index} variant="outlined" sx={{ mb: 1, p: 2 }}>
-                            <Grid container spacing={2}>
-                              <Grid item xs={4}>
-                                <Typography variant="body2" color="textSecondary">Ngày:</Typography>
-                                <Typography variant="body1" sx={{ fontWeight: '500' }}>
-                                  {new Date(progress.date).toLocaleDateString('vi-VN')}
-                                </Typography>
-                              </Grid>
-                              <Grid item xs={4}>
-                                <Typography variant="body2" color="textSecondary">Điếu hút:</Typography>
-                                <Typography variant="body1" sx={{ fontWeight: '500' }}>{progress.cigarettesSmoked}</Typography>
-                              </Grid>
-                              <Grid item xs={4}>
-                                <Typography variant="body2" color="textSecondary">Ghi chú:</Typography>
-                                <Typography variant="body1" sx={{ fontWeight: '500' }}>{progress.notes || 'Không có'}</Typography>
-                              </Grid>
-                            </Grid>
-                          </Card>
-                        ))}
-                      </Box>
-                      {selectedUserDetail.progress.length > 10 && (
-                        <Typography variant="body2" color="textSecondary" align="center" sx={{ mt: 2 }}>
-                          Hiển thị 10 bản ghi gần nhất / Tổng: {selectedUserDetail.progress.length}
-                        </Typography>
+                        <div className="card mb-3">
+                          <div className="card-header bg-success text-white">
+                            <strong>📋 Kế hoạch cai thuốc</strong>
+                          </div>
+                          <div className="card-body">
+                            <h5 className="card-title">{selectedUserDetail.quitPlan.title}</h5>
+                            <p className="card-text">{selectedUserDetail.quitPlan.description}</p>
+                            <div className="row g-3">
+                              <div className="col-md-4">
+                                <strong>Ngày bắt đầu:</strong> {new Date(selectedUserDetail.quitPlan.startDate).toLocaleDateString('vi-VN')}
+                              </div>
+                              <div className="col-md-4">
+                                <strong>Ngày mục tiêu:</strong> {new Date(selectedUserDetail.quitPlan.targetDate).toLocaleDateString('vi-VN')}
+                              </div>
+                              <div className="col-md-4">
+                                <strong>Tiến độ:</strong> {selectedUserDetail.quitPlan.progress}%
+                              </div>
+                            </div>
+                            <div className="mt-3">
+                              <strong>Chi tiết kế hoạch:</strong>
+                              <pre className="mt-2 bg-light p-3 rounded" style={{ whiteSpace: 'pre-wrap' }}>
+                                {selectedUserDetail.quitPlan.planDetail}
+                              </pre>
+                            </div>
+                          </div>
+                        </div>
                       )}
-                    </Paper>
+                    </div>
+                  ) : (
+                    <div className="d-flex justify-content-center align-items-center p-4">
+                      <span>Đang tải chi tiết người dùng...</span>
+                    </div>
                   )}
-                </>
-              )}
-            </Box>
-          ) : (
-            <Box display="flex" justifyContent="center" alignItems="center" p={4}>
-              <Typography>Đang tải chi tiết người dùng...</Typography>
-            </Box>
-          )}
-        </DialogContent>
-            <DialogActions sx={{ borderTop: '1px solid #eee', pt: 2 }}>
-              <Button onClick={handleCloseDetail} variant="contained" color="primary">
-                Đóng
-              </Button>
-            </DialogActions>
-          </Dialog>
+                </div>
+                <div className="modal-footer border-top">
+                  <button type="button" className="btn btn-primary" onClick={handleCloseDetail}>Đóng</button>
+                </div>
+              </div>
+            </div>
+          </div>
 
-          {/* Snackbar thông báo */}
-          <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={handleSnackbarClose}>
-            <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {/* Bootstrap Alert for notifications */}
+          {snackbar.open && (
+            <div className={`alert alert-${snackbar.severity} alert-dismissible fade show position-fixed top-0 end-0 m-4`} role="alert" style={{ zIndex: 2000, minWidth: 320 }}>
               {snackbar.message}
-            </Alert>
-          </Snackbar>
-        </Box>
-      </Container>
-    </Box>
+              <button type="button" className="btn-close" onClick={handleSnackbarClose}></button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 

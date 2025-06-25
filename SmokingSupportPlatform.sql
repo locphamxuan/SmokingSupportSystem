@@ -20,6 +20,8 @@ CREATE TABLE Users (
 );
 GO
 
+drop table UserStatistics
+
 -- SMOKING PROFILES
 CREATE TABLE SmokingProfiles (
     Id INT IDENTITY(1,1) PRIMARY KEY,
@@ -60,8 +62,10 @@ CREATE TABLE MembershipPackages (
     Name NVARCHAR(100) NOT NULL,
     Description NVARCHAR(255),
     Price INT NOT NULL,
-    DurationInDays INT NOT NULL
+    DurationInDays INT NOT NULL,
+    Features NVARCHAR(MAX)
 );
+GO
 
 -- QUIT PLANS
 CREATE TABLE QuitPlans (
@@ -229,10 +233,15 @@ INSERT INTO Users (Username, Password, Email, Role, IsMemberVip) VALUES
 (N'memberVip1', N'membervip123', N'membervip1@gmail.com', 'memberVip', 1);
 
 --- Dữ liệu mẫu cho MembershipPackages
-INSERT INTO MembershipPackages (Name, Description, Price, DurationInDays) VALUES
-(N'Gói cơ bản', N'Truy cập nội dung cơ bản và ghi nhận tiến trình cai thuốc.', 0, 0),
-(N'Gói VIP 1 tháng', N'Truy cập huấn luyện viên và theo dõi nâng cao trong 30 ngày.', 199000, 30),
-(N'Gói VIP 3 tháng', N'Hỗ trợ nâng cao trong 90 ngày với HLV.', 499000, 90);
+INSERT INTO MembershipPackages (Name, Description, Price, DurationInDays, Features) VALUES
+(N'Gói Thường', N'Gói cơ bản cho phép nhập thông tin hút thuốc và truy cập blog cộng đồng.', 0, 0, N'Nhập thông tin hút thuốc
+Truy cập blog chia sẻ kinh nghiệm từ cộng đồng');
+
+INSERT INTO MembershipPackages (Name, Description, Price, DurationInDays, Features) VALUES
+(N'Gói VIP', N'Gói cao cấp với đầy đủ tính năng, hỗ trợ huấn luyện viên và thành tích.', 199000, 30, N'Tất cả tính năng của gói Thường
+Chat với huấn luyện viên
+Đặt lịch hẹn
+Được trao thành tích khi đạt mốc');
 
 --- Dữ liệu mẫu cho SmokingProfiles
 INSERT INTO SmokingProfiles (UserId, CigarettesPerDay, CostPerPack, SmokingFrequency, HealthStatus, QuitReason) VALUES
@@ -329,3 +338,16 @@ Tháng 1: Chuẩn bị và giảm dần: Ghi chép hành vi hút thuốc, giảm
 Tháng 2: Cai hoàn toàn: Ngưng hút, sử dụng các công cụ hỗ trợ nếu cần. Ghi nhật ký cảm xúc.
 Tháng 3: Củng cố: Tập trung vào phát triển cá nhân, xử lý trigger tiềm ẩn. Tham gia nhóm hỗ trợ hoặc huấn luyện viên.'
 );
+
+-- Cập nhật đặc điểm cho các gói mẫu
+UPDATE MembershipPackages
+SET Features = N'Nhập thông tin hút thuốc
+Truy cập blog chia sẻ kinh nghiệm từ cộng đồng'
+WHERE Name LIKE N'%cơ bản%' OR Name LIKE N'%Thường%';
+
+UPDATE MembershipPackages
+SET Features = N'Tất cả tính năng của gói Thường
+Chat với huấn luyện viên
+Đặt lịch hẹn
+Được trao thành tích khi đạt mốc'
+WHERE Name LIKE N'%VIP%';
