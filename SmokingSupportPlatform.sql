@@ -168,7 +168,7 @@ CREATE TABLE Booking (
     CoachId INT,
     Slot NVARCHAR(20) NOT NULL CHECK (Slot IN ('7h-9h', '10h-12h', '13h-15h', '16h-18h')),
     SlotDate DATE NOT NULL,
-    Status NVARCHAR(50) DEFAULT N'đang chờ xác nhận',
+    Status NVARCHAR(50) DEFAULT N'đang chờ xác nhận' CHECK (Status IN (N'đang chờ xác nhận', N'khách hàng đã hủy', N'coach đã hủy', N'đã xác nhận')),
     Note NVARCHAR(MAX),
     CreatedAt DATETIME DEFAULT GETDATE(),
     FOREIGN KEY (MemberId) REFERENCES Users(Id),

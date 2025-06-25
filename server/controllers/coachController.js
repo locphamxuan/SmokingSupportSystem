@@ -58,32 +58,45 @@ const coachController = {
         try {
             const coachId = req.user.id;
             console.log(`[getAssignedMembers] Fetching assigned members for coach ID: ${coachId}`);
-            const members = await sql.query`
-                WITH RankedBookings AS (
-                    SELECT
-                        Id, MemberId, CoachId, SlotDate, Slot, Status,
-                        ROW_NUMBER() OVER (PARTITION BY MemberId ORDER BY CreatedAt DESC) as rn
-                    FROM Booking
-                    WHERE Status IN (N'đang chờ xác nhận', N'đã xác nhận', N'đã hủy') AND CoachId = ${coachId}
-                )
-                SELECT 
-                    u.Id, 
-                    u.Username, 
-                    u.Email, 
-                    u.PhoneNumber, 
-                    u.CreatedAt,
-                    u.IsMemberVip,
-                    rb.Id AS appointmentId, 
-                    rb.SlotDate AS appointmentSlotDate, 
-                    rb.Slot AS appointmentSlot,
-                    rb.Status AS appointmentStatus
-                FROM Users u
-                LEFT JOIN RankedBookings rb ON u.Id = rb.MemberId AND rb.rn = 1
-                WHERE u.CoachId = ${coachId}
+            // First get all VIP members assigned to this coach
+            const membersResult = await sql.query`
+                SELECT Id, Username, Email, PhoneNumber, CreatedAt, IsMemberVip
+                FROM Users 
+                WHERE CoachId = ${coachId} AND IsMemberVip = 1
             `;
 
-            // Format the output to match the MemberWithAppointment schema
-            const formattedMembers = members.recordset.map(member => ({
+            // Then get the latest booking for each member
+            const members = await Promise.all(
+                membersResult.recordset.map(async (member) => {
+                    const bookingResult = await sql.query`
+                        SELECT TOP 1 Id, SlotDate, Slot, Status, CreatedAt
+                        FROM Booking
+                        WHERE MemberId = ${member.Id} AND CoachId = ${coachId}
+                        ORDER BY CreatedAt DESC
+                    `;
+                    
+                    const latestBooking = bookingResult.recordset[0] || null;
+                    
+                    return {
+                        Id: member.Id,
+                        Username: member.Username,
+                        Email: member.Email,
+                        PhoneNumber: member.PhoneNumber,
+                        CreatedAt: member.CreatedAt,
+                        IsMemberVip: member.IsMemberVip,
+                        appointmentId: latestBooking?.Id || null,
+                        appointmentSlotDate: latestBooking?.SlotDate || null,
+                        appointmentSlot: latestBooking?.Slot || null,
+                        appointmentStatus: latestBooking?.Status || null
+                    };
+                })
+            );
+
+            // Convert to recordset format for compatibility
+            const mockSqlResult = { recordset: members };
+
+            // Format the output to match the MemberWithAppointment schema  
+            const formattedMembers = mockSqlResult.recordset.map(member => ({
                 Id: member.Id,
                 Username: member.Username,
                 Email: member.Email,
@@ -100,8 +113,17 @@ const coachController = {
                 } : null,
             }));
 
-            console.log('[getAssignedMembers] Raw SQL recordset:', JSON.stringify(members.recordset, null, 2));
+            console.log('[getAssignedMembers] Raw SQL recordset:', JSON.stringify(mockSqlResult.recordset, null, 2));
             console.log('[getAssignedMembers] Formatted members before sending:', JSON.stringify(formattedMembers, null, 2));
+            
+            // Debug: Check if appointments are being returned correctly
+            mockSqlResult.recordset.forEach(member => {
+                if (member.appointmentId) {
+                    console.log(`[getAssignedMembers] Member ${member.Username} has appointment ${member.appointmentId} with status: ${member.appointmentStatus}`);
+                } else {
+                    console.log(`[getAssignedMembers] Member ${member.Username} has no appointment`);
+                }
+            });
             res.json({ members: formattedMembers });
         } catch (error) {
             console.error('Error getting assigned members:', error);
@@ -208,10 +230,16 @@ const coachController = {
 
     getMemberProgress: async (req, res) => {
         try {
-            const memberId = req.params.memberId;
+            const memberId = parseInt(req.params.memberId); // Convert to integer
             const coachId = req.user.id;
 
-            console.log(`[getMemberProgress] Fetching progress for member ${memberId} by coach ${coachId}`);
+            console.log(`[getMemberProgress] Fetching progress for member ${memberId} (type: ${typeof memberId}) by coach ${coachId}`);
+            
+            // Validate memberId
+            if (isNaN(memberId) || memberId <= 0) {
+                console.log(`[getMemberProgress] Invalid memberId: ${req.params.memberId}`);
+                return res.status(400).json({ message: 'Invalid member ID' });
+            }
 
             // First check if the coach is assigned to this member
             const memberCheck = await sql.query`
@@ -220,9 +248,19 @@ const coachController = {
                 WHERE u.Id = ${memberId} AND u.CoachId = ${coachId}
             `;
             
+            console.log(`[getMemberProgress] Member check result:`, memberCheck.recordset);
+            
             if (memberCheck.recordset.length === 0) {
                 console.log(`[getMemberProgress] Member ${memberId} not assigned to coach ${coachId}`);
-                return res.status(403).json({ message: 'You do not have access to this member\'s progress' });
+                // Let's also check what members are actually assigned to this coach
+                const assignedMembersCheck = await sql.query`
+                    SELECT Id, Username, CoachId FROM Users WHERE CoachId = ${coachId}
+                `;
+                console.log(`[getMemberProgress] Members assigned to coach ${coachId}:`, assignedMembersCheck.recordset);
+                return res.status(403).json({ 
+                    message: 'You do not have access to this member\'s progress',
+                    assignedMembers: assignedMembersCheck.recordset
+                });
             }
 
             // Get smoking profile
@@ -245,50 +283,128 @@ const coachController = {
                 };
             }
 
-            // Get latest progress from SmokingDailyLog
-            const latestProgressResult = await sql.query`
-                SELECT TOP 1 LogDate, Cigarettes, Feeling 
+            // Get latest progress from SmokingDailyLog (by highest ID = most recent record)
+            console.log(`[getMemberProgress] Executing query to get latest progress for UserId: ${memberId}`);
+            
+            // First, let's see all records for this user to debug
+            const allRecordsResult = await sql.query`
+                SELECT Id, UserId, LogDate, Cigarettes, Feeling 
                 FROM SmokingDailyLog 
                 WHERE UserId = ${memberId}
-                ORDER BY LogDate DESC
+                ORDER BY Id DESC
             `;
+            console.log(`[getMemberProgress] ALL records for UserId ${memberId}:`, allRecordsResult.recordset);
+            
+            // Also check without UserId filter to see what's in the table
+            const debugAllResult = await sql.query`
+                SELECT TOP 10 Id, UserId, LogDate, Cigarettes, Feeling 
+                FROM SmokingDailyLog 
+                ORDER BY Id DESC
+            `;
+            console.log(`[getMemberProgress] DEBUG - Latest 10 records in SmokingDailyLog:`, debugAllResult.recordset);
+            
+            const latestProgressResult = await sql.query`
+                SELECT TOP 1 Id, LogDate, Cigarettes, Feeling 
+                FROM SmokingDailyLog 
+                WHERE UserId = ${memberId}
+                ORDER BY Id DESC
+            `;
+
+            console.log(`[getMemberProgress] SQL Query executed:`);
+            console.log(`[getMemberProgress] SELECT TOP 1 Id, LogDate, Cigarettes, Feeling FROM SmokingDailyLog WHERE UserId = ${memberId} ORDER BY Id DESC`);
+            console.log(`[getMemberProgress] Query returned ${latestProgressResult.recordset.length} records`);
+            console.log(`[getMemberProgress] Latest progress query result for member ${memberId}:`, latestProgressResult.recordset);
 
             let latestProgress = null;
             if (latestProgressResult.recordset.length > 0) {
                 const progress = latestProgressResult.recordset[0];
                 latestProgress = {
+                    id: progress.Id,
                     date: progress.LogDate,
                     cigarettes: progress.Cigarettes,
                     feeling: progress.Feeling
                 };
+                console.log(`[getMemberProgress] Latest progress formatted:`, latestProgress);
+            } else {
+                console.log(`[getMemberProgress] No progress data found for member ${memberId}`);
             }
 
-            // Get quit plan
-            const quitPlanResult = await sql.query`
-                SELECT TOP 1 StartDate, TargetDate, PlanType, Status, PlanDetail, 
-                       InitialCigarettes, DailyReduction, Milestones
+            // Get quit plan from both QuitPlans and UserSuggestedQuitPlans
+            console.log(`[getMemberProgress] Fetching quit plan for member ${memberId}`);
+            
+            let quitPlan = null;
+            
+            // First try to get from QuitPlans (custom plans)
+            const customQuitPlanResult = await sql.query`
+                SELECT TOP 1 StartDate, TargetDate, PlanDetail, 
+                       InitialCigarettes, DailyReduction, UserId, CoachId
                 FROM QuitPlans 
                 WHERE UserId = ${memberId}
                 ORDER BY CreatedAt DESC
             `;
-
-            const quitPlan = quitPlanResult.recordset[0] ? {
-                startDate: quitPlanResult.recordset[0].StartDate ? quitPlanResult.recordset[0].StartDate.toISOString().slice(0, 10) : null,
-                targetDate: quitPlanResult.recordset[0].TargetDate ? quitPlanResult.recordset[0].TargetDate.toISOString().slice(0, 10) : null,
-                planType: quitPlanResult.recordset[0].PlanType,
-                initialCigarettes: quitPlanResult.recordset[0].InitialCigarettes,
-                dailyReduction: quitPlanResult.recordset[0].DailyReduction,
-                milestones: (() => {
+            
+            console.log(`[getMemberProgress] Custom QuitPlan result for UserId ${memberId}:`, customQuitPlanResult.recordset);
+            
+            if (customQuitPlanResult.recordset.length > 0) {
+                const plan = customQuitPlanResult.recordset[0];
+                quitPlan = {
+                    startDate: plan.StartDate ? plan.StartDate.toISOString().slice(0, 10) : null,
+                    targetDate: plan.TargetDate ? plan.TargetDate.toISOString().slice(0, 10) : null,
+                    planType: 'custom',
+                    initialCigarettes: plan.InitialCigarettes || 0,
+                    dailyReduction: plan.DailyReduction || 0,
+                    milestones: [], // QuitPlans không có milestones column
+                    status: 'active', // Default status
+                    planDetail: plan.PlanDetail || '',
+                    planSource: 'custom'
+                };
+            } else {
+                // If no custom plan, try to get from UserSuggestedQuitPlans
+                const suggestedQuitPlanResult = await sql.query`
+                    SELECT TOP 1 usp.StartDate, usp.TargetDate, usp.Status, usp.SuggestedPlanId, usp.UserId
+                    FROM UserSuggestedQuitPlans usp
+                    WHERE usp.UserId = ${memberId}
+                    ORDER BY usp.CreatedAt DESC
+                `;
+                
+                console.log(`[getMemberProgress] UserSuggestedQuitPlans query result:`, suggestedQuitPlanResult.recordset);
+                
+                // If we found a suggested plan, get details from SuggestedQuitPlans
+                let suggestedPlanDetails = null;
+                if (suggestedQuitPlanResult.recordset.length > 0) {
+                    const userPlan = suggestedQuitPlanResult.recordset[0];
                     try {
-                        return JSON.parse(quitPlanResult.recordset[0].Milestones || '[]');
-                    } catch (e) {
-                        console.error("Error parsing milestones JSON:", e);
-                        return []; // Default to empty array if parsing fails
+                        const planDetailsResult = await sql.query`
+                            SELECT PlanDetail, InitialCigarettes, DailyReduction
+                            FROM SuggestedQuitPlans 
+                            WHERE Id = ${userPlan.SuggestedPlanId}
+                        `;
+                        
+                        console.log(`[getMemberProgress] SuggestedQuitPlans details result:`, planDetailsResult.recordset);
+                        suggestedPlanDetails = planDetailsResult.recordset[0] || {};
+                    } catch (planDetailsError) {
+                        console.error('[getMemberProgress] Error getting suggested plan details:', planDetailsError);
+                        suggestedPlanDetails = {};
                     }
-                })(),
-                status: quitPlanResult.recordset[0].Status,
-                planDetail: quitPlanResult.recordset[0].PlanDetail,
-            } : null;
+                }
+                
+                if (suggestedQuitPlanResult.recordset.length > 0 && suggestedPlanDetails) {
+                    const plan = suggestedQuitPlanResult.recordset[0];
+                    quitPlan = {
+                        startDate: plan.StartDate ? plan.StartDate.toISOString().slice(0, 10) : null,
+                        targetDate: plan.TargetDate ? plan.TargetDate.toISOString().slice(0, 10) : null,
+                        planType: 'suggested',
+                        initialCigarettes: suggestedPlanDetails.InitialCigarettes || 0,
+                        dailyReduction: suggestedPlanDetails.DailyReduction || 0,
+                        milestones: [], // SuggestedQuitPlans không có milestones
+                        status: plan.Status || 'active',
+                        planDetail: suggestedPlanDetails.PlanDetail || 'Kế hoạch được gợi ý từ hệ thống',
+                        planSource: 'suggested'
+                    };
+                }
+            }
+            
+            console.log(`[getMemberProgress] Final quitPlan object:`, quitPlan);
 
             const responseData = {
                 smokingProfile: smokingProfile,
@@ -303,6 +419,52 @@ const coachController = {
             console.error('[getMemberProgress] Error getting member progress:', error);
             console.error('[getMemberProgress] Error stack:', error.stack);
             res.status(500).json({ message: 'Failed to get member progress', error: error.message });
+        }
+    },
+
+    getMemberSmokingHistory: async (req, res) => {
+        try {
+            const memberId = parseInt(req.params.memberId);
+            const coachId = req.user.id;
+
+            console.log(`[getMemberSmokingHistory] Fetching smoking history for member ${memberId} by coach ${coachId}`);
+            
+            // Validate memberId
+            if (isNaN(memberId) || memberId <= 0) {
+                console.log(`[getMemberSmokingHistory] Invalid memberId: ${req.params.memberId}`);
+                return res.status(400).json({ message: 'Invalid member ID' });
+            }
+
+            // Check if the coach is assigned to this member
+            const memberCheck = await sql.query`
+                SELECT Id, Username, CoachId 
+                FROM Users 
+                WHERE Id = ${memberId} AND CoachId = ${coachId}
+            `;
+            
+            if (memberCheck.recordset.length === 0) {
+                console.log(`[getMemberSmokingHistory] Member ${memberId} not assigned to coach ${coachId}`);
+                return res.status(403).json({ message: 'You do not have access to this member\'s data' });
+            }
+
+            // Get smoking history
+            const historyResult = await sql.query`
+                SELECT LogDate as Date, Cigarettes, Feeling
+                FROM SmokingDailyLog 
+                WHERE UserId = ${memberId}
+                ORDER BY LogDate DESC
+            `;
+
+            console.log(`[getMemberSmokingHistory] Found ${historyResult.recordset.length} history records for member ${memberId}`);
+            
+            res.json({ 
+                history: historyResult.recordset || []
+            });
+
+        } catch (error) {
+            console.error('[getMemberSmokingHistory] Error getting member smoking history:', error);
+            console.error('[getMemberSmokingHistory] Error stack:', error.stack);
+            res.status(500).json({ message: 'Failed to get member smoking history', error: error.message });
         }
     }
 };

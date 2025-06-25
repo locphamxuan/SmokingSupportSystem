@@ -60,17 +60,66 @@ export async function getDailyLog() {
   if (!res.ok) throw new Error('Failed to fetch daily log');
   return res.json();
 }
-export async function addDailyLog({ cigarettes, feeling, logDate }) {
+
+export async function addDailyLog({ cigarettes, feeling, logDate, planId, suggestedPlanId }) {
+  console.log('🚀 [addDailyLog] ===================');
+  console.log('🚀 [addDailyLog] Input parameters:', { cigarettes, feeling, logDate, planId, suggestedPlanId });
+  console.log('🚀 [addDailyLog] cigarettes type:', typeof cigarettes, 'value:', cigarettes);
+  
+  const payload = { 
+    cigarettes, 
+    feeling, 
+    logDate 
+  };
+  
+  // Thêm planId hoặc suggestedPlanId nếu có
+  if (planId) {
+    payload.planId = planId;
+  }
+  if (suggestedPlanId) {
+    payload.suggestedPlanId = suggestedPlanId;
+  }
+
+  console.log('📦 [addDailyLog] Final payload:', payload);
+  console.log('📦 [addDailyLog] Payload JSON:', JSON.stringify(payload));
+  
+  const token = getToken();
+  console.log('🔑 [addDailyLog] Token exists:', !!token);
+  console.log('🔑 [addDailyLog] Token length:', token ? token.length : 0);
+
   const res = await fetch(`${API_BASE}/daily-log`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${getToken()}`
+      Authorization: `Bearer ${token}`
     },
-    body: JSON.stringify({ cigarettes, feeling, logDate })
+    body: JSON.stringify(payload)
   });
-  if (!res.ok) throw new Error('Failed to add daily log');
-  return res.json();
+  
+  console.log('📡 [addDailyLog] Response status:', res.status);
+  console.log('📡 [addDailyLog] Response OK:', res.ok);
+  
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error('❌ [addDailyLog] Error response text:', errorText);
+    
+    let errorData = {};
+    try {
+      errorData = JSON.parse(errorText);
+      console.error('❌ [addDailyLog] Error response JSON:', errorData);
+    } catch (e) {
+      console.error('❌ [addDailyLog] Failed to parse error response as JSON:', e);
+      errorData = { message: errorText };
+    }
+    
+    console.log('🚀 [addDailyLog] =================== ERROR END');
+    throw new Error(errorData.message || 'Failed to add daily log');
+  }
+  
+  const responseData = await res.json();
+  console.log('✅ [addDailyLog] Success response:', responseData);
+  console.log('🚀 [addDailyLog] =================== SUCCESS END');
+  return responseData;
 }
 
 // Membership Packages

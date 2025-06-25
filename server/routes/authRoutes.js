@@ -9,6 +9,9 @@ const rankingController = require('../controllers/rankingController');
 const dailyLogController = require('../controllers/dailyLogController');
 const membershipController = require('../controllers/membershipController');
 
+// Test database connection
+router.get('/test-db', dailyLogController.testConnection);
+
 // Các tuyến đường công khai (không yêu cầu xác thực)
 router.post('/login', authController.login);
 router.post('/register', authController.register);
@@ -58,6 +61,12 @@ router.get('/quit-plan/suggested', authenticateToken, authController.getSuggeste
 
 // New route for user suggested quit plan
 router.post('/user-suggested-quit-plan', authenticateToken, authController.createUserSuggestedQuitPlan);
+
+// Route for creating custom quit plan (for VIP members)
+router.post('/create-quit-plan', authenticateToken, authController.createQuitPlan);
+
+// Route for getting custom quit plan
+router.get('/custom-quit-plan', authenticateToken, authController.getCustomQuitPlan);
 
 // Badge routes
 router.get('/user-badges/:userId', authenticateToken, authController.getUserBadgesByUserId);

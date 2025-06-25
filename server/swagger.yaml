@@ -155,7 +155,7 @@ components:
           format: date
         status:
           type: string
-          enum: [đang chờ xác nhận, đã xác nhận, người dùng đã hủy, coach đã hủy]
+          enum: [đang chờ xác nhận, đã xác nhận, khách hàng đã hủy, coach đã hủy]
         note:
           type: string
         createdAt:

@@ -18,5 +18,7 @@ router.get('/members', authenticateToken, isCoach, coachController.getAssignedMe
 router.post('/award-badge', authenticateToken, isCoach, coachController.awardBadgeToMember);
 // Member progress with authentication
 router.get('/member/:memberId/progress', authenticateToken, isCoach, coachController.getMemberProgress);
+// Member smoking history
+router.get('/member/:memberId/smoking-history', authenticateToken, isCoach, coachController.getMemberSmokingHistory);
 
 module.exports = router;
