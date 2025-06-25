@@ -137,10 +137,10 @@ const bookingController = {
                 return res.status(400).json({ message: 'Không thể hủy lịch hẹn ở trạng thái này' });
             }
 
-            // Cập nhật trạng thái lịch hẹn thành 'đã hủy'
+            // Cập nhật trạng thái lịch hẹn thành 'coach đã hủy'
             await sql.query`
                 UPDATE Booking 
-                SET Status = N'đã hủy'
+                SET Status = N'coach đã hủy'
                 WHERE Id = ${bookingId}
             `;
 
@@ -148,11 +148,89 @@ const bookingController = {
                 message: 'Hủy lịch hẹn thành công',
                 booking: {
                     ...booking,
-                    Status: 'đã hủy'
+                    Status: 'coach đã hủy'
                 }
             });
         } catch (error) {
             console.error('Cancel booking error:', error);
+            res.status(500).json({ message: 'Không thể hủy lịch hẹn', error: error.message });
+        }
+    },
+
+    getUserBookingHistory: async (req, res) => {
+        try {
+            const memberId = req.user.id;
+            console.log(`[getUserBookingHistory] Fetching booking history for memberId: ${memberId}`);
+
+            // Lấy lịch sử đặt lịch của member
+            const bookingHistory = await sql.query`
+                SELECT 
+                    b.Id,
+                    b.Slot,
+                    b.SlotDate,
+                    b.Status,
+                    b.Note,
+                    b.CreatedAt,
+                    u.Username AS CoachName
+                FROM Booking b
+                LEFT JOIN Users u ON b.CoachId = u.Id
+                WHERE b.MemberId = ${memberId}
+                ORDER BY b.SlotDate DESC, b.CreatedAt DESC
+            `;
+
+            console.log(`[getUserBookingHistory] Found ${bookingHistory.recordset.length} bookings for memberId: ${memberId}`);
+            console.log(`[getUserBookingHistory] Booking data:`, JSON.stringify(bookingHistory.recordset, null, 2));
+
+            res.status(200).json({ 
+                message: 'Lấy lịch sử đặt lịch thành công',
+                bookings: bookingHistory.recordset
+            });
+        } catch (error) {
+            console.error('Get booking history error:', error);
+            res.status(500).json({ message: 'Không thể lấy lịch sử đặt lịch', error: error.message });
+        }
+    },
+
+    cancelBookingByMember: async (req, res) => {
+        try {
+            const { bookingId } = req.params;
+            const memberId = req.user.id;
+
+            // Kiểm tra xem lịch hẹn có tồn tại và thuộc về member này không
+            const bookingCheck = await sql.query`
+                SELECT b.*, u.Username AS CoachName 
+                FROM Booking b
+                LEFT JOIN Users u ON b.CoachId = u.Id
+                WHERE b.Id = ${bookingId} AND b.MemberId = ${memberId}
+            `;
+
+            if (bookingCheck.recordset.length === 0) {
+                return res.status(404).json({ message: 'Không tìm thấy lịch hẹn hoặc bạn không có quyền hủy lịch hẹn này' });
+            }
+
+            const booking = bookingCheck.recordset[0];
+
+            // Kiểm tra xem lịch hẹn đã ở trạng thái hợp lệ để hủy chưa
+            if (booking.Status !== 'đang chờ xác nhận' && booking.Status !== 'đã xác nhận') {
+                return res.status(400).json({ message: 'Không thể hủy lịch hẹn ở trạng thái này' });
+            }
+
+            // Cập nhật trạng thái lịch hẹn thành 'khách hàng đã hủy'
+            await sql.query`
+                UPDATE Booking 
+                SET Status = N'khách hàng đã hủy'
+                WHERE Id = ${bookingId}
+            `;
+
+            res.status(200).json({ 
+                message: 'Hủy lịch hẹn thành công',
+                booking: {
+                    ...booking,
+                    Status: 'khách hàng đã hủy'
+                }
+            });
+        } catch (error) {
+            console.error('Member cancel booking error:', error);
             res.status(500).json({ message: 'Không thể hủy lịch hẹn', error: error.message });
         }
     }

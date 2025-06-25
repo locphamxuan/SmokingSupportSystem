@@ -222,18 +222,32 @@ const CoachMemberProgressPage = () => {
 
         {/* Nhật ký tiến trình mới nhất */}
         <div className="card my-4">
-          <div className="card-header">
-            <h5>📈 Nhật ký tiến trình mới nhất</h5>
+          <div className="card-header d-flex justify-content-between align-items-center">
+            <h5 className="mb-0">📈 Nhật ký tiến trình mới nhất</h5>
+            {latestProgress && (
+              <small className="text-light">
+                ID: #{latestProgress.id} | Cập nhật gần nhất
+              </small>
+            )}
           </div>
           <div className="card-body">
             {latestProgress ? (
               <div className="row mt-2">
                 <div className="col-md-6">
-                  <p><b>Ngày:</b> {latestProgress.date ? new Date(latestProgress.date).toLocaleDateString() : 'Chưa có'}</p>
-                  <p><b>Số điếu hút:</b> {latestProgress.cigarettes || 0}</p>
+                  <p><b>Ngày ghi nhận:</b> {latestProgress.date ? new Date(latestProgress.date).toLocaleDateString('vi-VN') : 'Chưa có'}</p>
+                  <p><b>Số điếu hút:</b> 
+                    <span className={`badge ms-2 ${latestProgress.cigarettes === 0 ? 'bg-success' : latestProgress.cigarettes <= 5 ? 'bg-warning' : 'bg-danger'}`}>
+                      {latestProgress.cigarettes || 0} điếu
+                    </span>
+                  </p>
                 </div>
                 <div className="col-md-6">
-                  <p><b>Cảm nhận:</b> {latestProgress.feeling || 'Không có'}</p>
+                  <p><b>Cảm nhận:</b> {latestProgress.feeling || 'Không có ghi chú'}</p>
+                  <p><b>Trạng thái:</b> 
+                    <span className={`badge ms-2 ${latestProgress.cigarettes === 0 ? 'bg-success' : 'bg-primary'}`}>
+                      {latestProgress.cigarettes === 0 ? '🎉 Không hút thuốc' : '📝 Có hút thuốc'}
+                    </span>
+                  </p>
                 </div>
               </div>
             ) : (

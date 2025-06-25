@@ -58,32 +58,45 @@ const coachController = {
         try {
             const coachId = req.user.id;
             console.log(`[getAssignedMembers] Fetching assigned members for coach ID: ${coachId}`);
-            const members = await sql.query`
-                WITH RankedBookings AS (
-                    SELECT
-                        Id, MemberId, CoachId, SlotDate, Slot, Status,
-                        ROW_NUMBER() OVER (PARTITION BY MemberId ORDER BY CreatedAt DESC) as rn
-                    FROM Booking
-                    WHERE Status IN (N'đang chờ xác nhận', N'đã xác nhận', N'đã hủy') AND CoachId = ${coachId}
-                )
-                SELECT 
-                    u.Id, 
-                    u.Username, 
-                    u.Email, 
-                    u.PhoneNumber, 
-                    u.CreatedAt,
-                    u.IsMemberVip,
-                    rb.Id AS appointmentId, 
-                    rb.SlotDate AS appointmentSlotDate, 
-                    rb.Slot AS appointmentSlot,
-                    rb.Status AS appointmentStatus
-                FROM Users u
-                LEFT JOIN RankedBookings rb ON u.Id = rb.MemberId AND rb.rn = 1
-                WHERE u.CoachId = ${coachId}
+            // First get all members assigned to this coach
+            const membersResult = await sql.query`
+                SELECT Id, Username, Email, PhoneNumber, CreatedAt, IsMemberVip
+                FROM Users 
+                WHERE CoachId = ${coachId}
             `;
 
-            // Format the output to match the MemberWithAppointment schema
-            const formattedMembers = members.recordset.map(member => ({
+            // Then get the latest booking for each member
+            const members = await Promise.all(
+                membersResult.recordset.map(async (member) => {
+                    const bookingResult = await sql.query`
+                        SELECT TOP 1 Id, SlotDate, Slot, Status, CreatedAt
+                        FROM Booking
+                        WHERE MemberId = ${member.Id} AND CoachId = ${coachId}
+                        ORDER BY CreatedAt DESC
+                    `;
+                    
+                    const latestBooking = bookingResult.recordset[0] || null;
+                    
+                    return {
+                        Id: member.Id,
+                        Username: member.Username,
+                        Email: member.Email,
+                        PhoneNumber: member.PhoneNumber,
+                        CreatedAt: member.CreatedAt,
+                        IsMemberVip: member.IsMemberVip,
+                        appointmentId: latestBooking?.Id || null,
+                        appointmentSlotDate: latestBooking?.SlotDate || null,
+                        appointmentSlot: latestBooking?.Slot || null,
+                        appointmentStatus: latestBooking?.Status || null
+                    };
+                })
+            );
+
+            // Convert to recordset format for compatibility
+            const mockSqlResult = { recordset: members };
+
+            // Format the output to match the MemberWithAppointment schema  
+            const formattedMembers = mockSqlResult.recordset.map(member => ({
                 Id: member.Id,
                 Username: member.Username,
                 Email: member.Email,
@@ -100,8 +113,17 @@ const coachController = {
                 } : null,
             }));
 
-            console.log('[getAssignedMembers] Raw SQL recordset:', JSON.stringify(members.recordset, null, 2));
+            console.log('[getAssignedMembers] Raw SQL recordset:', JSON.stringify(mockSqlResult.recordset, null, 2));
             console.log('[getAssignedMembers] Formatted members before sending:', JSON.stringify(formattedMembers, null, 2));
+            
+            // Debug: Check if appointments are being returned correctly
+            mockSqlResult.recordset.forEach(member => {
+                if (member.appointmentId) {
+                    console.log(`[getAssignedMembers] Member ${member.Username} has appointment ${member.appointmentId} with status: ${member.appointmentStatus}`);
+                } else {
+                    console.log(`[getAssignedMembers] Member ${member.Username} has no appointment`);
+                }
+            });
             res.json({ members: formattedMembers });
         } catch (error) {
             console.error('Error getting assigned members:', error);
@@ -208,10 +230,16 @@ const coachController = {
 
     getMemberProgress: async (req, res) => {
         try {
-            const memberId = req.params.memberId;
+            const memberId = parseInt(req.params.memberId); // Convert to integer
             const coachId = req.user.id;
 
-            console.log(`[getMemberProgress] Fetching progress for member ${memberId} by coach ${coachId}`);
+            console.log(`[getMemberProgress] Fetching progress for member ${memberId} (type: ${typeof memberId}) by coach ${coachId}`);
+            
+            // Validate memberId
+            if (isNaN(memberId) || memberId <= 0) {
+                console.log(`[getMemberProgress] Invalid memberId: ${req.params.memberId}`);
+                return res.status(400).json({ message: 'Invalid member ID' });
+            }
 
             // First check if the coach is assigned to this member
             const memberCheck = await sql.query`
@@ -245,22 +273,50 @@ const coachController = {
                 };
             }
 
-            // Get latest progress from SmokingDailyLog
-            const latestProgressResult = await sql.query`
-                SELECT TOP 1 LogDate, Cigarettes, Feeling 
+            // Get latest progress from SmokingDailyLog (by highest ID = most recent record)
+            console.log(`[getMemberProgress] Executing query to get latest progress for UserId: ${memberId}`);
+            
+            // First, let's see all records for this user to debug
+            const allRecordsResult = await sql.query`
+                SELECT Id, UserId, LogDate, Cigarettes, Feeling 
                 FROM SmokingDailyLog 
                 WHERE UserId = ${memberId}
-                ORDER BY LogDate DESC
+                ORDER BY Id DESC
             `;
+            console.log(`[getMemberProgress] ALL records for UserId ${memberId}:`, allRecordsResult.recordset);
+            
+            // Also check without UserId filter to see what's in the table
+            const debugAllResult = await sql.query`
+                SELECT TOP 10 Id, UserId, LogDate, Cigarettes, Feeling 
+                FROM SmokingDailyLog 
+                ORDER BY Id DESC
+            `;
+            console.log(`[getMemberProgress] DEBUG - Latest 10 records in SmokingDailyLog:`, debugAllResult.recordset);
+            
+            const latestProgressResult = await sql.query`
+                SELECT TOP 1 Id, LogDate, Cigarettes, Feeling 
+                FROM SmokingDailyLog 
+                WHERE UserId = ${memberId}
+                ORDER BY Id DESC
+            `;
+
+            console.log(`[getMemberProgress] SQL Query executed:`);
+            console.log(`[getMemberProgress] SELECT TOP 1 Id, LogDate, Cigarettes, Feeling FROM SmokingDailyLog WHERE UserId = ${memberId} ORDER BY Id DESC`);
+            console.log(`[getMemberProgress] Query returned ${latestProgressResult.recordset.length} records`);
+            console.log(`[getMemberProgress] Latest progress query result for member ${memberId}:`, latestProgressResult.recordset);
 
             let latestProgress = null;
             if (latestProgressResult.recordset.length > 0) {
                 const progress = latestProgressResult.recordset[0];
                 latestProgress = {
+                    id: progress.Id,
                     date: progress.LogDate,
                     cigarettes: progress.Cigarettes,
                     feeling: progress.Feeling
                 };
+                console.log(`[getMemberProgress] Latest progress formatted:`, latestProgress);
+            } else {
+                console.log(`[getMemberProgress] No progress data found for member ${memberId}`);
             }
 
             // Get quit plan

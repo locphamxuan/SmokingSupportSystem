@@ -13,8 +13,15 @@ const authenticateToken = async (req, res, next) => {
         }
 
         const decoded = jwt.verify(token, SECRET_KEY);
+        console.log('[authenticateToken] Decoded token:', decoded);
         
-        const userId = decoded.userId;
+        const userId = decoded.userId || decoded.id;
+        console.log('[authenticateToken] Using userId:', userId);
+
+        if (!userId) {
+            console.error('[authenticateToken] No userId found in token');
+            return res.status(401).json({ message: 'Invalid token: no user ID' });
+        }
 
         // Lấy dữ liệu người dùng từ cơ sở dữ liệu
         const result = await sql.query`
