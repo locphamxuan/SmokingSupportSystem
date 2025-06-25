@@ -88,9 +88,11 @@ const CommunityPage = () => {
                 Nơi chia sẻ câu chuyện, kinh nghiệm và tạo động lực.
               </p>
             </div>
-            <Link to="/create-post" className="btn btn-primary btn-lg">
-              <i className="fas fa-plus me-2"></i>Tạo bài viết
-            </Link>
+            {user && user.role !== 'admin' && (
+              <Link to="/create-post" className="btn btn-primary btn-lg">
+                <i className="fas fa-plus me-2"></i>Tạo bài viết
+              </Link>
+            )}
           </div>
           
           <hr className="mb-4"/>
@@ -215,7 +217,7 @@ const CommentsDisplay = ({ postId, user }) => {
         )
       )}
 
-      {user && (
+      {user && user.role !== 'admin' && (
         <div className="mt-2"> 
           <Form.Control
             as="textarea"

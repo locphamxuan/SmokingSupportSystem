@@ -1,0 +1,89 @@
+// Style cho trang quản lý gói thành viên VIP
+.admin-package-page {
+  background: #f8f9fa;
+  min-height: 100vh;
+  padding: 32px 0;
+
+  h2 {
+    font-weight: 700;
+    margin-bottom: 24px;
+    color: #1976d2;
+  }
+
+  form {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    padding: 24px 16px 8px 16px;
+    margin-bottom: 32px;
+    .form-label {
+      font-weight: 600;
+      color: #333;
+    }
+    textarea.form-control {
+      min-height: 80px;
+      font-family: inherit;
+      font-size: 15px;
+      resize: vertical;
+    }
+    button {
+      min-width: 110px;
+      font-weight: 600;
+      font-size: 16px;
+    }
+  }
+
+  table {
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    th, td {
+      vertical-align: middle;
+      font-size: 15px;
+      white-space: pre-line;
+    }
+    th {
+      background: #e3f0fa;
+      font-weight: 700;
+      color: #1976d2;
+      text-align: center;
+    }
+    td {
+      text-align: left;
+      &.actions {
+        text-align: center;
+      }
+    }
+    ul {
+      margin: 0;
+      padding-left: 18px;
+      li {
+        margin-bottom: 2px;
+        font-size: 15px;
+        line-height: 1.5;
+        word-break: break-word;
+      }
+    }
+  }
+
+  .btn {
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 15px;
+    &.btn-warning {
+      background: #ffe082;
+      color: #333;
+      border: none;
+      margin-bottom: 4px;
+    }
+    &.btn-danger {
+      background: #ff5252;
+      color: #fff;
+      border: none;
+    }
+    &:hover {
+      opacity: 0.92;
+    }
+  }
+} 

@@ -1,0 +1,134 @@
+// Custom styles for AdminUserPage member detail cards
+.member-detail-card {
+  border-radius: 1.25rem;
+  overflow: hidden;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  transition: box-shadow 0.2s;
+  background: #fff;
+  padding: 0;
+  &:hover {
+    box-shadow: 0 6px 24px rgba(0,0,0,0.13);
+  }
+  .section-label {
+    font-weight: 700;
+    font-size: 1.18em;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    letter-spacing: 0.01em;
+    i {
+      font-size: 1.3em;
+      vertical-align: middle;
+    }
+  }
+  .info-row {
+    margin-bottom: 0.5em;
+    line-height: 1.8;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 0.2em;
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+  .info-label {
+    color: #7a7a7a;
+    font-size: 1em;
+    font-weight: 500;
+    margin-right: 0.5em;
+    text-transform: capitalize;
+    min-width: 90px;
+  }
+  .info-value {
+    color: #222;
+    font-weight: 700;
+    font-size: 1.09em;
+    word-break: break-word;
+  }
+  .badge {
+    font-size: 1.08em;
+    padding: 0.5em 1.2em;
+    border-radius: 1.5em;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin-top: 0.2em;
+    margin-bottom: 0.2em;
+  }
+  .bg-light {
+    background: #f6fafd !important;
+  }
+  .bg-success-subtle {
+    background: #e6f7ec !important;
+  }
+  .bg-warning-subtle {
+    background: #fffbe7 !important;
+  }
+  @media (max-width: 767px) {
+    .section-label {
+      font-size: 1.05em;
+      margin-bottom: 0.7em;
+    }
+    .info-row {
+      font-size: 0.98em;
+      padding-bottom: 0.15em;
+    }
+    .info-label {
+      min-width: 70px;
+      font-size: 0.97em;
+    }
+    .info-value {
+      font-size: 1em;
+    }
+    .badge {
+      font-size: 0.98em;
+      padding: 0.4em 1em;
+    }
+    .col-md-3, .col-md-4, .col-md-5 {
+      border-right: none !important;
+      border-bottom: 1px solid #e0e0e0;
+      margin-bottom: 1em;
+    }
+    .col-md-4:last-child, .col-md-5:last-child, .col-md-3:last-child {
+      border-bottom: none !important;
+    }
+  }
+}
+
+.smoking-info-table {
+  .info-row {
+    margin-bottom: 0.3em;
+    padding-bottom: 0.1em;
+    border-bottom: none;
+    align-items: center;
+  }
+  .info-label {
+    color: #7a7a7a;
+    font-size: 0.98em;
+    font-weight: 500;
+    min-width: 90px;
+    text-align: right;
+    padding-right: 0.5em;
+    white-space: nowrap;
+  }
+  .info-value {
+    color: #222;
+    font-weight: 700;
+    font-size: 1.08em;
+    word-break: break-word;
+    text-align: left;
+  }
+  @media (max-width: 767px) {
+    .info-label {
+      min-width: 70px;
+      font-size: 0.97em;
+      text-align: left;
+      padding-right: 0.3em;
+    }
+    .info-value {
+      font-size: 1em;
+    }
+  }
+} 

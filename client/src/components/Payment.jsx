@@ -14,6 +14,7 @@ import {
   Typography,
   Grid
 } from '@mui/material';
+import qrImage from '../assets/images/mãQRTPBank.jpg';
 
 const Payment = ({ open, onClose, onSuccess }) => {
   const [paymentInfo, setPaymentInfo] = useState({
@@ -179,6 +180,22 @@ const Payment = ({ open, onClose, onSuccess }) => {
             )}
           </FormControl>
         );
+      case 'vietqr':
+        return (
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            <Typography variant="subtitle1" sx={{ mb: 1 }}>
+              Quét mã QR bên dưới để chuyển khoản
+            </Typography>
+            <img
+              src={qrImage}
+              alt="VietQR"
+              style={{ width: 240, height: 240, borderRadius: 8, background: '#fff', margin: '0 auto' }}
+            />
+            <Typography variant="body2" sx={{ mt: 2 }}>
+              Sau khi chuyển khoản thành công, vui lòng bấm nút xác nhận bên dưới.
+            </Typography>
+          </Box>
+        );
       default:
         return null;
     }
@@ -205,6 +222,7 @@ const Payment = ({ open, onClose, onSuccess }) => {
               <MenuItem value="credit">Thẻ tín dụng</MenuItem>
               <MenuItem value="momo">Ví MoMo</MenuItem>
               <MenuItem value="vnpay">VNPay</MenuItem>
+              <MenuItem value="vietqr">Chuyển khoản VietQR</MenuItem>
             </Select>
           </FormControl>
 
@@ -231,7 +249,9 @@ const Payment = ({ open, onClose, onSuccess }) => {
           variant="contained" 
           disabled={loading}
         >
-          {loading ? 'Đang xử lý...' : 'Thanh toán 199.000đ'}
+          {paymentInfo.paymentMethod === 'vietqr'
+            ? (loading ? 'Đang xác nhận...' : 'Tôi đã chuyển khoản')
+            : (loading ? 'Đang xử lý...' : 'Thanh toán 199.000đ')}
         </Button>
       </DialogActions>
     </Dialog>

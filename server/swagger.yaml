@@ -337,6 +337,11 @@ components:
           type: number
         durationInDays:
           type: integer
+        features:
+          type: array
+          items:
+            type: string
+          description: Danh sách đặc điểm/tính năng của gói (mỗi phần tử là 1 dòng)
     UserSuggestedQuitPlan:
       type: object
       properties:
@@ -1357,5 +1362,117 @@ paths:
           description: Dữ liệu không hợp lệ
         '401':
           description: Unauthorized
+        '500':
+          description: Server error
+
+  /admin/packages:
+    get:
+      tags:
+        - Admin
+      summary: Get all membership packages (admin)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Membership packages retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MembershipPackage'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '500':
+          description: Server error
+    post:
+      tags:
+        - Admin
+      summary: Create a new membership package
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MembershipPackage'
+      responses:
+        '201':
+          description: Membership package created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MembershipPackage'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '500':
+          description: Server error
+
+  /admin/packages/{id}:
+    put:
+      tags:
+        - Admin
+      summary: Update a membership package
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID of the membership package to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MembershipPackage'
+      responses:
+        '200':
+          description: Membership package updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MembershipPackage'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Membership package not found
+        '500':
+          description: Server error
+    delete:
+      tags:
+        - Admin
+      summary: Delete a membership package
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID of the membership package to delete
+      responses:
+        '200':
+          description: Membership package deleted successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Membership package not found
         '500':
           description: Server error 
