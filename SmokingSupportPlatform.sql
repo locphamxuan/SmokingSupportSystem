@@ -145,7 +145,9 @@ CREATE TABLE Posts (
     Content NVARCHAR(MAX) NOT NULL,
     CreatedAt DATETIME DEFAULT GETDATE(),
     Status NVARCHAR(20) DEFAULT 'chờ duyệt',
-    FOREIGN KEY (UserId) REFERENCES Users(Id)
+    BadgeId INT NULL,
+    FOREIGN KEY (UserId) REFERENCES Users(Id),
+    FOREIGN KEY (BadgeId) REFERENCES Badges(Id)
 );
 GO
 
@@ -270,8 +272,8 @@ INSERT INTO UserBadges (UserId, BadgeId, AwardedAt) VALUES
 (5, 1, GETDATE());
 
 --- Dữ liệu mẫu cho Posts
-INSERT INTO Posts(UserId, Title, Content) VALUES
-(4, N'Trải nghiệm sau 1 tuần bỏ thuốc', N'Tôi thấy nhẹ nhõm và ngủ ngon hơn nhiều!');
+INSERT INTO Posts(UserId, Title, Content, BadgeId) VALUES
+(4, N'Trải nghiệm sau 1 tuần bỏ thuốc', N'Tôi thấy nhẹ nhõm và ngủ ngon hơn nhiều!', 2);
 
 --- Dữ liệu mẫu cho Comments
 INSERT INTO Comments (PostId, UserId, Content) VALUES

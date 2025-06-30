@@ -9,6 +9,7 @@ import HomePage from './pages/HomePage.jsx';
 import CommunityPage from './pages/CommunityPage.jsx'; 
 import LeaderboardPage from './pages/LeaderboardPage.jsx'; 
 import AdminUserPage from './pages/AdminUserPage.jsx';
+import AdminPostsPage from './pages/AdminPostsPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import Register from './pages/Register.jsx'; 
 import ProfilePage from './pages/ProfilePage.jsx';
@@ -133,6 +134,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminUserPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/posts" 
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminPostsPage />
             </ProtectedRoute>
           } 
         />

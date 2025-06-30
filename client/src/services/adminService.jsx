@@ -173,3 +173,42 @@ export const deleteAdminPackage = async (id) => {
   });
   return response.data;
 };
+
+// Posts Management (Admin)
+export const getAllPosts = async () => {
+  const token = getToken();
+  const response = await axios.get(`${API_URL}/admin/posts`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+export const getPostDetail = async (id) => {
+  const token = getToken();
+  const response = await axios.get(`${API_URL}/admin/posts/${id}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+export const updatePostStatus = async (id, status) => {
+  const token = getToken();
+  const response = await axios.put(`${API_URL}/admin/posts/${id}/status`, 
+    { status }, 
+    {
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+  return response.data;
+};
+
+export const deletePost = async (id) => {
+  const token = getToken();
+  const response = await axios.delete(`${API_URL}/admin/posts/${id}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};

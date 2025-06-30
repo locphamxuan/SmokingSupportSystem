@@ -7,246 +7,377 @@ import {
   Form,
   Alert as BAlert,
   Spinner,
+  Card,
+  Row,
+  Col,
+  Badge,
+  Table
 } from "react-bootstrap";
+import { createPost, getUserPosts, getUserBadges } from '../services/authService';
+import { 
+  getStatusDisplay, 
+  getStatusBadgeVariant, 
+  getStatusIcon 
+} from '../utils/statusUtils';
+import '../style/CreatePostPage.scss';
 
 const CreatePostPage = () => {
-  const [newPostTitle, setNewPostTitle] = useState("");
-  const [newPostContent, setNewPostContent] = useState("");
-  const [creatingPost, setCreatingPost] = useState(false);
-  const [userAchievements, setUserAchievements] = useState([]);
-  const [selectedAchievement, setSelectedAchievement] = useState("");
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [selectedBadgeId, setSelectedBadgeId] = useState("");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [user, setUser] = useState(null);
-  const [userProfile, setUserProfile] = useState(null);
-  const [accessChecked, setAccessChecked] = useState(false);
+  const [userPosts, setUserPosts] = useState([]);
+  const [userBadges, setUserBadges] = useState([]);
+  const [loadingPosts, setLoadingPosts] = useState(false);
+  const [loadingBadges, setLoadingBadges] = useState(false);
   const navigate = useNavigate();
 
+  // Fetch user's posts and badges on component mount
   useEffect(() => {
-    const userStr = localStorage.getItem("user");
-    if (userStr && userStr !== 'undefined') {
-      const parsedUser = JSON.parse(userStr);
-      setUser(parsedUser);
-      // Nếu là admin, chuyển hướng ngay
-      if (parsedUser.role === 'admin') {
-        navigate('/blog');
-        return; // Dừng thực thi useEffect
-      }
-    } else {
-      // Nếu chưa đăng nhập, chuyển về trang login
-      navigate('/login');
-      return; // Dừng thực thi useEffect
+    fetchUserPosts();
+    fetchUserBadges();
+  }, []);
+
+  const fetchUserPosts = async () => {
+    setLoadingPosts(true);
+    try {
+      const posts = await getUserPosts();
+      setUserPosts(posts);
+    } catch (err) {
+      console.error('Error fetching user posts:', err);
     }
+    setLoadingPosts(false);
+  };
 
-    const fetchUserAchievements = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setError("Bạn cần đăng nhập để tạo bài đăng.");
-        setAccessChecked(true);
-        return;
-      }
-
-      try {
-        // Check user profile first
-        const profileResponse = await axios.get("http://localhost:5000/api/auth/profile", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        
-        setUserProfile(profileResponse.data);
-
-        // Check if user has permission to create posts
-        if (profileResponse.data.role !== 'memberVip' || !profileResponse.data.isMemberVip) {
-          setError("Chỉ thành viên VIP đã mua gói mới có thể tạo bài đăng.");
-          setAccessChecked(true);
-          return;
-        }
-
-        // If access is granted, fetch achievements
-        const response = await axios.get("http://localhost:5000/api/auth/badges", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setUserAchievements(response.data.badges || []);
-        setAccessChecked(true);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        setError("Không thể tải dữ liệu. Vui lòng thử lại sau.");
-        setAccessChecked(true);
-      }
-    };
-    fetchUserAchievements();
-  }, [navigate]);
-
-  const handleAchievementSelect = (event) => {
-    const achievementId = event.target.value;
-    setSelectedAchievement(achievementId);
-    if (achievementId) {
-      const achievement = userAchievements.find(a => a.Id === achievementId);
-      if (achievement) {
-        setNewPostTitle(`Tôi vừa đạt được thành tích: ${achievement.Name}!`);
-        setNewPostContent(
-          `🎉 Thành tích mới: ${achievement.Name}\n` +
-          `Mô tả: ${achievement.Description}\n` +
-          `Đạt được vào: ${new Date(achievement.AwardedAt).toLocaleDateString()}\n` +
-          `Hãy cùng chúc mừng tôi nhé!`
-        );
-      }
-    } else {
-      setNewPostTitle("");
-      setNewPostContent("");
+  const fetchUserBadges = async () => {
+    setLoadingBadges(true);
+    try {
+      const response = await getUserBadges();
+      setUserBadges(response.badges || []);
+    } catch (err) {
+      console.error('Error fetching user badges:', err);
     }
+    setLoadingBadges(false);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!user || !user.id) {
-      setError("Bạn cần đăng nhập để tạo bài viết.");
-      return;
-    }
-    if (!newPostTitle.trim() || !newPostContent.trim()) {
-      setError("Tiêu đề và nội dung bài viết không được để trống.");
+    
+    if (!title.trim() || !content.trim()) {
+      setError('Vui lòng điền đầy đủ tiêu đề và nội dung');
       return;
     }
 
-    setCreatingPost(true);
+    setLoading(true);
     setError("");
     setSuccess("");
 
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        "http://localhost:5000/api/auth/posts",
-        { title: newPostTitle, content: newPostContent },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setSuccess(response.data.message || "Bài đăng đã được tạo thành công!");
-      setNewPostTitle("");
-      setNewPostContent("");
-      setSelectedAchievement("");
-      // Navigate back to the blog page after successful post
-      navigate("/blog", { state: { postCreated: true } });
+      const postData = { 
+        title: title.trim(), 
+        content: content.trim()
+      };
+      
+      // Thêm badgeId nếu được chọn
+      if (selectedBadgeId) {
+        postData.badgeId = parseInt(selectedBadgeId);
+      }
+      
+      console.log('Debug - Sending post data:', postData);
+      console.log('Debug - Selected badge ID:', selectedBadgeId);
+      
+      const response = await createPost(postData);
+      console.log('Debug - Response from server:', response);
+      setSuccess(response.message || 'Bài đăng đã được gửi thành công!');
+      setTitle("");
+      setContent("");
+      setSelectedBadgeId("");
+      
+      // Refresh user posts to show the new post
+      await fetchUserPosts();
+      
+      // Auto hide success message after 5 seconds
+      setTimeout(() => {
+        setSuccess('');
+      }, 5000);
+      
     } catch (err) {
-      console.error("Error creating post:", err);
-      setError(err.response?.data?.message || "Lỗi khi tạo bài đăng. Vui lòng thử lại.");
-    } finally {
-      setCreatingPost(false);
+      console.error('Error creating post:', err);
+      setError(err.response?.data?.message || 'Có lỗi xảy ra khi tạo bài đăng');
     }
+
+    setLoading(false);
   };
 
-  // Show loading while checking access
-  if (!accessChecked) {
+  const getStatusBadge = (status) => {
+    const variant = getStatusBadgeVariant(status);
+    const displayText = getStatusDisplay(status);
+    const icon = getStatusIcon(status);
+    
     return (
-      <Container className="my-5 text-center">
-        <Spinner animation="border" role="status">
-          <span className="visually-hidden">Đang kiểm tra quyền truy cập...</span>
-        </Spinner>
-        <p className="mt-2">Đang kiểm tra quyền truy cập...</p>
-      </Container>
+      <Badge bg={variant}>
+        <i className={`${icon} me-1`}></i>
+        {displayText}
+      </Badge>
     );
-  }
+  };
 
-  // Show error if no access permission
-  if (userProfile && (userProfile.role !== 'memberVip' || !userProfile.isMemberVip)) {
-    return (
-      <Container className="my-5">
-        <div className="card p-4 shadow-sm text-center">
-          <h2 className="mb-4 text-danger">
-            <i className="fas fa-lock me-2"></i> Không có quyền truy cập
-          </h2>
-          <BAlert variant="warning">
-            <h4>Chỉ thành viên VIP đã mua gói mới có thể tạo bài đăng!</h4>
-            <p>Để tạo bài đăng trong cộng đồng, bạn cần:</p>
-            <ul className="list-unstyled">
-              <li>✓ Nâng cấp tài khoản lên VIP</li>
-              <li>✓ Mua gói thành viên</li>
-            </ul>
-            <Button 
-              variant="success" 
-              onClick={() => navigate('/subscribe')}
-              className="me-2"
-            >
-              <i className="fas fa-crown me-2"></i>Nâng cấp VIP
-            </Button>
-            <Button 
-              variant="outline-secondary" 
-              onClick={() => navigate('/blog')}
-            >
-              <i className="fas fa-arrow-left me-2"></i>Quay lại cộng đồng
-            </Button>
-          </BAlert>
-        </div>
-      </Container>
-    );
-  }
+  const pendingPosts = userPosts.filter(post => post.Status === 'pending');
+  const publishedPosts = userPosts.filter(post => post.Status === 'published');
 
   return (
-    <Container className="my-5">
-      <div className="card p-4 shadow-sm">
-        <h2 className="mb-4 text-success">
-          <i className="fas fa-plus-square me-2"></i> Tạo bài đăng mới
-        </h2>
+    <Container className="create-post-page">
+      <Row>
+        <Col lg={8}>
+          <Card className="create-post-card">
+            <Card.Header>
+              <h4>
+                <i className="fas fa-pen-alt me-2"></i>
+                Tạo bài viết mới
+              </h4>
+              <p className="text-muted mb-0">Chia sẻ câu chuyện và kinh nghiệm của bạn với cộng đồng</p>
+            </Card.Header>
+            <Card.Body>
+              {error && (
+                <BAlert variant="danger" onClose={() => setError('')} dismissible>
+                  <i className="fas fa-exclamation-triangle me-2"></i>
+                  {error}
+                </BAlert>
+              )}
+              
+              {success && (
+                <BAlert variant="success" onClose={() => setSuccess('')} dismissible>
+                  <i className="fas fa-check-circle me-2"></i>
+                  {success}
+                </BAlert>
+              )}
 
-        {error && <BAlert variant="danger">{error}</BAlert>}
-        {success && <BAlert variant="success">{success}</BAlert>}
+              <Form onSubmit={handleSubmit}>
+                <Form.Group className="mb-3">
+                  <Form.Label>
+                    <i className="fas fa-heading me-2"></i>
+                    Tiêu đề bài viết
+                  </Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Nhập tiêu đề bài viết..."
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    maxLength={200}
+                  />
+                  <Form.Text className="text-muted">
+                    {title.length}/200 ký tự
+                  </Form.Text>
+                </Form.Group>
 
-        <Form onSubmit={handleSubmit}>
-          <Form.Group className="mb-3">
-            <Form.Label>Chia sẻ thành tích của bạn</Form.Label>
-            <Form.Select
-              value={selectedAchievement}
-              onChange={handleAchievementSelect}
-            >
-              <option value="">Không chọn thành tích</option>
-              {userAchievements.map((achievement) => (
-                <option key={achievement.Id} value={achievement.Id}>
-                  {achievement.Name}
-                </option>
-              ))}
-            </Form.Select>
-          </Form.Group>
+                <Form.Group className="mb-4">
+                  <Form.Label>
+                    <i className="fas fa-align-left me-2"></i>
+                    Nội dung
+                  </Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={8}
+                    placeholder="Chia sẻ câu chuyện, kinh nghiệm của bạn..."
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    maxLength={2000}
+                  />
+                  <Form.Text className="text-muted">
+                    {content.length}/2000 ký tự
+                  </Form.Text>
+                </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Tiêu đề bài viết</Form.Label>
-            <Form.Control
-              type="text"
-              placeholder="Nhập tiêu đề bài viết"
-              value={newPostTitle}
-              onChange={(e) => setNewPostTitle(e.target.value)}
-              required
-            />
-          </Form.Group>
+                {/* Badge Selection */}
+                <Form.Group className="mb-4">
+                  <Form.Label>
+                    <i className="fas fa-medal me-2"></i>
+                    Chia sẻ huy hiệu (tùy chọn)
+                  </Form.Label>
+                  {loadingBadges ? (
+                    <div className="text-center py-2">
+                      <Spinner animation="border" size="sm" className="me-2" />
+                      <span>Đang tải huy hiệu...</span>
+                    </div>
+                  ) : userBadges.length > 0 ? (
+                    <>
+                      <Form.Select 
+                        value={selectedBadgeId} 
+                        onChange={(e) => setSelectedBadgeId(e.target.value)}
+                      >
+                        <option value="">Không chia sẻ huy hiệu</option>
+                        {userBadges.map((badge) => (
+                          <option key={badge.Id} value={badge.Id}>
+                            {badge.Name} - {badge.Description}
+                          </option>
+                        ))}
+                      </Form.Select>
+                      <Form.Text className="text-muted">
+                        Bạn có thể chia sẻ một trong những huy hiệu đã đạt được để thể hiện thành tích của mình
+                      </Form.Text>
+                    </>
+                  ) : (
+                    <div className="text-muted small">
+                      <i className="fas fa-info-circle me-1"></i>
+                      Bạn chưa có huy hiệu nào. Hãy tiếp tục cai thuốc để nhận huy hiệu đầu tiên!
+                    </div>
+                  )}
+                </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Nội dung bài viết</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={5}
-              placeholder="Nhập nội dung bài viết"
-              value={newPostContent}
-              onChange={(e) => setNewPostContent(e.target.value)}
-              required
-            />
-          </Form.Group>
+                <div className="d-flex justify-content-between align-items-center">
+                  <Button
+                    variant="outline-secondary"
+                    onClick={() => navigate('/community')}
+                  >
+                    <i className="fas fa-arrow-left me-2"></i>
+                    Quay lại
+                  </Button>
+                  
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={loading || !title.trim() || !content.trim()}
+                  >
+                    {loading ? (
+                      <>
+                        <Spinner
+                          as="span"
+                          animation="border"
+                          size="sm"
+                          role="status"
+                          className="me-2"
+                        />
+                        Đang gửi...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-paper-plane me-2"></i>
+                        Gửi bài viết
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </Form>
+            </Card.Body>
+          </Card>
+        </Col>
+        
+        <Col lg={4}>
+          <Card className="my-posts-card">
+            <Card.Header>
+              <h5>
+                <i className="fas fa-list me-2"></i>
+                Bài viết của tôi
+              </h5>
+            </Card.Header>
+            <Card.Body>
+              {loadingPosts ? (
+                <div className="text-center py-3">
+                  <Spinner animation="border" size="sm" />
+                  <p className="mt-2 mb-0 text-muted">Đang tải...</p>
+                </div>
+              ) : userPosts.length === 0 ? (
+                <div className="text-center py-3">
+                  <i className="fas fa-inbox fa-2x text-muted mb-2"></i>
+                  <p className="text-muted mb-0">Bạn chưa có bài viết nào</p>
+                  <small className="text-muted">Hãy tạo bài viết đầu tiên!</small>
+                </div>
+              ) : (
+                <>
+                  <div className="posts-stats mb-3">
+                    <div className="stat-item">
+                      <span className="stat-number">{pendingPosts.length}</span>
+                      <span className="stat-label">Chờ duyệt</span>
+                    </div>
+                    <div className="stat-item">
+                      <span className="stat-number">{publishedPosts.length}</span>
+                      <span className="stat-label">Đã duyệt</span>
+                    </div>
+                  </div>
 
-          <Button variant="success" type="submit" disabled={creatingPost}>
-            {creatingPost ? (
-              <Spinner
-                as="span"
-                animation="border"
-                size="sm"
-                role="status"
-                aria-hidden="true"
-                className="me-1"
-              />
-            ) : (
-              <i className="fas fa-paper-plane me-2"></i>
-            )}
-            {creatingPost ? "Đang tạo..." : "Đăng bài"
-            }
-          </Button>
-        </Form>
-      </div>
+                  <div className="posts-list">
+                    {userPosts.map((post) => (
+                      <div key={post.Id} className="post-item">
+                        <div className="post-header">
+                          <h6 className="post-title">{post.Title}</h6>
+                          {getStatusBadge(post.Status)}
+                        </div>
+                        <p className="post-preview">
+                          {post.Content.length > 100 
+                            ? `${post.Content.substring(0, 100)}...` 
+                            : post.Content
+                          }
+                        </p>
+                        <small className="post-date">
+                          <i className="fas fa-calendar-alt me-1"></i>
+                          {(() => {
+                            // Parse trực tiếp từ string để tránh vấn đề timezone
+                            const dateString = post.CreatedAt;
+                            if (dateString.includes('T') || dateString.includes(' ')) {
+                              const [datePart, timePart] = dateString.split(/[T ]/);
+                              const [year, month, day] = datePart.split('-');
+                              const [hours, minutes] = timePart ? timePart.split(':') : ['00', '00'];
+                              return `${day}/${month}/${year} ${hours}:${minutes}`;
+                            }
+                            // Fallback nếu format khác
+                            const date = new Date(post.CreatedAt);
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const year = date.getFullYear();
+                            const hours = String(date.getHours()).padStart(2, '0');
+                            const minutes = String(date.getMinutes()).padStart(2, '0');
+                            return `${day}/${month}/${year} ${hours}:${minutes}`;
+                          })()}
+                        </small>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </Card.Body>
+          </Card>
+
+          {/* Information Card */}
+          <Card className="info-card mt-3">
+            <Card.Header>
+              <h6>
+                <i className="fas fa-info-circle me-2"></i>
+                Thông tin duyệt bài
+              </h6>
+            </Card.Header>
+            <Card.Body>
+              <div className="info-item">
+                <i className="fas fa-clock text-warning me-2"></i>
+                <div>
+                  <strong>Chờ duyệt:</strong>
+                  <p className="mb-0 text-muted small">
+                    Bài viết đang được quản trị viên xem xét
+                  </p>
+                </div>
+              </div>
+              
+              <div className="info-item">
+                <i className="fas fa-check-circle text-success me-2"></i>
+                <div>
+                  <strong>Đã duyệt:</strong>
+                  <p className="mb-0 text-muted small">
+                    Bài viết đã được công khai trên cộng đồng
+                  </p>
+                </div>
+              </div>
+              
+              <BAlert variant="info" className="mt-3 mb-0">
+                <small>
+                  <i className="fas fa-lightbulb me-1"></i>
+                  <strong>Mẹo:</strong> Bài viết có nội dung tích cực, hữu ích sẽ được duyệt nhanh hơn!
+                </small>
+              </BAlert>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
     </Container>
   );
 };

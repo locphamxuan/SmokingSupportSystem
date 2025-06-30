@@ -129,9 +129,17 @@ export const getStatistics = async () => {
 };
 
 // Badge functions
-export const getBadges = async () => {
+export const getUserBadges = async () => {
   const token = getToken();
   const response = await axios.get(`${API_URL}/auth/badges`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+export const getAllBadges = async () => {
+  const token = getToken();
+  const response = await axios.get(`${API_URL}/auth/all-badges`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return response.data;
@@ -220,6 +228,23 @@ export const deleteUser = async (id) => {
 export const upgradeToMember = async () => {
   const token = getToken();
   const response = await axios.put(`${API_URL}/auth/upgrade-member`, {}, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+// Post functions
+export const createPost = async (postData) => {
+  const token = getToken();
+  const response = await axios.post(`${API_URL}/auth/posts`, postData, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+export const getUserPosts = async () => {
+  const token = getToken();
+  const response = await axios.get(`${API_URL}/auth/my-posts`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return response.data;

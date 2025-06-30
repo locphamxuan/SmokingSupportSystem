@@ -13,6 +13,7 @@ import {
 } from "react-bootstrap";
 import axios from "axios";
 import { useLocation, Link } from 'react-router-dom';
+import Badge from '../components/Badge';
 
 const CommunityPage = () => {
   const [posts, setPosts] = useState([]);
@@ -111,9 +112,32 @@ const CommunityPage = () => {
                       <Card.Img variant="top" src={post.image} alt={post.title} style={{ height: '200px', objectFit: 'cover' }} />
                     )}
                     <Card.Body className="d-flex flex-column">
-                      <Card.Title className="text-primary h5">
-                        {post.Title}
-                      </Card.Title>
+                      <div className="d-flex justify-content-between align-items-start mb-2">
+                        <Card.Title className="text-primary h5 mb-0">
+                          {post.Title}
+                        </Card.Title>
+                        {post.BadgeId && post.BadgeName && (
+                          <div className="d-flex align-items-center">
+                            <Badge 
+                              badgeType={post.BadgeType} 
+                              name={post.BadgeName} 
+                              description={post.BadgeDescription}
+                              size={80}
+                              showAnimation={true}
+                            />
+                          </div>
+                        )}
+                      </div>
+                      
+                      {post.BadgeId && post.BadgeName && (
+                        <div className="badge-info mb-3 p-2 rounded" style={{backgroundColor: '#f0f8f0', border: '1px solid #d4edda'}}>
+                          <small className="text-success">
+                            <i className="fas fa-medal me-2" style={{color: '#ffd700'}}></i>
+                            <strong>{post.BadgeName}</strong> - {post.BadgeDescription}
+                          </small>
+                        </div>
+                      )}
+                      
                       <Card.Text className="text-secondary flex-grow-1">
                         {post.Content}
                       </Card.Text>
@@ -121,7 +145,24 @@ const CommunityPage = () => {
                         <i className="fas fa-user me-1"></i>
                         Đăng bởi: <strong>{post.Author}</strong> -{" "}
                         <i className="fas fa-calendar me-1"></i>
-                        {new Date(post.CreatedAt).toLocaleDateString()}
+                        {(() => {
+                          // Parse trực tiếp từ string để tránh vấn đề timezone
+                          const dateString = post.CreatedAt;
+                          if (dateString.includes('T') || dateString.includes(' ')) {
+                            const [datePart, timePart] = dateString.split(/[T ]/);
+                            const [year, month, day] = datePart.split('-');
+                            const [hours, minutes] = timePart ? timePart.split(':') : ['00', '00'];
+                            return `${day}/${month}/${year} ${hours}:${minutes}`;
+                          }
+                          // Fallback nếu format khác
+                          const date = new Date(post.CreatedAt);
+                          const day = String(date.getDate()).padStart(2, '0');
+                          const month = String(date.getMonth() + 1).padStart(2, '0');
+                          const year = date.getFullYear();
+                          const hours = String(date.getHours()).padStart(2, '0');
+                          const minutes = String(date.getMinutes()).padStart(2, '0');
+                          return `${day}/${month}/${year} ${hours}:${minutes}`;
+                        })()}
                       </Card.Text>
                       
                       <hr className="my-3" />
@@ -209,7 +250,26 @@ const CommentsDisplay = ({ postId, user }) => {
                 <div className="flex-grow-1"> 
                   <strong className="d-block text-dark">{comment.Author}</strong> 
                   <span className="d-inline">{comment.Content}</span> 
-                  <small className="d-block text-muted mt-1">{new Date(comment.CreatedAt).toLocaleDateString()}</small> 
+                  <small className="d-block text-muted mt-1">
+                    {(() => {
+                      // Parse trực tiếp từ string để tránh vấn đề timezone
+                      const dateString = comment.CreatedAt;
+                      if (dateString.includes('T') || dateString.includes(' ')) {
+                        const [datePart, timePart] = dateString.split(/[T ]/);
+                        const [year, month, day] = datePart.split('-');
+                        const [hours, minutes] = timePart ? timePart.split(':') : ['00', '00'];
+                        return `${day}/${month}/${year} ${hours}:${minutes}`;
+                      }
+                      // Fallback nếu format khác
+                      const date = new Date(comment.CreatedAt);
+                      const day = String(date.getDate()).padStart(2, '0');
+                      const month = String(date.getMonth() + 1).padStart(2, '0');
+                      const year = date.getFullYear();
+                      const hours = String(date.getHours()).padStart(2, '0');
+                      const minutes = String(date.getMinutes()).padStart(2, '0');
+                      return `${day}/${month}/${year} ${hours}:${minutes}`;
+                    })()}
+                  </small> 
                 </div>
               </ListGroupItem>
             ))}

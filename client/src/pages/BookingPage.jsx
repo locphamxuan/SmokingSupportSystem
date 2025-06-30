@@ -467,24 +467,6 @@ const BookingPage = () => {
             <h4 className="mb-0 fw-bold text-success">Lịch sử đặt lịch</h4>
             <div>
               <button 
-                className="btn btn-outline-info btn-sm me-2"
-                onClick={async () => {
-                  try {
-                    const token = localStorage.getItem('token');
-                    const response = await axios.get('http://localhost:5000/api/booking/test-auth', {
-                      headers: { Authorization: `Bearer ${token}` }
-                    });
-                    console.log('Auth test response:', response.data);
-                    alert(`Auth test successful! User ID: ${response.data.user?.id}`);
-                  } catch (err) {
-                    console.error('Auth test failed:', err);
-                    alert(`Auth test failed: ${err.response?.data?.message || err.message}`);
-                  }
-                }}
-              >
-                Test Auth
-              </button>
-              <button 
                 className="btn btn-outline-success btn-sm"
                 onClick={fetchBookingHistory}
               >
