@@ -36,6 +36,11 @@ const bookingController = {
                 UPDATE Users SET CoachId = ${coachId} WHERE Id = ${userId}
             `;
 
+            // Cập nhật CoachId cho kế hoạch cai thuốc của người dùng
+            await sql.query`
+                UPDATE QuitPlans SET CoachId = ${coachId} WHERE UserId = ${userId} AND CoachId IS NULL
+            `;
+
             res.status(200).json({ message: 'Đặt lịch với huấn luyện viên thành công!' });
         } catch (error) {
             console.error('Book coach error:', error);
@@ -69,6 +74,11 @@ const bookingController = {
 
             await sql.query`
                 UPDATE Users SET CoachId = ${coachId} WHERE Id = ${memberId}
+            `;
+
+            // Cập nhật CoachId cho kế hoạch cai thuốc của người dùng
+            await sql.query`
+                UPDATE QuitPlans SET CoachId = ${coachId} WHERE UserId = ${memberId} AND CoachId IS NULL
             `;
 
             res.status(201).json({ message: 'Yêu cầu đặt lịch đã được tạo thành công.' });

@@ -1,9 +1,11 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material';
+import { ThemeProvider, createTheme, CircularProgress, Box } from '@mui/material';
+
+// Import AuthContext
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
-import './App.css';
-import MainLayout from './layouts/MainLayout'; // Thêm import MainLayout
+
+// Import components and pages (đảm bảo đuôi .jsx)
 import Navbar from './components/Navbar.jsx'; 
 import HomePage from './pages/HomePage.jsx';
 import CommunityPage from './pages/CommunityPage.jsx'; 
@@ -23,6 +25,8 @@ import AboutPage from './pages/AboutPage.jsx';
 import BookingPage from './pages/BookingPage.jsx';
 import CreatePostPage from './pages/CreatePostPage.jsx';
 import AdminPackagePage from './pages/AdminPackagePage.jsx';
+import MainLayout from './layouts/MainLayout.jsx';
+import NotificationsPage from './pages/NotificationsPage';
 
 const theme = createTheme({
   palette: {
@@ -39,40 +43,34 @@ const theme = createTheme({
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, user, loading } = useAuth();
 
-  console.log('ProtectedRoute:', { isAuthenticated, user, loading, allowedRoles });
-
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
-        <div>Loading...</div>
-      </div>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+        <CircularProgress />
+      </Box>
     );
   }
 
   if (!isAuthenticated) { 
-    console.log('Not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(user?.role)) {
-    console.log('Role not allowed, redirecting to home');
     return <Navigate to="/" replace />;
   }
 
   return children;
 };
 
-// Cập nhật AppRoutes Component
+// App Routes Component
 const AppRoutes = () => {
   const { isAuthenticated, loading } = useAuth();
 
-  console.log('AppRoutes:', { isAuthenticated, loading });
-
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <div>Loading...</div>
-      </div>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
     );
   }
 
@@ -88,22 +86,7 @@ const AppRoutes = () => {
         <Route path="/blog" element={<CommunityPage />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/about" element={<AboutPage />} />
-
-        {/* Các route công khai cho đăng nhập/đăng ký - chuyển hướng nếu đã đăng nhập */}
-        <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} />
-        <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
-          
-        {/* Route for creating a new post */}
-        <Route
-          path="/create-post"
-          element={
-            <ProtectedRoute allowedRoles={['member', 'memberVip', 'coach', 'admin']}> 
-              <CreatePostPage />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Các route được bảo vệ */}
+        {/* Protected routes */}
         <Route 
           path="/profile" 
           element={
@@ -123,7 +106,7 @@ const AppRoutes = () => {
         <Route 
           path="/chat-coach/:coachId" 
           element={
-            <ProtectedRoute allowedRoles={['member', 'memberVip']}> 
+            <ProtectedRoute allowedRoles={['member']}> 
               <ChatCoachPage />
             </ProtectedRoute>
           } 
@@ -192,7 +175,15 @@ const AppRoutes = () => {
             </ProtectedRoute>
           } 
         />
-
+        <Route
+          path="/create-post"
+          element={
+            <ProtectedRoute allowedRoles={['memberVip']}>
+              <CreatePostPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/notifications" element={<NotificationsPage />} />
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
@@ -204,7 +195,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <AuthProvider>
-        <Router>
+        <Router future={{ v7_relativeSplatPath: true }}>
           <AppRoutes />
         </Router>
       </AuthProvider>

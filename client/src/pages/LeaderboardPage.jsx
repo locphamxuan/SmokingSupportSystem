@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Divider } from '@mui/material';
 import { getRankings } from '../services/extraService';
+import '../style/LeaderboardPage.scss';
 
 const LeaderboardPage = () => {
   const [users, setUsers] = useState([]);
@@ -14,112 +14,123 @@ const LeaderboardPage = () => {
         const response = await getRankings();
         setUsers(response || []);
       } catch (error) {
-        console.error('Error fetching leaderboard:', error);
         setError('Không thể tải bảng xếp hạng');
       } finally {
         setLoading(false);
       }
     };
-
     fetchLeaderboard();
   }, []);
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <Typography>Đang tải...</Typography>
-      </Box>
+      <div className="d-flex justify-content-center align-items-center min-vh-100">
+        <div className="spinner-border text-success" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <Typography color="error">{error}</Typography>
-      </Box>
+      <div className="d-flex justify-content-center align-items-center min-vh-100">
+        <div className="alert alert-danger text-center" role="alert">{error}</div>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      minHeight: '100vh',
-      paddingTop: '80px' // Thêm padding-top để tránh navbar che khuất
-    }}>
-      <Box sx={{ flexGrow: 1 }}>
-    <Container maxWidth="lg">
-      <Box sx={{ my: 4 }}>
-        <Typography variant="h3" component="h1" gutterBottom align="center">
-          Bảng xếp hạng thành viên
-        </Typography>
-
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Xếp hạng</TableCell>
-                <TableCell>Tên người dùng</TableCell>
-                <TableCell align="right">Số ngày không hút thuốc</TableCell>
-                <TableCell align="right">Tiền tiết kiệm (VNĐ)</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {users.map((user, index) => (
-                <TableRow key={user.id}>
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell>{user.username}</TableCell>
-                  <TableCell align="right">{user.totalDaysWithoutSmoking}</TableCell>
-                  <TableCell align="right">{user.totalMoneySaved?.toLocaleString() || 0}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Box>
-    </Container>
-      </Box>
-
-      {/* Full-width Footer with contact information */}
-      <Box 
-        component="footer" 
-        sx={{ 
-          py: 4, 
-          backgroundColor: '#1e3a8a', 
-          textAlign: 'center',
-          width: '100%',
-          left: 0,
-          right: 0,
-          borderTop: '1px solid #2563eb',
-          color: 'white',
-          boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.1)'
-        }}
-      >
-        <Container maxWidth="lg">
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: '#60a5fa' }}>
-            Nền tảng hỗ trợ cai nghiện thuốc lá
-          </Typography>
-          
-          <Divider sx={{ my: 2, mx: 'auto', width: '50%', borderColor: 'rgba(255,255,255,0.2)' }} />
-          
-          <Box sx={{ my: 2 }}>
-            <Typography variant="body1" gutterBottom sx={{ color: '#e5e7eb' }}>
-              <strong style={{ color: '#93c5fd' }}>Hotline:</strong> 1800-8888-77
-            </Typography>
-            <Typography variant="body1" gutterBottom sx={{ color: '#e5e7eb' }}>
-              <strong style={{ color: '#93c5fd' }}>Email:</strong> support@smokingsupport.com
-            </Typography>
-            <Typography variant="body1" gutterBottom sx={{ color: '#e5e7eb' }}>
-              <strong style={{ color: '#93c5fd' }}>Website:</strong> www.smokingsupport.com
-            </Typography>
-          </Box>
-          
-          <Typography variant="body2" color="#bfdbfe" sx={{ mt: 2 }}>
-            © 2025 Smoking Support Platform. Mọi quyền được bảo lưu.
-          </Typography>
-        </Container>
-      </Box>
-    </Box>
+    <div className="leaderboard-page-bg min-vh-100 d-flex flex-column">
+      <div className="container py-5 flex-grow-1">
+        <h1 className="text-center text-success fw-bold mb-4">Bảng xếp hạng thành viên</h1>
+        <div className="card shadow-sm">
+          <div className="card-body p-0">
+            <div className="table-responsive">
+              <table className="table table-striped align-middle mb-0">
+                <thead className="table-success">
+                  <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Tên người dùng</th>
+                    <th scope="col" className="text-end">Số ngày không hút thuốc</th>
+                    <th scope="col" className="text-end">Tiền tiết kiệm (VNĐ)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((user, index) => (
+                    <tr key={user.id || user.Id}>
+                      <th scope="row">{index + 1}</th>
+                      <td>{user.username || user.Username}</td>
+                      <td className="text-end">{user.totalDaysWithoutSmoking || user.TotalDaysWithoutSmoking}</td>
+                      <td className="text-end">{(user.totalMoneySaved || user.TotalMoneySaved || 0).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* Footer giữ nguyên như giao diện ảnh, dùng Bootstrap và SCSS */}
+      <footer className="footer-custom mt-auto bg-light text-dark pt-5 pb-3">
+        <div className="container">
+          <div className="row text-center text-md-start">
+            <div className="col-12 col-md-3 mb-4 mb-md-0">
+              <h5 className="fw-bold mb-2">Về chúng tôi</h5>
+              <div className="footer-underline mb-2 mx-auto mx-md-0"></div>
+              <p className="mb-0 small">Hỗ trợ cai nghiện thuốc lá là sứ mệnh của chúng tôi. Chúng tôi cam kết đồng hành cùng bạn trên hành trình hướng tới một cuộc sống khỏe mạnh hơn.</p>
+            </div>
+            <div className="col-12 col-md-3 mb-4 mb-md-0">
+              <h5 className="fw-bold mb-2">Liên kết nhanh</h5>
+              <div className="footer-underline mb-2 mx-auto mx-md-0"></div>
+              <ul className="list-unstyled small mb-0">
+                <li><a href="#" className="footer-link">→ Giới thiệu</a></li>
+                <li><a href="#" className="footer-link">→ Dịch vụ</a></li>
+                <li><a href="#" className="footer-link">→ Blog</a></li>
+                <li><a href="#" className="footer-link">→ Liên hệ</a></li>
+              </ul>
+            </div>
+            <div className="col-12 col-md-3 mb-4 mb-md-0">
+              <h5 className="fw-bold mb-2">Dịch vụ hỗ trợ</h5>
+              <div className="footer-underline mb-2 mx-auto mx-md-0"></div>
+              <ul className="list-unstyled small mb-0">
+                <li><a href="#" className="footer-link">→ Tư vấn trực tuyến</a></li>
+                <li><a href="#" className="footer-link">→ Cộng đồng</a></li>
+                <li><a href="#" className="footer-link">→ Tài nguyên</a></li>
+                <li><a href="#" className="footer-link">→ FAQ</a></li>
+              </ul>
+            </div>
+            <div className="col-12 col-md-3">
+              <h5 className="fw-bold mb-2">Liên hệ</h5>
+              <div className="footer-underline mb-2 mx-auto mx-md-0"></div>
+              <ul className="list-unstyled small mb-0">
+                <li><i className="bi bi-telephone-fill me-2 text-success"></i>Hotline: 1800-xxxx</li>
+                <li><i className="bi bi-envelope-fill me-2 text-success"></i>Email: support@smokingsupport.com</li>
+                <li><i className="bi bi-clock-fill me-2 text-success"></i>Hỗ trợ 24/7</li>
+              </ul>
+            </div>
+          </div>
+          <hr className="my-4" />
+          <div className="row justify-content-center mb-3">
+            <div className="col-auto">
+              <div className="footer-hotline d-flex align-items-center rounded-pill px-4 py-3 mx-auto">
+                <i className="bi bi-headset me-2 fs-4 text-success"></i>
+                <span className="fw-bold me-2">Cần hỗ trợ khẩn cấp?</span>
+                <span>Gọi ngay: <span className="text-success fw-bold">1800-xxxx</span></span>
+              </div>
+            </div>
+          </div>
+          <div className="row justify-content-center mb-2">
+            <div className="col-auto">
+              <a href="#" className="footer-social mx-2"><i className="bi bi-facebook fs-3"></i></a>
+              <a href="#" className="footer-social mx-2"><i className="bi bi-instagram fs-3"></i></a>
+              <a href="#" className="footer-social mx-2"><i className="bi bi-youtube fs-3"></i></a>
+              <a href="#" className="footer-social mx-2"><i className="bi bi-linkedin fs-3"></i></a>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 };
 
