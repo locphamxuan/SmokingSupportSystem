@@ -1,19 +1,41 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from '../contexts/AuthContext.jsx';
 import '../style/Navbar.scss';
 import logo from "../assets/images/logo.jpg";
+import 'bootstrap-icons/font/bootstrap-icons.css';
 
 const Navbar = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
 
   console.log('Navbar render:', { user, isAuthenticated, showDropdown });
 
   const isAdmin = user && user.role === 'admin';
   const isCoach = user && user.role === 'coach';
   const isMember = user && (user.role === 'member' || user.role === 'memberVip');
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    async function fetchNotifications() {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/auth/notifications', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const notifications = await res.json();
+        const unread = Array.isArray(notifications)
+          ? notifications.filter(n => !n.isRead).length
+          : 0;
+        setUnreadCount(unread);
+      } catch (err) {
+        setUnreadCount(0);
+      }
+    }
+    fetchNotifications();
+  }, [isAuthenticated]);
 
   const handleLogout = () => {
     console.log('Logout clicked');
@@ -55,7 +77,15 @@ const Navbar = () => {
 
         <div className="header-right">
           {isAuthenticated ? (
-            <div className="user-menu">
+            <div className="user-menu d-flex align-items-center gap-3">
+              <Link to="/notifications" className="notification-bell position-relative me-2">
+                <i className="bi bi-bell fs-4"></i>
+                {unreadCount > 0 && (
+                  <span className="notification-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                    {unreadCount}
+                  </span>
+                )}
+              </Link>
               <div
                 className="avatar-container"
                 onClick={() => {

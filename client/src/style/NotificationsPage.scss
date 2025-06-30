@@ -1,0 +1,60 @@
+// NotificationsPage styles
+
+.notifications-page {
+  background: #f8fafc;
+  min-height: 80vh;
+  border-radius: 1rem;
+  box-shadow: 0 4px 24px rgba(16, 185, 129, 0.07);
+  max-width: 700px;
+  margin: 2rem auto;
+  padding: 2.5rem 2rem;
+}
+
+.notifications-list {
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.05);
+}
+
+.notification-item {
+  background: #fff;
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 1.05rem;
+  transition: background 0.2s;
+  padding: 1.1rem 1.2rem;
+  &:last-child {
+    border-bottom: none;
+  }
+  &:hover {
+    background: #e0f2fe;
+  }
+  &.unread {
+    background: #f0fdf4;
+    border-left: 4px solid #22c55e;
+  }
+}
+
+.notification-date {
+  font-size: 0.92rem;
+  background: #e0e7ef !important;
+  color: #2563eb !important;
+  font-weight: 500;
+  padding: 0.45em 1em;
+  border-radius: 1rem;
+}
+
+@media (max-width: 600px) {
+  .notifications-page {
+    padding: 1.2rem 0.5rem;
+    max-width: 100%;
+  }
+  .notification-item {
+    font-size: 0.98rem;
+    padding: 0.8rem 0.5rem;
+  }
+  .notification-date {
+    font-size: 0.8rem;
+    padding: 0.3em 0.7em;
+  }
+} 

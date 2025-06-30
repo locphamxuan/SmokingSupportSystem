@@ -72,8 +72,7 @@ const MyProgressPage = () => {
     targetDate: '',
     planDetail: '',
     initialCigarettes: 0,
-    dailyReduction: 0,
-    milestones: ''
+    dailyReduction: 0
   });
   const [showDateForm, setShowDateForm] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -151,13 +150,10 @@ const MyProgressPage = () => {
             id: customQuitPlanResponse.data.quitPlan.id || 0,
             startDate: customQuitPlanResponse.data.quitPlan.startDate || '',
             targetDate: customQuitPlanResponse.data.quitPlan.targetDate || '',
-            planType: 'custom',
             initialCigarettes: customQuitPlanResponse.data.quitPlan.initialCigarettes || 0,
             dailyReduction: customQuitPlanResponse.data.quitPlan.dailyReduction || 0,
-            milestones: [],
             currentProgress: 0,
             planDetail: customQuitPlanResponse.data.quitPlan.planDetail || '',
-            status: 'active',
             createdAt: customQuitPlanResponse.data.quitPlan.createdAt || null,
             planSource: 'custom'
           };
@@ -171,13 +167,10 @@ const MyProgressPage = () => {
               id: quitPlanResponse.data.quitPlan.id || 0,
               startDate: quitPlanResponse.data.quitPlan.startDate || '',
               targetDate: quitPlanResponse.data.quitPlan.targetDate || '',
-              planType: quitPlanResponse.data.quitPlan.planType || '',
               initialCigarettes: quitPlanResponse.data.quitPlan.initialCigarettes || 0,
               dailyReduction: quitPlanResponse.data.quitPlan.dailyReduction || 0,
-              milestones: quitPlanResponse.data.quitPlan.milestones || [],
               currentProgress: quitPlanResponse.data.quitPlan.currentProgress || 0,
               planDetail: quitPlanResponse.data.quitPlan.planDetail || '',
-              status: quitPlanResponse.data.quitPlan.status || 'active',
               createdAt: quitPlanResponse.data.quitPlan.createdAt || null,
             };
           } catch (oldQuitPlanError) {
@@ -319,7 +312,6 @@ const MyProgressPage = () => {
         planType: 'suggested',
         initialCigarettes: userData.smokingStatus.cigarettesPerDay || 0,
         dailyReduction: 0, // Default to 0, user can change later
-        milestones: [],
         planDetail: 'Kế hoạch cai thuốc mặc định do hệ thống gợi ý'
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -341,7 +333,6 @@ const MyProgressPage = () => {
         planType: userData.quitPlan?.planType || 'custom',
         initialCigarettes: Number(userData.quitPlan?.initialCigarettes || 0), // Ensure it's a number
         dailyReduction: Number(userData.quitPlan?.dailyReduction || 0),
-        milestones: userData.quitPlan?.milestones || [],
         planDetail: userData.quitPlan?.planDetail || ''
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -552,10 +543,12 @@ const MyProgressPage = () => {
     if (!weekInfo) return { totalCigarettes: 0, averagePerDay: 0, daysWithoutSmoking: 0, moneySaved: 0 };
 
     const weekData = getWeekData(weekInfo);
-    const totalCigarettes = weekData.data.reduce((sum, val) => sum + val, 0);
-    const averagePerDay = weekData.data.length > 0 ? (totalCigarettes / weekData.data.length).toFixed(1) : 0;
-    const daysWithoutSmoking = weekData.data.filter(val => val === 0).length;
-    const moneySaved = weekData.moneySavedData.reduce((sum, val) => sum + val, 0);
+    const dataArr = Array.isArray(weekData.data) ? weekData.data : [];
+    const moneyArr = Array.isArray(weekData.moneySavedData) ? weekData.moneySavedData : [];
+    const totalCigarettes = dataArr.reduce((sum, val) => sum + val, 0);
+    const averagePerDay = dataArr.length > 0 ? (totalCigarettes / dataArr.length).toFixed(1) : 0;
+    const daysWithoutSmoking = dataArr.filter(val => val === 0).length;
+    const moneySaved = moneyArr.reduce((sum, val) => sum + val, 0);
 
     return { totalCigarettes, averagePerDay, daysWithoutSmoking, moneySaved };
   };
@@ -1214,8 +1207,7 @@ const MyProgressPage = () => {
                                 targetDate: '',
                                 planDetail: '',
                                 initialCigarettes: 0,
-                                dailyReduction: 0,
-                                milestones: ''
+                                dailyReduction: 0
                               });
                               fetchUserData();
                             } catch (error) {
@@ -1306,8 +1298,7 @@ const MyProgressPage = () => {
                                   targetDate: '',
                                   planDetail: '',
                                   initialCigarettes: 0,
-                                  dailyReduction: 0,
-                                  milestones: ''
+                                  dailyReduction: 0
                                 });
                               }}
                             >
@@ -1396,12 +1387,13 @@ const MyProgressPage = () => {
                 {(() => {
                   // Lấy dữ liệu của tuần từ kế hoạch cai thuốc
                   const weekData = getWeekDataFromPlan(currentWeek);
-                  
+                  const weekDataArr = Array.isArray(weekData) ? weekData : [];
+                  const weekDataDataArr = Array.isArray(weekDataArr.data) ? weekDataArr.data : weekDataArr;
                   // Tính toán thống kê
-                  const totalCigarettes = weekData.reduce((sum, entry) => sum + (entry.cigarettes || 0), 0);
-                  const averagePerDay = weekData.length > 0 ? (totalCigarettes / weekData.length).toFixed(1) : 0;
-                  const daysWithoutSmoking = weekData.filter(entry => (entry.cigarettes || 0) === 0).length;
-                  const currentStreak = calculateCurrentStreak(weekData);
+                  const totalCigarettes = weekDataDataArr.reduce ? weekDataDataArr.reduce((sum, entry) => sum + (entry.cigarettes || 0), 0) : 0;
+                  const averagePerDay = weekDataDataArr.length > 0 ? (totalCigarettes / weekDataDataArr.length).toFixed(1) : 0;
+                  const daysWithoutSmoking = weekDataDataArr.filter ? weekDataDataArr.filter(entry => (entry.cigarettes || 0) === 0).length : 0;
+                  const currentStreak = calculateCurrentStreak(weekDataDataArr);
 
                   return (
                     <div>
@@ -1442,10 +1434,10 @@ const MyProgressPage = () => {
                       </div>
 
                       {/* Chart */}
-                      {weekData.length > 0 ? (
+                      {weekDataArr.length > 0 ? (
                         <Line
                           data={{
-                            labels: weekData.map(entry => 
+                            labels: weekDataArr.map(entry => 
                               new Date(entry.date).toLocaleDateString('vi-VN', { 
                                 weekday: 'short',
                                 day: '2-digit',
@@ -1455,7 +1447,7 @@ const MyProgressPage = () => {
                             datasets: [
                               {
                                 label: 'Số điếu hút',
-                                data: weekData.map(entry => entry.cigarettes || 0),
+                                data: weekDataArr.map(entry => entry.cigarettes || 0),
                                 borderColor: 'rgb(220, 53, 69)',
                                 backgroundColor: 'rgba(220, 53, 69, 0.1)',
                                 tension: 0.4,
@@ -1481,7 +1473,7 @@ const MyProgressPage = () => {
                                 callbacks: {
                                   afterBody: function(context) {
                                     const dataIndex = context[0].dataIndex;
-                                    const cigarettes = weekData[dataIndex].cigarettes || 0;
+                                    const cigarettes = weekDataArr[dataIndex]?.cigarettes || 0;
                                     return `\nSố điếu: ${cigarettes}`;
                                   }
                                 }
@@ -1517,27 +1509,6 @@ const MyProgressPage = () => {
                     </div>
                   );
                 })()}
-              </div>
-            </div>
-          </div>
-
-          {/* Thành tích của bạn */}
-          <div className="col-md-4 mb-4">
-            <div className="card shadow-sm h-100">
-              <div className="card-header bg-success text-white fw-bold">Thành tích của bạn</div>
-              <div className="card-body">
-                <ul className="list-group">
-                  {userData.achievements.length === 0 ? (
-                    <li className="list-group-item text-secondary">Bạn chưa có thành tích nào. Hãy tiếp tục cố gắng!</li>
-                  ) : (
-                    userData.achievements.map((achievement, index) => (
-                      <li key={index} className="list-group-item d-flex justify-content-between align-items-center">
-                        {achievement.Name}
-                        <span className="badge bg-success">{new Date(achievement.AwardedAt).toLocaleDateString()}</span>
-                      </li>
-                    ))
-                  )}
-                </ul>
               </div>
             </div>
           </div>
