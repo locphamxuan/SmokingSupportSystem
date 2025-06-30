@@ -359,12 +359,10 @@ const CoachMemberProgressPage = () => {
                   <div className="col-md-6">
                     <p><b>Ngày bắt đầu:</b> {quitPlan.startDate}</p>
                     <p><b>Ngày mục tiêu:</b> {quitPlan.targetDate}</p>
-                    <p><b>Loại kế hoạch:</b> {quitPlan.planType}</p>
                   </div>
                   <div className="col-md-6">
                     <p><b>Số điếu ban đầu:</b> {quitPlan.initialCigarettes}</p>
                     <p><b>Giảm mỗi ngày:</b> {quitPlan.dailyReduction}</p>
-                    <p><b>Trạng thái:</b> <span className={`badge ${quitPlan.status === 'active' ? 'bg-success' : 'bg-secondary'}`}>{quitPlan.status}</span></p>
                   </div>
                 </div>
                 <p className="mt-2"><b>Chi tiết kế hoạch:</b> {quitPlan.planDetail || 'Không có'}</p>
@@ -447,24 +445,6 @@ const CoachMemberProgressPage = () => {
                     );
                   })()}
                 </div>
-
-                <h6 className="mt-2 fw-bold">Các mốc kế hoạch:</h6>
-                {Array.isArray(quitPlan.milestones) && quitPlan.milestones.length > 0 ? (
-                  <ul className="list-group">
-                    {quitPlan.milestones.map((milestone, index) => (
-                      typeof milestone === 'string' ? (
-                        <li key={index} className="list-group-item">{milestone}</li>
-                      ) : (
-                        <li key={index} className="list-group-item d-flex justify-content-between align-items-center">
-                          {milestone.title}
-                          <span className="badge bg-secondary">{milestone.date}</span>
-                        </li>
-                      )
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-secondary ms-2">Chưa có mốc nào.</p>
-                )}
               </>
             ) : (
               <p className="text-secondary">Chưa có kế hoạch cai thuốc nào.</p>

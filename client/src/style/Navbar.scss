@@ -148,6 +148,28 @@
     }
 }
 
+.notification-bell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    color: #198754;
+    transition: color 0.2s;
+    &:hover {
+        color: #0d6efd;
+    }
+}
+
+.notification-badge {
+    font-size: 0.75rem;
+    padding: 0.2em 0.5em;
+    border-radius: 1rem;
+    background: #dc3545;
+    color: #fff;
+    top: 2px;
+    right: 2px;
+    z-index: 2;
+}
+
 @media (max-width: 768px) {
     .header-container {
         padding: 1rem;
@@ -159,5 +181,14 @@
 
     .header-left {
         gap: 1rem;
+    }
+
+    .notification-bell {
+        font-size: 1.2rem;
+    }
+
+    .notification-badge {
+        font-size: 0.65rem;
+        padding: 0.15em 0.4em;
     }
 }

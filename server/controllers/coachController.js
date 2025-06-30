@@ -350,13 +350,12 @@ const coachController = {
                 quitPlan = {
                     startDate: plan.StartDate ? plan.StartDate.toISOString().slice(0, 10) : null,
                     targetDate: plan.TargetDate ? plan.TargetDate.toISOString().slice(0, 10) : null,
-                    planType: 'custom',
                     initialCigarettes: plan.InitialCigarettes || 0,
                     dailyReduction: plan.DailyReduction || 0,
-                    milestones: [], // QuitPlans không có milestones column
-                    status: 'active', // Default status
                     planDetail: plan.PlanDetail || '',
-                    planSource: 'custom'
+                    createdAt: plan.CreatedAt || null,
+                    planSource: 'custom',
+                    id: plan.Id
                 };
             } else {
                 // If no custom plan, try to get from UserSuggestedQuitPlans
