@@ -134,6 +134,16 @@ exports.getProfile = async (req, res) => {
       }
     }
 
+    // Lấy huy hiệu của người dùng
+    const badgesResult = await sql.query`
+      SELECT b.Id, b.Name, b.Description, ub.AwardedAt
+      FROM UserBadges ub
+      JOIN Badges b ON ub.BadgeId = b.Id
+      WHERE ub.UserId = ${userId}
+      ORDER BY ub.AwardedAt DESC
+    `;
+    const achievements = badgesResult.recordset;
+
     // Lấy thông tin hút thuốc
     const smokingResult = await sql.query`
       SELECT cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, QuitReason, cigaretteType
@@ -230,7 +240,8 @@ exports.getProfile = async (req, res) => {
       smokingStatus,
       coachId: user.CoachId,
       coach,
-      currentUserSuggestedPlan
+      currentUserSuggestedPlan,
+      achievements
     });
   } catch (error) {
     console.error('[getProfile] Failed to get profile:', error); // DEBUG
@@ -444,23 +455,15 @@ exports.updateProfile = async (req, res) => {
 exports.createOrUpdateQuitPlan = async (req, res) => {
   try {
     const userId = req.user.id;
-    let { startDate, targetDate, planType, initialCigarettes, dailyReduction, milestones, planDetail } = req.body;
+    let { startDate, targetDate, planDetail, initialCigarettes, dailyReduction } = req.body;
 
-    // Ensure required fields are present and set default values for optional/nullable fields
-    if (!startDate || !targetDate || !planType) {
-      return res.status(400).json({ message: 'Missing required quit plan fields (startDate, targetDate, planType)' });
+    if (!startDate || !targetDate) {
+      return res.status(400).json({ message: 'Missing required quit plan fields (startDate, targetDate)' });
     }
 
-    // Set default values for optional fields
     initialCigarettes = initialCigarettes === undefined || initialCigarettes === null ? 0 : Number(initialCigarettes);
-    milestones = Array.isArray(milestones) ? milestones : [];
     dailyReduction = dailyReduction === undefined || dailyReduction === null ? 0 : Number(dailyReduction);
 
-    console.log(`[createOrUpdateQuitPlan] Received data for userId ${userId}:`, { 
-      startDate, targetDate, planType, initialCigarettes, dailyReduction, milestones, planDetail 
-    }); // DEBUG
-
-    // Convert dates to ISO string for database
     const startIso = new Date(startDate).toISOString();
     const targetIso = new Date(targetDate).toISOString();
 
@@ -469,32 +472,25 @@ exports.createOrUpdateQuitPlan = async (req, res) => {
     `;
 
     if (existingPlan.recordset.length > 0) {
-      // Update existing plan
       await sql.query`
         UPDATE QuitPlans
         SET 
           StartDate = ${startIso}, 
           TargetDate = ${targetIso}, 
-          PlanType = ${planType}, 
           InitialCigarettes = ${initialCigarettes}, 
           DailyReduction = ${dailyReduction},
-          Milestones = ${JSON.stringify(milestones)},
           PlanDetail = ${planDetail || null}
         WHERE UserId = ${userId}
       `;
-      console.log(`[createOrUpdateQuitPlan] Updated existing quit plan for userId ${userId}.`); // DEBUG
       res.status(200).json({ message: 'Kế hoạch cai thuốc đã được cập nhật thành công!' });
     } else {
-      // Create new plan
       await sql.query`
-        INSERT INTO QuitPlans (UserId, StartDate, TargetDate, PlanType, InitialCigarettes, DailyReduction, Milestones, CurrentProgress, PlanDetail)
-        VALUES (${userId}, ${startIso}, ${targetIso}, ${planType}, ${initialCigarettes}, ${dailyReduction}, ${JSON.stringify(milestones)}, 0, ${planDetail || null})
+        INSERT INTO QuitPlans (UserId, StartDate, TargetDate, PlanDetail, InitialCigarettes, DailyReduction, CreatedAt)
+        VALUES (${userId}, ${startIso}, ${targetIso}, ${planDetail || null}, ${initialCigarettes}, ${dailyReduction}, GETDATE())
       `;
-      console.log(`[createOrUpdateQuitPlan] Created new quit plan for userId ${userId}.`); // DEBUG
       res.status(201).json({ message: 'Kế hoạch cai thuốc đã được tạo thành công!' });
     }
   } catch (error) {
-    console.error('[createOrUpdateQuitPlan] Error creating or updating quit plan:', error); // DEBUG
     res.status(500).json({ message: 'Failed to save quit plan', error: error.message });
   }
 };
@@ -510,61 +506,30 @@ exports.getQuitPlan = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy kế hoạch cai thuốc' });
     }
     const plan = result.recordset[0];
-
-    // Tính toán tiến độ dựa trên ngày
     const startDate = new Date(plan.StartDate);
     const targetDate = new Date(plan.TargetDate);
     const today = new Date();
-
     const totalDurationMs = targetDate.getTime() - startDate.getTime();
     const elapsedDurationMs = today.getTime() - startDate.getTime();
-
     let progressPercentage = 0;
     if (totalDurationMs > 0) {
       progressPercentage = (elapsedDurationMs / totalDurationMs) * 100;
-      if (progressPercentage > 100) progressPercentage = 100; // Cap at 100%
-      if (progressPercentage < 0) progressPercentage = 0; // Ensure not negative
+      if (progressPercentage > 100) progressPercentage = 100;
+      if (progressPercentage < 0) progressPercentage = 0;
     }
-
-    // Tùy chỉnh tiến độ dựa trên số điếu thuốc giảm nếu có
-    if (plan.InitialCigarettes && plan.DailyReduction && plan.DailyReduction > 0) {
-        const daysPassed = Math.floor(elapsedDurationMs / (1000 * 60 * 60 * 24));
-        const expectedCigarettesToday = Math.max(0, plan.InitialCigarettes - (plan.DailyReduction * daysPassed));
-
-        // Lấy số điếu thuốc thực tế hút hôm nay
-        const latestProgressResult = await sql.query`
-            SELECT TOP 1 Cigarettes FROM SmokingDailyLog WHERE UserId = ${userId} ORDER BY LogDate DESC
-        `;
-        const actualCigarettesToday = latestProgressResult.recordset.length > 0 
-            ? latestProgressResult.recordset[0].Cigarettes 
-            : plan.InitialCigarettes; // Nếu chưa có nhật ký, coi như vẫn hút số ban đầu
-        
-        // Tính toán độ lệch so với mục tiêu và điều chỉnh phần trăm tiến độ
-        // Ví dụ đơn giản: nếu hút ít hơn mục tiêu, tiến độ tăng thêm; nếu hút nhiều hơn, tiến độ giảm
-        if (expectedCigarettesToday > 0) {
-            const reductionRatio = (expectedCigarettesToday - actualCigarettesToday) / expectedCigarettesToday;
-            progressPercentage += (reductionRatio * 20); // Điều chỉnh 20% tùy theo mức độ quan trọng bạn muốn
-            progressPercentage = Math.max(0, Math.min(100, progressPercentage)); // Giữ trong khoảng 0-100%
-        }
-    }
-
     res.json({
       quitPlan: {
         id: plan.Id,
-        startDate: plan.StartDate.toISOString().slice(0, 10), // Format to YYYY-MM-DD
-        targetDate: plan.TargetDate.toISOString().slice(0, 10), // Format to YYYY-MM-DD
-        planType: plan.PlanType,
+        startDate: plan.StartDate.toISOString().slice(0, 10),
+        targetDate: plan.TargetDate.toISOString().slice(0, 10),
         initialCigarettes: plan.InitialCigarettes || 0,
         dailyReduction: plan.DailyReduction || 0,
-        milestones: JSON.parse(plan.Milestones || '[]'), // Ensure milestones is an array
-        currentProgress: progressPercentage, // Gửi về dưới dạng số nguyên thủy
+        currentProgress: progressPercentage,
         planDetail: plan.PlanDetail || '',
-        status: plan.Status || 'active', // Ensure status is returned
-        createdAt: plan.CreatedAt || null, // Ensure createdAt is returned
+        createdAt: plan.CreatedAt || null
       }
     });
   } catch (error) {
-    console.error('Error getting quit plan:', error); // DEBUG
     res.status(500).json({ message: 'Failed to get quit plan', error: error.message });
   }
 };
@@ -1029,50 +994,29 @@ exports.createUserSuggestedQuitPlan = async (req, res) => {
   }
 };
 
-// Trong exports.addDailyLog hoặc addProgress:
-exports.addDailyLog = async (req, res) => {
+// Lấy kế hoạch cai thuốc tự tạo
+exports.getCustomQuitPlan = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { cigarettes, feeling, logDate, suggestedPlanId, planId } = req.body;
-    let useSuggestedPlanId = suggestedPlanId || null;
-    let usePlanId = planId || null;
-    // Nếu không truyền từ FE thì fallback như cũ
-    if (!useSuggestedPlanId && !usePlanId) {
-      // Lấy kế hoạch mẫu hiện tại
-      const suggestedPlanIdResult = await sql.query`
-        SELECT TOP 1 SuggestedPlanId FROM UserSuggestedQuitPlans WHERE UserId = ${userId} ORDER BY Id DESC
-      `;
-      useSuggestedPlanId = suggestedPlanIdResult.recordset.length > 0 ? suggestedPlanIdResult.recordset[0].SuggestedPlanId : null;
-      if (!useSuggestedPlanId) {
-        // Nếu không có kế hoạch mẫu, lấy PlanId từ QuitPlans
-        const planResult = await sql.query`
-          SELECT TOP 1 Id FROM QuitPlans WHERE UserId = ${userId} ORDER BY Id DESC
-        `;
-        usePlanId = planResult.recordset.length > 0 ? planResult.recordset[0].Id : null;
-      }
-    }
-    // Kiểm tra đã có nhật ký cho ngày này chưa
-    const today = logDate || new Date().toISOString().slice(0, 10);
-    const existing = await sql.query`
-      SELECT Id FROM SmokingDailyLog WHERE UserId = ${userId} AND LogDate = ${today} AND 
-        ((SuggestedPlanId IS NOT NULL AND SuggestedPlanId = ${useSuggestedPlanId}) OR (PlanId IS NOT NULL AND PlanId = ${usePlanId}))
+    const planResult = await sql.query`
+      SELECT * FROM QuitPlans WHERE UserId = ${userId} ORDER BY CreatedAt DESC
     `;
-    if (existing.recordset.length > 0) {
-      // Update
-      await sql.query`
-        UPDATE SmokingDailyLog SET Cigarettes = ${cigarettes}, Feeling = ${feeling || ''}
-        WHERE Id = ${existing.recordset[0].Id}
-      `;
-    } else {
-      // Insert
-      await sql.query`
-        INSERT INTO SmokingDailyLog (UserId, LogDate, Cigarettes, Feeling, PlanId, SuggestedPlanId)
-        VALUES (${userId}, ${today}, ${cigarettes}, ${feeling || ''}, ${usePlanId}, ${useSuggestedPlanId})
-      `;
+    if (planResult.recordset.length === 0) {
+      return res.json({ quitPlan: null, message: 'Không có kế hoạch tự tạo' });
     }
-    res.status(201).json({ message: 'Nhật ký đã được thêm thành công!' });
+    const plan = planResult.recordset[0];
+    const quitPlan = {
+      id: plan.Id,
+      startDate: plan.StartDate ? plan.StartDate.toISOString().slice(0, 10) : null,
+      targetDate: plan.TargetDate ? plan.TargetDate.toISOString().slice(0, 10) : null,
+      planDetail: plan.PlanDetail,
+      initialCigarettes: plan.InitialCigarettes,
+      dailyReduction: plan.DailyReduction,
+      createdAt: plan.CreatedAt
+    };
+    res.json({ quitPlan });
   } catch (error) {
-    res.status(500).json({ message: 'Lỗi khi cập nhật nhật ký.', error: error.message });
+    res.status(500).json({ message: 'Lỗi khi lấy kế hoạch cai thuốc', error: error.message });
   }
 };
 
@@ -1082,17 +1026,13 @@ exports.createQuitPlan = async (req, res) => {
     const userId = req.user.id;
     const { startDate, targetDate, planDetail, initialCigarettes, dailyReduction } = req.body;
 
-    console.log(`[createQuitPlan] User ${userId} creating quit plan:`, req.body);
-
-    // Kiểm tra user có phải memberVip không
+    // Kiểm tra quyền memberVip
     const userCheck = await sql.query`
       SELECT Id, Role, IsMemberVip, CoachId FROM Users WHERE Id = ${userId}
     `;
-
     if (userCheck.recordset.length === 0) {
       return res.status(404).json({ message: 'Không tìm thấy người dùng' });
     }
-
     const user = userCheck.recordset[0];
     if (user.Role !== 'memberVip' && !user.IsMemberVip) {
       return res.status(403).json({ message: 'Chỉ thành viên VIP mới có thể tự tạo kế hoạch cai thuốc' });
@@ -1102,7 +1042,6 @@ exports.createQuitPlan = async (req, res) => {
     if (!startDate || !targetDate || !planDetail) {
       return res.status(400).json({ message: 'Vui lòng điền đầy đủ thông tin bắt buộc' });
     }
-
     if (new Date(startDate) >= new Date(targetDate)) {
       return res.status(400).json({ message: 'Ngày kết thúc phải sau ngày bắt đầu' });
     }
@@ -1118,18 +1057,15 @@ exports.createQuitPlan = async (req, res) => {
       VALUES (${userId}, ${user.CoachId || null}, ${startDate}, ${targetDate}, ${planDetail}, ${initialCigarettes || 0}, ${dailyReduction || 0}, GETDATE());
       SELECT SCOPE_IDENTITY() AS Id;
     `;
-
     const newPlanId = insertResult.recordset[0].Id;
-    console.log(`[createQuitPlan] Created quit plan with ID: ${newPlanId}`);
 
     // Lấy thông tin kế hoạch vừa tạo
     const planResult = await sql.query`
       SELECT * FROM QuitPlans WHERE Id = ${newPlanId}
     `;
-
     const createdPlan = planResult.recordset[0];
 
-    res.status(201).json({ 
+    res.status(201).json({
       message: 'Đã tạo kế hoạch cai thuốc thành công!',
       plan: {
         id: createdPlan.Id,
@@ -1138,51 +1074,40 @@ exports.createQuitPlan = async (req, res) => {
         planDetail: createdPlan.PlanDetail,
         initialCigarettes: createdPlan.InitialCigarettes,
         dailyReduction: createdPlan.DailyReduction,
-        planType: 'custom',
-        status: 'active'
+        createdAt: createdPlan.CreatedAt
       }
     });
   } catch (error) {
-    console.error('Error creating quit plan:', error);
     res.status(500).json({ message: 'Lỗi khi tạo kế hoạch cai thuốc', error: error.message });
   }
 };
 
-// Lấy kế hoạch cai thuốc tự tạo
-exports.getCustomQuitPlan = async (req, res) => {
+exports.deleteUser = async (req, res) => {
   try {
     const userId = req.user.id;
-
-    console.log(`[getCustomQuitPlan] Getting custom quit plan for user ${userId}`);
-
-    // Lấy kế hoạch tự tạo từ bảng QuitPlans
-    const planResult = await sql.query`
-      SELECT * FROM QuitPlans WHERE UserId = ${userId} ORDER BY CreatedAt DESC
+    await sql.query`
+      DELETE FROM Users WHERE Id = ${userId}
     `;
-
-    if (planResult.recordset.length === 0) {
-      return res.json({ quitPlan: null, message: 'Không có kế hoạch tự tạo' });
-    }
-
-    const plan = planResult.recordset[0];
-
-    const quitPlan = {
-      id: plan.Id,
-      startDate: plan.StartDate ? plan.StartDate.toISOString().slice(0, 10) : null,
-      targetDate: plan.TargetDate ? plan.TargetDate.toISOString().slice(0, 10) : null,
-      planDetail: plan.PlanDetail,
-      initialCigarettes: plan.InitialCigarettes,
-      dailyReduction: plan.DailyReduction,
-      createdAt: plan.CreatedAt,
-      planType: 'custom',
-      status: 'active'
-    };
-
-    console.log(`[getCustomQuitPlan] Found custom quit plan:`, quitPlan);
-
-    res.json({ quitPlan });
+    res.status(200).json({ message: 'Người dùng đã được xóa thành công' });
   } catch (error) {
-    console.error('Error getting custom quit plan:', error);
-    res.status(500).json({ message: 'Lỗi khi lấy kế hoạch cai thuốc', error: error.message });
+    console.error('Error deleting user:', error);
+    res.status(500).json({ message: 'Failed to delete user', error: error.message });
+  }
+};
+
+exports.getUserBadges = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const result = await sql.query`
+      SELECT b.Id, b.Name, b.Description, ub.AwardedAt
+      FROM UserBadges ub
+      JOIN Badges b ON ub.BadgeId = b.Id
+      WHERE ub.UserId = ${userId}
+      ORDER BY ub.AwardedAt DESC
+    `;
+    res.json({ badges: result.recordset });
+  } catch (error) {
+    console.error('Get user badges error:', error);
+    res.status(500).json({ message: 'Failed to get user badges', error: error.message });
   }
 };

@@ -94,10 +94,6 @@ components:
           type: integer
         coachId:
           type: integer
-        planType:
-          type: string
-          enum: [suggested, custom]
-          description: 'Loại kế hoạch: suggested (hệ thống cung cấp), custom (người dùng tự tạo)'
         startDate:
           type: string
           format: date
@@ -106,16 +102,11 @@ components:
           format: date
         planDetail:
           type: string
-        status:
-          type: string
-          enum: [active, completed, cancelled]
         createdAt:
           type: string
           format: date-time
         currentProgress:
           type: integer
-        milestones:
-          type: string
         initialCigarettes:
           type: integer
         dailyReduction:

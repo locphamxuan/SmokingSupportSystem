@@ -121,7 +121,6 @@ exports.addDailyLog = async (req, res) => {
     // Check for badge achievements based on smoking progress
     const newBadges = [];
     let currentStreak = 0;
-    
     try {
       // Get consecutive days without smoking (streak calculation)
       const recentLogs = await sql.query`
@@ -129,46 +128,45 @@ exports.addDailyLog = async (req, res) => {
         WHERE UserId = ${userId} 
         ORDER BY LogDate DESC
       `;
-      
+      console.log('[DEBUG] recentLogs:', recentLogs.recordset);
       for (const log of recentLogs.recordset) {
-        if (log.Cigarettes === 0) {
+        if (Number(log.Cigarettes) === 0) {
           currentStreak++;
         } else {
           break;
         }
       }
-
+      console.log('[DEBUG] currentStreak:', currentStreak);
       // Award badges based on streak
-      const badgeChecks = [
-        { days: 1, badgeId: 1 }, // '1 ngày không hút thuốc'
-        { days: 3, badgeId: 2 }, // '3 ngày không hút thuốc'
-        { days: 5, badgeId: 3 }, // '5 ngày không hút thuốc'
-        { days: 7, badgeId: 4 }, // '7 ngày không hút thuốc'
-        { days: 14, badgeId: 5 }, // '14 ngày không hút thuốc'
-        { days: 30, badgeId: 6 }, // '30 ngày không hút thuốc'
-        { days: 60, badgeId: 7 }  // '60 ngày không hút thuốc'
+      const streakChecks = [
+        { days: 60, badgeId: 7 },
+        { days: 30, badgeId: 6 },
+        { days: 14, badgeId: 5 },
+        { days: 7, badgeId: 4 },
+        { days: 5, badgeId: 3 },
+        { days: 3, badgeId: 2 },
+        { days: 1, badgeId: 1 }
       ];
-
-      for (const badge of badgeChecks) {
-        if (currentStreak >= badge.days) {
+      for (const check of streakChecks) {
+        if (currentStreak >= check.days) {
           // Check if user already has this badge
           const existingBadge = await sql.query`
             SELECT Id FROM UserBadges 
-            WHERE UserId = ${userId} AND BadgeId = ${badge.badgeId}
+            WHERE UserId = ${userId} AND BadgeId = ${check.badgeId}
           `;
-          
+          console.log(`[DEBUG] Checking badgeId ${check.badgeId} for userId ${userId}:`, existingBadge.recordset);
           if (existingBadge.recordset.length === 0) {
             // Get badge info from Badges table
             const badgeInfo = await sql.query`
-              SELECT Name, Description FROM Badges WHERE Id = ${badge.badgeId}
+              SELECT Name, Description FROM Badges WHERE Id = ${check.badgeId}
             `;
-            
             if (badgeInfo.recordset.length > 0) {
               // Award the badge
               await sql.query`
                 INSERT INTO UserBadges (UserId, BadgeId, AwardedAt)
-                VALUES (${userId}, ${badge.badgeId}, GETDATE())
+                VALUES (${userId}, ${check.badgeId}, GETDATE())
               `;
+              console.log(`[DEBUG] Awarded badgeId ${check.badgeId} to userId ${userId}`);
               newBadges.push({
                 Name: badgeInfo.recordset[0].Name,
                 Description: badgeInfo.recordset[0].Description,
