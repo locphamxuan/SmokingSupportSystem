@@ -474,7 +474,7 @@ const AdminPostsPage = () => {
                 <div>
                   <h6>Bình luận ({selectedPost.Comments.length}):</h6>
                   <div className="comments-list">
-                    {selectedPost.Comments.map((comment, index) => (
+                    {selectedPost.Comments.map((comment, _index) => (
                       <div key={comment.Id} className="comment-item">
                         <strong>{comment.Author}</strong>
                         <small className="text-muted ms-2">
