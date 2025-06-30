@@ -31,10 +31,12 @@ router.post('/progress', authenticateToken, authController.addProgress);
 router.get('/coaches', authenticateToken, authController.getAllCoaches);
 router.get('/badges', authenticateToken, authController.getUserBadges);
 router.get('/all-badges', authenticateToken, authController.getAllBadges);
+router.get('/user-badges/:userId', authenticateToken, authController.getUserBadgesByUserId);
 router.get('/progress/history', authenticateToken, authController.getSmokingProgressHistory);
 
 // Blog Posts routes
 router.get('/posts', authController.getAllPosts); // Publicly accessible to view posts
+router.get('/my-posts', authenticateToken, authController.getUserPosts); // Get current user's posts
 router.post('/posts', authenticateToken, authController.createPost); // Requires authentication to create a post
 
 // Comment routes
@@ -68,7 +70,6 @@ router.post('/create-quit-plan', authenticateToken, authController.createQuitPla
 // Route for getting custom quit plan
 router.get('/custom-quit-plan', authenticateToken, authController.getCustomQuitPlan);
 
-// Badge routes
-router.get('/user-badges/:userId', authenticateToken, authController.getUserBadgesByUserId);
+// Badge routes để lấy huy hiệu theo user ID (đã có route /badges cho user hiện tại)
 
 module.exports = router;

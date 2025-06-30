@@ -26,9 +26,7 @@ const CoachMemberProgressPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [allBadges, setAllBadges] = useState([]);
   const [memberBadges, setMemberBadges] = useState([]);
-  const [awardingBadgeId, setAwardingBadgeId] = useState(null);
   const [smokingHistory, setSmokingHistory] = useState([]);
   const [currentWeek, setCurrentWeek] = useState(1);
 
@@ -59,17 +57,7 @@ const CoachMemberProgressPage = () => {
     }
   };
 
-  const fetchAllBadges = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/auth/all-badges', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setAllBadges(response.data.badges || []);
-    } catch (err) {
-      console.error('Lỗi khi tải danh sách huy hiệu:', err);
-    }
-  };
+
 
   const fetchMemberBadges = async () => {
     try {
@@ -87,7 +75,7 @@ const CoachMemberProgressPage = () => {
         data: err.response?.data,
         message: err.response?.data?.message
       });
-      // Don't set error for this as it's not critical
+      setMemberBadges([]);
     }
   };
 
@@ -112,7 +100,6 @@ const CoachMemberProgressPage = () => {
         setLoading(true);
         await Promise.all([
           fetchMemberProgress(),
-          fetchAllBadges(),
           fetchMemberBadges(),
           fetchMemberSmokingHistory()
         ]);
@@ -135,44 +122,7 @@ const CoachMemberProgressPage = () => {
     navigate('/coach/dashboard');
   };
 
-  const handleAwardBadge = async (badgeId, badgeName) => {
-    const reason = prompt(`Nhập lý do trao huy hiệu "${badgeName}" (tùy chọn):`);
-    if (reason === null) return; // User cancelled
 
-    try {
-      console.log('🎖️ Awarding badge:', { badgeId, badgeName, memberId, reason });
-      setAwardingBadgeId(badgeId);
-      const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:5000/api/hlv/award-badge', {
-        memberId: parseInt(memberId),
-        badgeId: badgeId,
-        reason: reason.trim()
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      console.log('✅ Badge awarded successfully:', response.data);
-      setSuccess(response.data.message);
-      
-      // Refresh member badges
-      console.log('🔄 Refreshing member badges...');
-      await fetchMemberBadges();
-    } catch (err) {
-      console.error('❌ Error awarding badge:', err);
-      console.error('Error details:', {
-        status: err.response?.status,
-        data: err.response?.data,
-        message: err.response?.data?.message
-      });
-      setError(err.response?.data?.message || 'Lỗi khi trao huy hiệu');
-    } finally {
-      setAwardingBadgeId(null);
-    }
-  };
-
-  const isBadgeAwarded = (badgeId) => {
-    return memberBadges.some(badge => badge.Id === badgeId);
-  };
 
   // Helper functions for chart calculations
   const calculateCurrentStreak = (history) => {
@@ -647,96 +597,139 @@ const CoachMemberProgressPage = () => {
           </div>
         )}
 
-        {/* Huy hiệu và trao thưởng */}
+        {/* Huy hiệu đã đạt được */}
         <div className="card my-4">
           <div className="card-header d-flex justify-content-between align-items-center">
-            <h5 className="mb-0">🎖️ Huy hiệu và trao thưởng</h5>
-            <small className="text-muted">Trao huy hiệu để khuyến khích thành viên</small>
+            <h5 className="mb-0">🏆 Huy hiệu đã đạt được</h5>
+            <div className="d-flex align-items-center">
+              <span className="badge bg-success me-2">{memberBadges.length} huy hiệu</span>
+              <small className="text-muted">Thành tích của thành viên</small>
+            </div>
           </div>
           <div className="card-body">
-            {/* Huy hiệu đã có */}
-            <div className="mb-4">
-              <h6 className="text-success">✅ Huy hiệu đã có ({memberBadges.length})</h6>
-              {memberBadges.length > 0 ? (
-                <div className="row">
-                  {memberBadges.map((badge) => (
-                    <div key={badge.Id} className="col-md-6 col-lg-4 mb-3">
-                      <div className="card border-success">
-                        <div className="card-body text-center">
-                          <div className="badge-icon mb-2" style={{ fontSize: '2rem' }}>
-                            🏆
+            {memberBadges.length > 0 ? (
+              <div className="row">
+                {memberBadges.map((badge) => (
+                  <div key={badge.Id} className="col-md-6 col-lg-4 mb-3">
+                    <div className="card border-success shadow-sm h-100">
+                      <div className="card-body text-center d-flex flex-column">
+                        <div className="badge-icon mb-3" style={{ fontSize: '3rem' }}>
+                          🏆
+                        </div>
+                        <h6 className="card-title text-success fw-bold">{badge.Name}</h6>
+                        <p className="card-text small text-muted flex-grow-1">{badge.Description}</p>
+                        
+                        {/* Thông tin chi tiết */}
+                        <div className="mt-auto">
+                          <div className="d-flex justify-content-center mb-2">
+                            <span className="badge bg-info">
+                              Yêu cầu: {badge.Requirement || 'N/A'} ngày
+                            </span>
                           </div>
-                          <h6 className="card-title text-success">{badge.Name}</h6>
-                          <p className="card-text small text-muted">{badge.Description}</p>
-                          <small className="text-muted">
-                            Nhận: {new Date(badge.AwardedAt).toLocaleDateString()}
-                          </small>
+                          
+                                                     <div className="border-top pt-2">
+                             <small className="text-success fw-semibold">
+                               <i className="fas fa-calendar-check me-1"></i>
+                               Đạt được: {(() => {
+                                 // Parse directly from string to avoid timezone issues
+                                 const dateString = badge.AwardedAt;
+                                 if (dateString.includes('T') || dateString.includes(' ')) {
+                                   const [datePart, timePart] = dateString.split(/[T ]/);
+                                   const [year, month, day] = datePart.split('-');
+                                   const [hours, minutes, seconds] = timePart ? timePart.split(':') : ['00', '00', '00'];
+                                   return `${day}/${month}/${year} ${hours}:${minutes}`;
+                                 }
+                                 // Fallback for other formats
+                                 const date = new Date(dateString);
+                                 const day = String(date.getDate()).padStart(2, '0');
+                                 const month = String(date.getMonth() + 1).padStart(2, '0');
+                                 const year = date.getFullYear();
+                                 const hours = String(date.getHours()).padStart(2, '0');
+                                 const minutes = String(date.getMinutes()).padStart(2, '0');
+                                 return `${day}/${month}/${year} ${hours}:${minutes}`;
+                               })()}
+                             </small>
+                            
+                            {badge.AwardedBy && (
+                              <div className="mt-1">
+                                <small className="text-muted">
+                                  <i className="fas fa-user-tie me-1"></i>
+                                  Trao bởi: {badge.AwardedBy}
+                                </small>
+                              </div>
+                            )}
+                            
+                                                         {badge.Reason && (
+                               <div className="mt-2">
+                                 <small className="text-primary fst-italic">
+                                   <i className="fas fa-quote-left me-1"></i>
+                                   &ldquo;{badge.Reason}&rdquo;
+                                 </small>
+                               </div>
+                             )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  ))}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-5">
+                <div className="mb-3" style={{ fontSize: '4rem', opacity: 0.3 }}>
+                  🏆
                 </div>
-              ) : (
-                <p className="text-muted">Thành viên chưa có huy hiệu nào.</p>
-              )}
-            </div>
-
-            {/* Tất cả huy hiệu có thể trao */}
-            <div>
-              <h6 className="text-primary">🎯 Tất cả huy hiệu có thể trao ({allBadges.length})</h6>
-              {allBadges.length > 0 ? (
-                <div className="row">
-                  {allBadges.map((badge) => {
-                    const isAwarded = isBadgeAwarded(badge.Id);
-                    const isAwarding = awardingBadgeId === badge.Id;
-                    
-                    return (
-                      <div key={badge.Id} className="col-md-6 col-lg-4 mb-3">
-                        <div className={`card ${isAwarded ? 'border-success bg-light' : 'border-primary'}`}>
-                          <div className="card-body text-center">
-                            <div className="badge-icon mb-2" style={{ fontSize: '2rem' }}>
-                              {isAwarded ? '✅' : '🎖️'}
-                            </div>
-                            <h6 className={`card-title ${isAwarded ? 'text-success' : 'text-primary'}`}>
-                              {badge.Name}
-                            </h6>
-                            <p className="card-text small text-muted">{badge.Description}</p>
-                            <div className="mb-2">
-                              <span className="badge bg-info">
-                                Yêu cầu: {badge.Requirement} ngày
-                              </span>
-                            </div>
-                            
-                            {isAwarded ? (
-                              <button className="btn btn-success btn-sm" disabled>
-                                ✅ Đã trao
-                              </button>
-                            ) : (
-                              <button 
-                                className="btn btn-warning btn-sm"
-                                onClick={() => handleAwardBadge(badge.Id, badge.Name)}
-                                disabled={isAwarding}
-                              >
-                                {isAwarding ? (
-                                  <>
-                                    <span className="spinner-border spinner-border-sm me-1"></span>
-                                    Đang trao...
-                                  </>
-                                ) : (
-                                  <>🎖️ Trao huy hiệu</>
-                                )}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <h6 className="text-muted">Chưa có huy hiệu nào</h6>
+                <p className="text-muted small">
+                  Thành viên chưa đạt được huy hiệu nào. Hãy tiếp tục theo dõi và hỗ trợ họ đạt được những thành tích đầu tiên!
+                </p>
+              </div>
+            )}
+            
+            {/* Thống kê tổng quan */}
+            {memberBadges.length > 0 && (
+              <div className="mt-4 pt-3 border-top">
+                <div className="row text-center">
+                  <div className="col-md-4">
+                    <div className="bg-light p-3 rounded">
+                      <h4 className="text-primary mb-1">{memberBadges.length}</h4>
+                      <small className="text-muted">Tổng huy hiệu</small>
+                    </div>
+                  </div>
+                  <div className="col-md-4">
+                    <div className="bg-light p-3 rounded">
+                      <h4 className="text-success mb-1">
+                        {memberBadges.filter(badge => 
+                          new Date(badge.AwardedAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+                        ).length}
+                      </h4>
+                      <small className="text-muted">Trong 30 ngày</small>
+                    </div>
+                  </div>
+                                     <div className="col-md-4">
+                     <div className="bg-light p-3 rounded">
+                       <h4 className="text-warning mb-1">
+                         {memberBadges.length > 0 ? (() => {
+                           const latestBadge = memberBadges.sort((a, b) => new Date(b.AwardedAt) - new Date(a.AwardedAt))[0];
+                           const dateString = latestBadge.AwardedAt;
+                           if (dateString.includes('T') || dateString.includes(' ')) {
+                             const [datePart] = dateString.split(/[T ]/);
+                             const [year, month, day] = datePart.split('-');
+                             return `${day}/${month}`;
+                           }
+                           // Fallback
+                           const date = new Date(dateString);
+                           const day = String(date.getDate()).padStart(2, '0');
+                           const month = String(date.getMonth() + 1).padStart(2, '0');
+                           return `${day}/${month}`;
+                         })() : 'N/A'}
+                       </h4>
+                       <small className="text-muted">Gần nhất</small>
+                     </div>
+                   </div>
                 </div>
-              ) : (
-                <p className="text-muted">Không có huy hiệu nào để trao.</p>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -12,6 +12,12 @@ router.put('/user/:id', authenticateToken, isAdmin, adminController.updateUser);
 router.delete('/user/:id', authenticateToken, isAdmin, adminController.deleteUser);
 router.get('/statistics', authenticateToken, isAdmin, adminController.getStatistics);
 
+// Posts management (admin only)
+router.get('/posts', authenticateToken, isAdmin, adminController.getAllPosts);
+router.get('/posts/:id', authenticateToken, isAdmin, adminController.getPostDetail);
+router.put('/posts/:id/status', authenticateToken, isAdmin, adminController.updatePostStatus);
+router.delete('/posts/:id', authenticateToken, isAdmin, adminController.deletePost);
+
 // Membership package management (admin only)
 router.get('/packages', authenticateToken, isAdmin, membershipController.getMembershipPackages);
 router.post('/packages', authenticateToken, isAdmin, membershipController.createMembershipPackage);

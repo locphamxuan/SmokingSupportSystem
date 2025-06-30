@@ -96,6 +96,9 @@ const Navbar = () => {
                     <Link to="/admin/packages" className="dropdown-item" onClick={() => handleNavClick('/admin/packages')}>
                       Quản lý gói thành viên
                     </Link>
+                    <Link to="/admin/posts" className="dropdown-item" onClick={() => handleNavClick('/admin/posts')}>
+                      Duyệt bài viết
+                    </Link>
                   </>
                 )}
                 {/* Menu riêng cho Coach */}

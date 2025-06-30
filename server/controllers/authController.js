@@ -800,11 +800,14 @@ exports.getSmokingProgressHistory = async (req, res) => {
 exports.getAllPosts = async (req, res) => {
   try {
     const posts = await sql.query`
-      SELECT b.Id, b.Title, b.Content, b.CreatedAt, b.Status, u.Username AS Author
-      FROM Posts b
-      JOIN Users u ON b.UserId = u.Id
-      WHERE b.Status = 'published'
-      ORDER BY b.CreatedAt DESC
+      SELECT p.Id, p.Title, p.Content, p.CreatedAt, p.Status, p.BadgeId,
+             u.Username AS Author,
+             b.Name AS BadgeName, b.Description AS BadgeDescription, b.BadgeType
+      FROM Posts p
+      JOIN Users u ON p.UserId = u.Id
+      LEFT JOIN Badges b ON p.BadgeId = b.Id
+      WHERE p.Status = 'published'
+      ORDER BY p.CreatedAt DESC
     `;
     res.status(200).json(posts.recordset);
   } catch (error) {
@@ -813,12 +816,33 @@ exports.getAllPosts = async (req, res) => {
   }
 };
 
+// Lấy bài viết của user hiện tại (bao gồm cả chờ duyệt và đã duyệt)
+exports.getUserPosts = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const posts = await sql.query`
+      SELECT p.Id, p.Title, p.Content, p.CreatedAt, p.Status, p.BadgeId,
+             u.Username AS Author,
+             b.Name AS BadgeName, b.Description AS BadgeDescription, b.BadgeType
+      FROM Posts p
+      JOIN Users u ON p.UserId = u.Id
+      LEFT JOIN Badges b ON p.BadgeId = b.Id
+      WHERE p.UserId = ${userId}
+      ORDER BY p.CreatedAt DESC
+    `;
+    res.status(200).json(posts.recordset);
+  } catch (error) {
+    console.error('Error getting user posts:', error);
+    res.status(500).json({ message: 'Failed to retrieve user posts', error: error.message });
+  }
+};
+
 // Tạo bài đăng Blog mới
 exports.createPost = async (req, res) => {
   try {
     const userId = req.user.id; // Lấy userId từ token đã xác thực
     const userRole = req.user.role; // Lấy role từ token
-    const { title, content } = req.body;
+    const { title, content, badgeId } = req.body;
 
     // Kiểm tra không cho admin tạo bài viết
     if (userRole === 'admin') {
@@ -829,21 +853,55 @@ exports.createPost = async (req, res) => {
       return res.status(400).json({ message: 'Title and content are required' });
     }
 
+    // Parse badgeId thành integer nếu có
+    let parsedBadgeId = null;
+    if (badgeId && badgeId !== '' && badgeId !== 'null' && badgeId !== 'undefined') {
+      parsedBadgeId = parseInt(badgeId);
+      if (isNaN(parsedBadgeId)) {
+        return res.status(400).json({ message: 'BadgeId không hợp lệ.' });
+      }
+    }
+
+    console.log(`Debug - Raw badgeId: "${badgeId}", Parsed badgeId: ${parsedBadgeId}`);
+
+    // Nếu có badgeId, kiểm tra user có sở hữu huy hiệu đó không
+    if (parsedBadgeId) {
+      const userBadgeCheck = await sql.query`
+        SELECT Id FROM UserBadges 
+        WHERE UserId = ${userId} AND BadgeId = ${parsedBadgeId}
+      `;
+      
+      if (userBadgeCheck.recordset.length === 0) {
+        return res.status(400).json({ message: 'Bạn không sở hữu huy hiệu này.' });
+      }
+    }
+
+    console.log(`Creating post with explicit status "pending" for user ${userId}, badgeId: ${parsedBadgeId}`);
+
     const result = await sql.query`
-      INSERT INTO Posts (UserId, Title, Content, Status, CreatedAt)
-      VALUES (${userId}, ${title}, ${content}, 'published', GETDATE());
+      INSERT INTO Posts (UserId, Title, Content, BadgeId, Status, CreatedAt)
+      VALUES (${userId}, ${title}, ${content}, ${parsedBadgeId}, 'pending', GETDATE());
       SELECT SCOPE_IDENTITY() AS Id;
     `;
 
     const newPostId = result.recordset[0].Id;
     const newPost = await sql.query`
-      SELECT b.Id, b.Title, b.Content, b.CreatedAt, b.Status, u.Username AS Author
-      FROM Posts b
-      JOIN Users u ON b.UserId = u.Id
-      WHERE b.Id = ${newPostId}
+      SELECT p.Id, p.Title, p.Content, p.CreatedAt, p.Status, p.BadgeId,
+             u.Username AS Author,
+             b.Name AS BadgeName, b.Description AS BadgeDescription, b.BadgeType
+      FROM Posts p
+      JOIN Users u ON p.UserId = u.Id
+      LEFT JOIN Badges b ON p.BadgeId = b.Id
+      WHERE p.Id = ${newPostId}
     `;
 
-    res.status(201).json({ message: 'Bài đăng đã được tạo thành công!', post: newPost.recordset[0] });
+    console.log(`Post ${newPostId} created with status: "${newPost.recordset[0].Status}", BadgeId: ${newPost.recordset[0].BadgeId}`);
+    console.log('Post data:', JSON.stringify(newPost.recordset[0], null, 2));
+
+    res.status(201).json({ 
+      message: 'Bài đăng đã được gửi thành công và đang chờ duyệt!', 
+      post: newPost.recordset[0] 
+    });
   } catch (error) {
     console.error('Error creating post:', error);
     res.status(500).json({ message: 'Failed to create post', error: error.message });
@@ -934,6 +992,25 @@ exports.getAllBadges = async (req, res) => {
   } catch (error) {
     console.error('Error getting all badges:', error);
     res.status(500).json({ message: 'Failed to get all badges', error: error.message });
+  }
+};
+
+// Lấy huy hiệu của user hiện tại
+exports.getUserBadges = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const userBadgesResult = await sql.query`
+      SELECT b.Id, b.Name, b.Description, b.BadgeType, b.Requirement, ub.AwardedAt
+      FROM UserBadges ub
+      JOIN Badges b ON ub.BadgeId = b.Id
+      WHERE ub.UserId = ${userId}
+      ORDER BY ub.AwardedAt DESC
+    `;
+    
+    res.json({ badges: userBadgesResult.recordset });
+  } catch (error) {
+    console.error('Error getting user badges:', error);
+    res.status(500).json({ message: 'Failed to get user badges', error: error.message });
   }
 };
 

@@ -448,7 +448,171 @@ const adminController = {
             console.error('Statistics error:', error);
             res.status(500).json({ message: 'Error getting statistics', error: error.message });
         }
-    }
+    },
+
+    // Posts Management Functions
+    getAllPosts: async (req, res) => {
+        try {
+            console.log('Admin fetching all posts...');
+            const result = await sql.query`
+                SELECT 
+                    p.Id, 
+                    p.Title, 
+                    p.Content, 
+                    p.Status,
+                    p.CreatedAt,
+                    p.BadgeId,
+                    u.Username AS Author,
+                    u.Id AS UserId,
+                    b.Name AS BadgeName,
+                    b.Description AS BadgeDescription,
+                    b.BadgeType
+                FROM Posts p
+                JOIN Users u ON p.UserId = u.Id
+                LEFT JOIN Badges b ON p.BadgeId = b.Id
+                ORDER BY p.CreatedAt DESC
+            `;
+            
+            console.log(`Found ${result.recordset.length} posts`);
+            console.log('Sample post with badge data:', JSON.stringify(result.recordset[0], null, 2));
+            res.json(result.recordset);
+        } catch (error) {
+            console.error('Error getting all posts for admin:', error);
+            res.status(500).json({ message: 'Error getting posts', error: error.message });
+        }
+    },
+
+    updatePostStatus: async (req, res) => {
+        try {
+            const postId = req.params.id;
+            const { status } = req.body;
+            
+            console.log(`Admin updating post ${postId} status to: ${status}`);
+            
+            // Validate status
+            if (!['pending', 'published'].includes(status)) {
+                return res.status(400).json({ message: 'Invalid status. Must be "pending" or "published"' });
+            }
+            
+            // Update post status
+            await sql.query`
+                UPDATE Posts 
+                SET Status = ${status}
+                WHERE Id = ${postId}
+            `;
+            
+            // Get updated post info
+            const updatedPost = await sql.query`
+                SELECT 
+                    p.Id, 
+                    p.Title, 
+                    p.Content, 
+                    p.Status, 
+                    p.CreatedAt,
+                    u.Username AS Author,
+                    u.Id AS UserId
+                FROM Posts p
+                JOIN Users u ON p.UserId = u.Id
+                WHERE p.Id = ${postId}
+            `;
+            
+            if (updatedPost.recordset.length === 0) {
+                return res.status(404).json({ message: 'Post not found' });
+            }
+            
+            console.log(`Post ${postId} status updated successfully`);
+            res.json({ 
+                message: 'Post status updated successfully', 
+                post: updatedPost.recordset[0] 
+            });
+        } catch (error) {
+            console.error('Error updating post status:', error);
+            res.status(500).json({ message: 'Error updating post status', error: error.message });
+        }
+    },
+
+    deletePost: async (req, res) => {
+        try {
+            const postId = req.params.id;
+            console.log(`Admin deleting post ${postId}`);
+            
+            // First delete all comments for this post
+            await sql.query`
+                DELETE FROM Comments WHERE PostId = ${postId}
+            `;
+            
+            // Then delete the post
+            const result = await sql.query`
+                DELETE FROM Posts WHERE Id = ${postId}
+            `;
+            
+            if (result.rowsAffected[0] === 0) {
+                return res.status(404).json({ message: 'Post not found' });
+            }
+            
+            console.log(`Post ${postId} and its comments deleted successfully`);
+            res.json({ message: 'Post deleted successfully' });
+        } catch (error) {
+            console.error('Error deleting post:', error);
+            res.status(500).json({ message: 'Error deleting post', error: error.message });
+        }
+    },
+
+    getPostDetail: async (req, res) => {
+        try {
+            const postId = req.params.id;
+            console.log(`Admin getting post detail for ID: ${postId}`);
+            
+            // Get post with author info and badge info
+            const postResult = await sql.query`
+                SELECT 
+                    p.Id, 
+                    p.Title, 
+                    p.Content, 
+                    p.Status, 
+                    p.CreatedAt,
+                    p.BadgeId,
+                    u.Username AS Author,
+                    u.Id AS UserId,
+                    u.Email AS AuthorEmail,
+                    b.Name AS BadgeName,
+                    b.Description AS BadgeDescription,
+                    b.BadgeType
+                FROM Posts p
+                JOIN Users u ON p.UserId = u.Id
+                LEFT JOIN Badges b ON p.BadgeId = b.Id
+                WHERE p.Id = ${postId}
+            `;
+            
+            if (postResult.recordset.length === 0) {
+                return res.status(404).json({ message: 'Post not found' });
+            }
+            
+            const post = postResult.recordset[0];
+            
+            // Get comments for this post
+            const commentsResult = await sql.query`
+                SELECT 
+                    c.Id, 
+                    c.Content, 
+                    c.CreatedAt,
+                    u.Username AS Author,
+                    u.Id AS UserId
+                FROM Comments c
+                JOIN Users u ON c.UserId = u.Id
+                WHERE c.PostId = ${postId}
+                ORDER BY c.CreatedAt ASC
+            `;
+            
+            post.Comments = commentsResult.recordset;
+            
+            console.log(`Post detail retrieved: ${post.Title} with ${post.Comments.length} comments`);
+            res.json(post);
+        } catch (error) {
+            console.error('Error getting post detail:', error);
+            res.status(500).json({ message: 'Error getting post detail', error: error.message });
+        }
+    },
 };
 
 module.exports = adminController;
