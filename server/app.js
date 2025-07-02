@@ -49,8 +49,6 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'API is working!', timestamp: new Date().toISOString() });
 });
 
-
-
 // Lưu socketId theo userId để gửi tin nhắn đúng người
 const userSocketMap = new Map();
 
