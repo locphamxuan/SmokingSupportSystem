@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import '../style/NotificationsPage.scss';
+import axios from 'axios';
 
 const NotificationsPage = () => {
   const [notifications, setNotifications] = useState([]);
@@ -9,11 +10,22 @@ const NotificationsPage = () => {
     async function fetchNotifications() {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('/api/auth/notifications', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await res.json();
-        setNotifications(Array.isArray(data) ? data : []);
+        // Fetch cá nhân
+        const res = await axios.get('/api/auth/notifications', { headers: { Authorization: `Bearer ${token}` } });
+        const data = await res.data;
+        let personal = Array.isArray(data) ? data : [];
+        // Fetch thông báo chung
+        const resPublic = await axios.get('/api/auth/public-notifications');
+        const publicData = resPublic.data;
+        let publicNoti = [];
+        if (publicData.reward) publicNoti = publicNoti.concat(publicData.reward.map(n => ({...n, type: 'reward'})));
+        if (publicData.daily) publicNoti = publicNoti.concat(publicData.daily.map(n => ({...n, type: 'daily'})));
+        if (publicData.weekly) publicNoti = publicNoti.concat(publicData.weekly.map(n => ({...n, type: 'weekly'})));
+        if (publicData.motivation) publicNoti = publicNoti.concat(publicData.motivation.map(n => ({...n, type: 'motivation'})));
+        // Gán id cho thông báo chung nếu chưa có
+        publicNoti = publicNoti.map((n, idx) => ({...n, id: n.Id || n.id || `public-${n.type}-${idx}`}));
+        // Gộp tất cả
+        setNotifications([...personal, ...publicNoti]);
       } catch (err) {
         setNotifications([]);
       } finally {
@@ -37,9 +49,14 @@ const NotificationsPage = () => {
               key={n.id}
               className={`list-group-item d-flex justify-content-between align-items-center notification-item ${n.isRead ? '' : 'fw-bold unread'}`}
             >
-              <span>{n.message || 'Không có nội dung thông báo'}</span>
+              <span>
+                {n.message || n.Message || 'Không có nội dung thông báo'}
+                {n.type && (
+                  <span className="badge bg-light text-dark ms-2">{n.type}</span>
+                )}
+              </span>
               <span className="badge bg-secondary notification-date">
-                {n.createdAt ? new Date(n.createdAt).toLocaleString() : 'Không rõ thời gian'}
+                {n.createdAt || n.CreatedAt ? new Date(n.createdAt || n.CreatedAt).toLocaleString() : 'Không rõ thời gian'}
               </span>
             </li>
           ))}

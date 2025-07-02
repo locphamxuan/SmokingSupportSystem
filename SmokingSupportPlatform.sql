@@ -20,7 +20,7 @@ CREATE TABLE Users (
 );
 GO
 
-drop table UserStatistics
+
 
 -- SMOKING PROFILES
 CREATE TABLE SmokingProfiles (

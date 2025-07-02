@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import axios from 'axios';
 import '../style/AchievementsPage.scss';
 import Badge1Day from '../assets/badges/huyhiệu1ngày.jpg';
 import Badge3Days from '../assets/badges/huyhiệu3ngày.jpg';
@@ -20,8 +21,19 @@ const allBadges = [
 ];
 
 const AchievementsPage = () => {
-  const { user } = useAuth();
-  const userBadges = user?.achievements || [];
+  const { user, token } = useAuth();
+  const [userBadges, setUserBadges] = useState([]);
+
+  useEffect(() => {
+    if (token) {
+      axios.get('/api/auth/badges', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(res => setUserBadges(res.data.badges || []))
+      .catch(() => setUserBadges([]));
+    }
+  }, [token]);
+
   const isUserBadge = (badgeId) => userBadges.some(b => Number(b.BadgeId || b.Id) === Number(badgeId));
   const getUserBadgeInfo = (badgeId) => userBadges.find(b => Number(b.BadgeId || b.Id) === Number(badgeId));
 

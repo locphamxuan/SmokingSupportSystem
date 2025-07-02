@@ -60,4 +60,21 @@ exports.createNotification = async (userId, message, type = 'general') => {
   } catch (error) {
     console.error('Create notification error:', error);
   }
+};
+
+exports.getPublicNotifications = async (req, res) => {
+  try {
+    const reward = await sql.query`SELECT * FROM RewardNotifications`;
+    const daily = await sql.query`SELECT * FROM DailyNotifications`;
+    const weekly = await sql.query`SELECT * FROM WeeklyNotifications`;
+    const motivation = await sql.query`SELECT * FROM MotivationNotifications`;
+    res.json({
+      reward: reward.recordset,
+      daily: daily.recordset,
+      weekly: weekly.recordset,
+      motivation: motivation.recordset
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to get public notifications', error: error.message });
+  }
 }; 
