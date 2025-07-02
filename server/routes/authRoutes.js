@@ -72,4 +72,6 @@ router.get('/custom-quit-plan', authenticateToken, authController.getCustomQuitP
 
 // Badge routes để lấy huy hiệu theo user ID (đã có route /badges cho user hiện tại)
 
+router.get('/public-notifications', notificationController.getPublicNotifications);
+
 module.exports = router;
