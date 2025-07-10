@@ -24,4 +24,7 @@ router.post('/packages', authenticateToken, isAdmin, membershipController.create
 router.put('/packages/:id', authenticateToken, isAdmin, membershipController.updateMembershipPackage);
 router.delete('/packages/:id', authenticateToken, isAdmin, membershipController.deleteMembershipPackage);
 
+// Route cho admin duyệt coach
+router.post('/approve-coach/:coachId', authenticateToken, isAdmin, adminController.approveCoach);
+
 module.exports = router;

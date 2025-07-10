@@ -465,6 +465,47 @@ const coachController = {
             console.error('[getMemberSmokingHistory] Error stack:', error.stack);
             res.status(500).json({ message: 'Failed to get member smoking history', error: error.message });
         }
+    },
+
+    // API: Lấy danh sách kế hoạch mẫu của coach hoặc mẫu chung
+    getMyQuitPlanTemplates: async (req, res) => {
+      try {
+        const coachId = req.user.id;
+        const templates = await sql.query`
+          SELECT * FROM CoachSuggestedQuitPlans
+          WHERE (CoachId = ${coachId} OR CoachId IS NULL) AND UserId IS NULL
+        `;
+        res.json({ templates: templates.recordset });
+      } catch (error) {
+        res.status(500).json({ message: 'Lỗi khi lấy mẫu kế hoạch', error: error.message });
+      }
+    },
+
+    // API: Gán kế hoạch mẫu cho user (copy từ template sang user thực tế)
+    assignQuitPlanToUser: async (req, res) => {
+      try {
+        const coachId = req.user.id;
+        const { userId, templateId, startDate, targetDate } = req.body;
+        if (!userId || !templateId || !startDate || !targetDate) {
+          return res.status(400).json({ message: 'Thiếu thông tin.' });
+        }
+        // Lấy template
+        const result = await sql.query`
+          SELECT * FROM CoachSuggestedQuitPlans WHERE Id = ${templateId}
+        `;
+        if (result.recordset.length === 0) {
+          return res.status(404).json({ message: 'Không tìm thấy mẫu.' });
+        }
+        const template = result.recordset[0];
+        // Gán kế hoạch cho user
+        await sql.query`
+          INSERT INTO CoachSuggestedQuitPlans (CoachId, UserId, Title, Description, PlanDetail, StartDate, TargetDate)
+          VALUES (${coachId}, ${userId}, ${template.Title}, ${template.Description}, ${template.PlanDetail}, ${startDate}, ${targetDate})
+        `;
+        res.status(201).json({ message: 'Đã gán kế hoạch cho thành viên!' });
+      } catch (error) {
+        res.status(500).json({ message: 'Lỗi khi gán kế hoạch.', error: error.message });
+      }
     }
 };
 
