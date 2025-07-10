@@ -32,6 +32,7 @@ CREATE TABLE SmokingProfiles (
     HealthStatus NVARCHAR(255),
     QuitReason NVARCHAR(255),
     CigaretteType NVARCHAR(100),
+    CustomCigaretteType NVARCHAR(100),
     FOREIGN KEY (UserId) REFERENCES Users(Id)
 );
 GO
@@ -90,6 +91,19 @@ CREATE TABLE SuggestedQuitPlans (
     CreatedAt DATETIME DEFAULT GETDATE()
 );
 
+
+-- Bảng Booking_Coach: lưu các coach nhận lịch hẹn
+CREATE TABLE Booking_Coach (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    BookingId INT NOT NULL,
+    CoachId INT NOT NULL,
+    Status NVARCHAR(50) DEFAULT N'đã nhận',
+    AcceptedAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (BookingId) REFERENCES Booking(Id),
+    FOREIGN KEY (CoachId) REFERENCES Users(Id)
+);
+
+
 -- STATISTICS
 CREATE TABLE UserStatistics (
     Id INT IDENTITY(1,1) PRIMARY KEY,
@@ -139,25 +153,23 @@ CREATE TABLE MotivationNotifications (
     Message NVARCHAR(500) NOT NULL
 );
 
--- SMOKING DAILY LOG (Created before ALTER commands)
+-- SMOKING DAILY LOG (Ghi nhận tiến trình cai thuốc)
 CREATE TABLE SmokingDailyLog (
     Id INT IDENTITY(1,1) PRIMARY KEY,
-    UserId INT,
+    UserId INT NOT NULL,
     LogDate DATE DEFAULT GETDATE(),
     Cigarettes INT DEFAULT 0,
     Feeling NVARCHAR(255) DEFAULT '',
     PlanId INT NULL, -- Nếu muốn gắn với kế hoạch
+    SavedMoney DECIMAL(18,2) DEFAULT 0, -- Tiền tiết kiệm được do không hút thuốc
+    SuggestedPlanId INT NULL,
     FOREIGN KEY (UserId) REFERENCES Users(Id),
-    FOREIGN KEY (PlanId) REFERENCES QuitPlans(Id)
+    FOREIGN KEY (PlanId) REFERENCES QuitPlans(Id),
+    FOREIGN KEY (SuggestedPlanId) REFERENCES SuggestedQuitPlans(Id)
 );
 
--- Now we can safely ALTER the table
-ALTER TABLE SmokingDailyLog
-ADD SuggestedPlanId INT NULL;
 
-ALTER TABLE SmokingDailyLog
-ADD CONSTRAINT FK_SmokingDailyLog_SuggestedPlanId
-FOREIGN KEY (SuggestedPlanId) REFERENCES SuggestedQuitPlans(Id);
+
 
 -- POSTS
 CREATE TABLE Posts (
@@ -192,7 +204,10 @@ CREATE TABLE Booking (
     CoachId INT,
     Slot NVARCHAR(20) NOT NULL CHECK (Slot IN ('7h-9h', '10h-12h', '13h-15h', '16h-18h')),
     SlotDate DATE NOT NULL,
-    Status NVARCHAR(50) DEFAULT N'đang chờ xác nhận' CHECK (Status IN (N'đang chờ xác nhận', N'khách hàng đã hủy', N'coach đã hủy', N'đã xác nhận')),
+    Status NVARCHAR(50) DEFAULT N'đang chờ xác nhận' CHECK (Status IN ( N'chưa thanh toán',
+    N'đã thanh toán',
+    N'khách hàng đã hủy',
+    N'coach đã hủy')),
     Note NVARCHAR(MAX),
     CreatedAt DATETIME DEFAULT GETDATE(),
     FOREIGN KEY (MemberId) REFERENCES Users(Id),
@@ -246,15 +261,27 @@ CREATE TABLE UserSuggestedQuitPlans (
     FOREIGN KEY (UserId) REFERENCES Users(Id),
     FOREIGN KEY (SuggestedPlanId) REFERENCES SuggestedQuitPlans(Id)
 );
-
+ALTER TABLE Users ADD IsCoachApproved BIT NOT NULL DEFAULT 0;
+-- Bảng lưu kế hoạch cai thuốc do coach đề xuất cho user
+CREATE TABLE CoachSuggestedQuitPlans (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    CoachId INT NOT NULL,
+    UserId INT NOT NULL,
+    Title NVARCHAR(255) NOT NULL,
+    Description NVARCHAR(MAX),
+    PlanDetail NVARCHAR(MAX),
+    StartDate DATE NOT NULL,
+    TargetDate DATE NOT NULL,
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (CoachId) REFERENCES Users(Id),
+    FOREIGN KEY (UserId) REFERENCES Users(Id)
+);
 
 --- Dữ liệu mẫu cho Users
 INSERT INTO Users (Username, Password, Email, Role, IsMemberVip) VALUES
 (N'admin', N'admin123', N'admin@smoking.com', 'admin', 0),
-(N'coach1', N'coach123', N'coach1@smoking.com', 'coach', 0),
-(N'coach2', N'coach123', N'coach2@smoking.com', 'coach', 0),
-(N'member1', N'member123', N'member1@gmail.com', 'member', 0),
-(N'memberVip1', N'membervip123', N'membervip1@gmail.com', 'memberVip', 1);
+
+
 
 --- Dữ liệu mẫu cho MembershipPackages
 INSERT INTO MembershipPackages (Name, Description, Price, DurationInDays, Features) VALUES
@@ -267,15 +294,7 @@ Chat với huấn luyện viên
 Đặt lịch hẹn
 Được trao thành tích khi đạt mốc');
 
---- Dữ liệu mẫu cho SmokingProfiles
-INSERT INTO SmokingProfiles (UserId, CigarettesPerDay, CostPerPack, SmokingFrequency, HealthStatus, QuitReason) VALUES
-(4, 10, 25000, N'2 lần/ngày', N'Khó thở nhẹ', N'Vì con'),
-(5, 15, 30000, N'3 lần/ngày', N'Ho kéo dài', N'Cải thiện sức khỏe');
 
---- Dữ liệu mẫu cho QuitPlans
-INSERT INTO QuitPlans (UserId, CoachId, StartDate, TargetDate, PlanDetail) VALUES
-(4, 2, '2025-06-01', '2025-07-01', N'Kế hoạch mẫu - giảm dần mỗi tuần'),
-(5, 3, '2025-06-10', '2025-08-01', N'Tự lên kế hoạch - bỏ hoàn toàn sau 3 tuần');
 
 --- Dữ liệu mẫu cho Badges
 INSERT INTO Badges (Name, Description, BadgeType, Requirement) VALUES
@@ -287,43 +306,20 @@ INSERT INTO Badges (Name, Description, BadgeType, Requirement) VALUES
 (N'30 ngày không hút thuốc', N'1 tháng đầy kiên cường!', 'loai6', '30'),
 (N'60 ngày không hút thuốc', N'2 tháng chinh phục!', 'loai7', '60');
 
---- Dữ liệu mẫu cho UserBadges
-INSERT INTO UserBadges (UserId, BadgeId, AwardedAt) VALUES
-(4, 1, GETDATE()),
-(4, 2, GETDATE()),
-(5, 1, GETDATE());
-
---- Dữ liệu mẫu cho Posts
-INSERT INTO Posts(UserId, Title, Content, BadgeId) VALUES
-(4, N'Trải nghiệm sau 1 tuần bỏ thuốc', N'Tôi thấy nhẹ nhõm và ngủ ngon hơn nhiều!', 2);
-
---- Dữ liệu mẫu cho Comments
-INSERT INTO Comments (PostId, UserId, Content) VALUES
-(1, 5, N'Cảm ơn bạn đã chia sẻ, rất truyền cảm hứng!');
 
 
 
---- Dữ liệu mẫu cho Reports
-INSERT INTO Reports (UserId, Content) VALUES
-(4, N'Hệ thống rất hữu ích, dễ sử dụng.'),
-(5, N'Tôi cảm thấy có động lực hơn khi sử dụng app.');
 
 
 
---- Dữ liệu mẫu cho SmokingDailyLog
-INSERT INTO SmokingDailyLog (UserId, LogDate, Cigarettes, Feeling) VALUES
-(4, '2025-06-06', 6, N'Bình thường'),
-(5, '2025-06-13', 10, N'Hơi lo lắng');
 
---- Dữ liệu mẫu cho Booking
-INSERT INTO Booking (MemberId, CoachId, SlotDate, Slot, Status, Note) VALUES
-(4, 2, '2025-06-20', '7h-9h', N'đang chờ xác nhận', N'Lịch đầu tiên'),
-(5, 3, '2025-06-22', '10h-12h', N'người dùng đã hủy', N'Hủy do bận việc');
 
---- Dữ liệu mẫu cho Messages
-INSERT INTO Messages (SenderId, ReceiverId, Content) VALUES
-(4, 2, N'Cảm ơn coach đã hỗ trợ!'),
-(5, 3, N'Tôi đang gặp khó khăn vào buổi sáng.');
+
+
+
+
+
+
 
 
 
@@ -477,3 +473,35 @@ SELECT
 FROM Progress p
 WHERE p.Cigarettes = 0
 GROUP BY p.UserId
+
+ALTER TABLE CoachSuggestedQuitPlans ALTER COLUMN CoachId INT NULL;
+ALTER TABLE CoachSuggestedQuitPlans ALTER COLUMN UserId INT NULL;
+ALTER TABLE CoachSuggestedQuitPlans ALTER COLUMN StartDate DATE NULL;
+ALTER TABLE CoachSuggestedQuitPlans ALTER COLUMN TargetDate DATE NULL;
+INSERT INTO CoachSuggestedQuitPlans (CoachId, UserId, Title, Description, PlanDetail, StartDate, TargetDate)
+VALUES
+(NULL, NULL, N'Kế hoạch giảm dần 30 ngày', N'Kế hoạch phù hợp cho người hút dưới 10 điếu/ngày.',
+N'
+Tuần 1: Giảm từ 10 xuống 7 điếu/ngày.
+Tuần 2: Giảm xuống 5 điếu/ngày.
+Tuần 3: Giảm xuống 2 điếu/ngày.
+Tuần 4: Ngưng hoàn toàn.
+', NULL, NULL),
+
+(NULL, NULL, N'Cai thuốc 60 ngày', N'Kế hoạch cho người hút 10-20 điếu/ngày.',
+N'
+Ngày 1-15: Giảm 1 điếu mỗi 2 ngày.
+Ngày 16-30: Ổn định ở 5 điếu/ngày.
+Ngày 31-45: Giảm xuống 2 điếu/ngày.
+Ngày 46-60: Ngưng hoàn toàn.
+', NULL, NULL),
+
+(NULL, NULL, N'Kế hoạch 90 ngày cho người nghiện nặng', N'Kế hoạch dành cho người hút trên 20 điếu/ngày.',
+N'
+Tháng 1: Giảm 2 điếu/ngày mỗi tuần.
+Tháng 2: Ổn định ở 10 điếu/ngày.
+Tháng 3: Ngưng hoàn toàn, tập trung thể thao và thiền.
+', NULL, NULL);
+
+
+ALTER TABLE CoachSuggestedQuitPlans ADD Status NVARCHAR(20) NULL

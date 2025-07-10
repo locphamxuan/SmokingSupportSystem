@@ -1,6 +1,0 @@
-W1: team + project
-w2: ERD
-W3: database + UI
-W5: demo project
-w8: pre-present
-W9: present

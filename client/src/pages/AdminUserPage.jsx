@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { getUsers, getUserDetail, updateUser, deleteUser } from "../services/adminService";
 import Chart from 'chart.js/auto';
 import '../style/AdminUserPage.scss';
+import axios from 'axios';
 
 const AdminUserPage = () => {
   const [users, setUsers] = useState([]);
@@ -28,6 +29,7 @@ const AdminUserPage = () => {
   });
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
+  // Không cần useState cho pendingCoaches, chỉ lọc trực tiếp từ users
 
   const getUserRole = (user) => {
     if (user.role) {
@@ -65,6 +67,9 @@ const AdminUserPage = () => {
     // Bỏ user admin khỏi danh sách hiển thị cho admin
     filtered = filtered.filter(user => user.role !== 'admin');
 
+    // Ẩn coach chưa duyệt
+    filtered = filtered.filter(user => !(user.role === 'coach' && user.isCoachApproved !== 1 && user.isCoachApproved !== true));
+
     // Lọc theo từ khóa tìm kiếm (username hoặc email)
     if (searchTerm) {
       filtered = filtered.filter(user => 
@@ -101,7 +106,7 @@ const AdminUserPage = () => {
 
   useEffect(() => {
     filterUsers();
-  }, [filterUsers]);
+  }, [users, searchTerm, roleFilter]);
 
   const fetchUsers = async () => {
     try {
@@ -129,7 +134,8 @@ const AdminUserPage = () => {
         address: user.Address,
         role: user.Role,
         isMember: user.IsMember,
-        createdAt: user.CreatedAt
+        createdAt: user.CreatedAt,
+        isCoachApproved: user.IsCoachApproved // Thêm dòng này để lọc coach chờ duyệt
       }));
 
       // Sắp xếp danh sách đã định dạng theo ID tăng dần
@@ -353,6 +359,33 @@ const AdminUserPage = () => {
 
   const { coachCount, memberOnlyCount, memberVipCount, totalUsers } = getStatistics();
 
+  // Thay vì fetchPendingCoaches, lọc coach chờ duyệt từ users
+  const pendingCoaches = users.filter(user => user.role === 'coach' && (!user.isCoachApproved || user.isCoachApproved === 0 || user.isCoachApproved === false));
+
+  const handleApproveCoach = async (coachId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`http://localhost:5000/api/admin/approve-coach/${coachId}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSnackbar({ open: true, message: 'Duyệt huấn luyện viên thành công!', severity: 'success' });
+      fetchUsers();
+    } catch (err) {
+      setSnackbar({ open: true, message: 'Duyệt thất bại!', severity: 'error' });
+    }
+  };
+
+  const handleRejectCoach = async (coachId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn hủy tài khoản huấn luyện viên này?')) return;
+    try {
+      // setPendingCoaches(prev => prev.filter(c => c.Id !== coachId)); // Xóa mọi setPendingCoaches
+      setSnackbar({ open: true, message: 'Đã hủy tài khoản huấn luyện viên!', severity: 'success' });
+      fetchUsers();
+    } catch (err) {
+      setSnackbar({ open: true, message: 'Hủy thất bại!', severity: 'error' });
+    }
+  };
+
   return (
     <div className="container-fluid py-4" style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #28a745 0%, #20c997 50%, #17a2b8 100%)' }}>
       <div className="container-xl">
@@ -405,6 +438,50 @@ const AdminUserPage = () => {
                   <i className="bi bi-person-fill fs-2 opacity-75"></i>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Section: Duyệt tài khoản huấn luyện viên */}
+          <div className="card mb-4">
+            <div className="card-header bg-info text-white fw-bold">Huấn luyện viên chờ duyệt</div>
+            <div className="card-body">
+              {pendingCoaches.length === 0 ? (
+                <div className="text-muted">Không có huấn luyện viên nào chờ duyệt.</div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="table table-bordered align-middle">
+                    <thead className="table-light">
+                      <tr>
+                        <th>ID</th>
+                        <th>Tên đăng nhập</th>
+                        <th>Email</th>
+                        <th>Ngày đăng ký</th>
+                        <th>Trạng thái</th>
+                        <th>Hành động</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pendingCoaches.map(coach => (
+                        <tr key={coach.id}>
+                          <td>{coach.id}</td>
+                          <td>{coach.username}</td>
+                          <td>{coach.email}</td>
+                          <td>{coach.createdAt ? new Date(coach.createdAt).toLocaleDateString('vi-VN') : ''}</td>
+                          <td><span className="badge bg-warning text-dark">Chờ duyệt</span></td>
+                          <td>
+                            <button className="btn btn-success btn-sm me-2" onClick={() => handleApproveCoach(coach.id)}>
+                              Duyệt
+                            </button>
+                            <button className="btn btn-danger btn-sm" onClick={() => handleRejectCoach(coach.id)}>
+                              Hủy
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
 

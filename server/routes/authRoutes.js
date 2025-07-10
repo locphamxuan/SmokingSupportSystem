@@ -74,4 +74,8 @@ router.get('/custom-quit-plan', authenticateToken, authController.getCustomQuitP
 
 router.get('/public-notifications', notificationController.getPublicNotifications);
 
+router.get('/coach-suggested-plans', authenticateToken, authController.getCoachSuggestedPlans);
+router.post('/accept-coach-plan', authenticateToken, authController.acceptCoachPlan);
+router.post('/reject-coach-plan', authenticateToken, authController.rejectCoachPlan);
+
 module.exports = router;

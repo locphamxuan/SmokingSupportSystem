@@ -34,7 +34,25 @@ import {
   Close as CloseIcon
 } from '@mui/icons-material';
 import axios from 'axios';
-import '../style/CoachDashboardPage.scss';
+import 'bootstrap/dist/css/bootstrap.min.css';
+// Thêm service gọi API lấy/gán kế hoạch mẫu
+const getMyQuitPlanTemplates = async () => {
+  const token = localStorage.getItem('token');
+  const res = await axios.get('http://localhost:5000/api/coach/my-quit-plan-templates', {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data.templates;
+};
+
+const assignQuitPlanToUser = async ({ userId, templateId, startDate, targetDate }) => {
+  const token = localStorage.getItem('token');
+  const res = await axios.post('http://localhost:5000/api/coach/assign-quit-plan', {
+    userId, templateId, startDate, targetDate
+  }, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+};
 import facebookImage from "../assets/images/facebook.jpg";
 import instagramImage from "../assets/images/instragram.jpg";
 
@@ -52,6 +70,22 @@ const CoachDashboardPage = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuMember, setMenuMember] = useState(null);
   const navigate = useNavigate();
+  const [acceptedBookings, setAcceptedBookings] = useState([]);
+  const [loadingBookings, setLoadingBookings] = useState(true);
+  const [errorBookings, setErrorBookings] = useState('');
+  const [availableBookings, setAvailableBookings] = useState([]);
+  const [loadingAvailable, setLoadingAvailable] = useState(true);
+  const [errorAvailable, setErrorAvailable] = useState('');
+  // State cho modal chọn kế hoạch mẫu
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [planTemplates, setPlanTemplates] = useState([]);
+  const [selectedPlanTemplate, setSelectedPlanTemplate] = useState(null);
+  const [planAssignBooking, setPlanAssignBooking] = useState(null);
+  const [planStartDate, setPlanStartDate] = useState('');
+  const [planTargetDate, setPlanTargetDate] = useState('');
+  // State cho modal chọn thành viên để gửi kế hoạch
+  const [showMemberSelectModal, setShowMemberSelectModal] = useState(false);
+  const [selectedMemberForPlan, setSelectedMemberForPlan] = useState(null);
 
   const fetchAssignedMembers = async () => {
     try {
@@ -100,6 +134,77 @@ const CoachDashboardPage = () => {
     fetchAssignedMembers();
     fetchAllBadges();
   }, [navigate]);
+
+  // Đưa 2 hàm fetchAcceptedBookings và fetchAvailableBookings ra ngoài useEffect để có thể gọi lại
+  const fetchAcceptedBookings = async () => {
+    setLoadingBookings(true);
+    setErrorBookings('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('http://localhost:5000/api/booking/accepted', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAcceptedBookings(res.data.bookings || []);
+    } catch (err) {
+      setErrorBookings('Không thể tải lịch hẹn đã nhận.');
+    } finally {
+      setLoadingBookings(false);
+    }
+  };
+
+  const fetchAvailableBookings = async () => {
+    setLoadingAvailable(true);
+    setErrorAvailable('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('http://localhost:5000/api/booking/available', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAvailableBookings(res.data.bookings || []);
+    } catch (err) {
+      setErrorAvailable('Không thể tải lịch hẹn có thể nhận.');
+    } finally {
+      setLoadingAvailable(false);
+    }
+  };
+
+  // useEffect để load lịch đã nhận
+  useEffect(() => {
+    fetchAcceptedBookings();
+  }, []);
+
+  // useEffect để load lịch đã thanh toán (chưa nhận), reload khi acceptedBookings thay đổi
+  useEffect(() => {
+    fetchAvailableBookings();
+  }, [acceptedBookings]);
+
+  // Hàm nhận lịch
+  const handleAcceptBooking = async (bookingId) => {
+    if (!window.confirm('Bạn chắc chắn muốn nhận lịch hẹn này?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`http://localhost:5000/api/booking/${bookingId}/accept`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // Sau khi nhận lịch, reload lại danh sách
+      await fetchAcceptedBookings();
+      await fetchAvailableBookings();
+      setSuccess('Nhận lịch thành công!');
+      // Lấy thông tin booking vừa nhận để lấy userId
+      const booking = availableBookings.find(b => b.Id === bookingId);
+      if (booking) {
+        setPlanAssignBooking(booking);
+        setShowPlanModal(true);
+        setPlanStartDate(booking.SlotDate ? booking.SlotDate.slice(0, 10) : '');
+        setPlanTargetDate('');
+        // Lấy danh sách template
+        const templates = await getMyQuitPlanTemplates();
+        setPlanTemplates(templates);
+      }
+    } catch (err) {
+      alert('Không thể nhận lịch hẹn.');
+    }
+  };
 
   const handleCloseSnackbar = () => {
     setError('');
@@ -214,89 +319,74 @@ const CoachDashboardPage = () => {
     );
   }
 
+  // Lọc availableBookings để không hiển thị các booking đã nhận
+  const filteredAvailableBookings = availableBookings.filter(
+    (booking) => !acceptedBookings.some((ab) => ab.Id === booking.Id)
+  );
+
+  // Lấy danh sách thành viên duy nhất từ acceptedBookings
+  const uniqueAcceptedMembers = Array.from(
+    new Map(acceptedBookings.map(b => [b.MemberId, b])).values()
+  );
+
   return (
     <Container maxWidth="lg" sx={{ mt: 15, paddingTop: '20px' }}>
-      <Paper elevation={3} sx={{ p: 4 }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: '#1976d2' }}>
-          👨‍💻 Lịch hẹn và tiến độ của thành viên
-        </Typography>
-        <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-          Danh sách thành viên được chỉ định
-        </Typography>
-        {members.length === 0 ? (
-          <div className="alert alert-info" role="alert">
-            Bạn chưa có thành viên nào được chỉ định.
-          </div>
-        ) : (
-          <div className="table-responsive mt-2">
-            <table className="table table-striped">
-              <thead>
-                <tr>
-                  <th>Thành viên</th>
-                  <th>Email</th>
-                  <th>SĐT</th>
-                  <th>Ngày hẹn</th>
-                  <th>Trạng thái</th>
-                  <th className="text-end">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {members.map((member) => (
-                  <tr key={member.Id}>
-                    <td>
-                      <p className="fw-semibold mb-0">{member.Username}</p>
-                    </td>
-                    <td>{member.Email}</td>
-                    <td>{member.PhoneNumber}</td>
-                    <td>
-                      {member.appointment?.slotDate
-                        ? `${new Date(member.appointment.slotDate).toLocaleDateString()} (${member.appointment.slot})`
-                        : 'Không có lịch hẹn'}
-                    </td>
-                    <td>
-                      {member.appointment?.status ? getStatusChip(member.appointment.status.toLowerCase()) : 'Không có lịch hẹn'}
-                    </td>
-                    <td className="text-end">
-                      <div className="d-flex gap-1 justify-content-end align-items-center">
-                        {/* Primary Action - Chat (most important) */}
-                        <Button
-                          size="small"
-                          variant="contained"
-                          color="primary"
-                          startIcon={<ChatIcon />}
-                          onClick={() => navigate(`/coach/chat/${member.Id}`)}
-                          sx={{ minWidth: 'auto', px: 1.5 }}
-                        >
-                          Chat
-                        </Button>
+      {members.length !== 0 && (
+        <div className="table-responsive mt-2">
+          <table className="table table-striped">
+            <thead>
+              <tr>
+                <th>Thành viên</th>
+                <th>Email</th>
+                <th>SĐT</th>
+                <th>Ngày hẹn</th>
+                <th>Trạng thái</th>
+                <th className="text-end">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {members.map((member) => (
+                <tr key={member.Id}>
+                  <td>
+                    <p className="fw-semibold mb-0">{member.Username}</p>
+                  </td>
+                  <td>{member.Email}</td>
+                  <td>{member.PhoneNumber}</td>
+                  <td>
+                    {member.appointment?.slotDate
+                      ? `${new Date(member.appointment.slotDate).toLocaleDateString()} (${member.appointment.slot})`
+                      : 'Không có lịch hẹn'}
+                  </td>
+                  <td>
+                    {member.appointment?.status ? getStatusChip(member.appointment.status.toLowerCase()) : 'Không có lịch hẹn'}
+                  </td>
+                  <td className="text-end">
+                    <div className="d-flex gap-1 justify-content-end align-items-center">
+                      {/* Primary Action - Chat (most important) */}
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="primary"
+                        startIcon={<ChatIcon />}
+                        onClick={() => navigate(`/coach/chat/${member.Id}`)}
+                        sx={{ minWidth: 'auto', px: 1.5 }}
+                      >
+                        Chat
+                      </Button>
 
-                        {/* Appointment Status Actions */}
-                        {member.appointment?.id && member.appointment.status?.toLowerCase() === 'đang chờ xác nhận' && (
-                          <>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              color="success"
-                              startIcon={<CheckIcon />}
-                              onClick={() => handleConfirmAppointment(member)}
-                              sx={{ minWidth: 'auto', px: 1 }}
-                            >
-                              Xác nhận
-                            </Button>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              color="error"
-                              startIcon={<CloseIcon />}
-                              onClick={() => handleCancelAppointment(member)}
-                              sx={{ minWidth: 'auto', px: 1 }}
-                            >
-                              Hủy
-                            </Button>
-                          </>
-                        )}
-                        
-                        {member.appointment?.id && member.appointment.status?.toLowerCase() === 'đã xác nhận' && (
+                      {/* Appointment Status Actions */}
+                      {member.appointment?.id && member.appointment.status?.toLowerCase() === 'đang chờ xác nhận' && (
+                        <>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="success"
+                            startIcon={<CheckIcon />}
+                            onClick={() => handleConfirmAppointment(member)}
+                            sx={{ minWidth: 'auto', px: 1 }}
+                          >
+                            Xác nhận
+                          </Button>
                           <Button
                             size="small"
                             variant="outlined"
@@ -305,27 +395,40 @@ const CoachDashboardPage = () => {
                             onClick={() => handleCancelAppointment(member)}
                             sx={{ minWidth: 'auto', px: 1 }}
                           >
-                            Hủy lịch
+                            Hủy
                           </Button>
-                        )}
-
-                        {/* More Actions Menu */}
-                        <IconButton
+                        </>
+                      )}
+                      
+                      {member.appointment?.id && member.appointment.status?.toLowerCase() === 'đã xác nhận' && (
+                        <Button
                           size="small"
-                          onClick={(e) => handleMenuOpen(e, member)}
-                          sx={{ ml: 0.5 }}
+                          variant="outlined"
+                          color="error"
+                          startIcon={<CloseIcon />}
+                          onClick={() => handleCancelAppointment(member)}
+                          sx={{ minWidth: 'auto', px: 1 }}
                         >
-                          <MoreVertIcon />
-                        </IconButton>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Paper>
+                          Hủy lịch
+                        </Button>
+                      )}
+
+                      {/* More Actions Menu */}
+                      <IconButton
+                        size="small"
+                        onClick={(e) => handleMenuOpen(e, member)}
+                        sx={{ ml: 0.5 }}
+                      >
+                        <MoreVertIcon />
+                      </IconButton>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       
       {/* Action Menu */}
       <Menu
@@ -432,6 +535,130 @@ const CoachDashboardPage = () => {
         </DialogActions>
       </Dialog>
       
+      {/* Modal chọn kế hoạch mẫu */}
+      <Dialog open={showPlanModal} onClose={() => setShowPlanModal(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Gửi kế hoạch cai thuốc cho thành viên</DialogTitle>
+        <DialogContent>
+          {planTemplates.length === 0 ? (
+            <div>Không có kế hoạch mẫu nào.</div>
+          ) : (
+            <>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Chọn kế hoạch mẫu</InputLabel>
+                <Select
+                  value={selectedPlanTemplate ? selectedPlanTemplate.Id : ''}
+                  label="Chọn kế hoạch mẫu"
+                  onChange={e => {
+                    const plan = planTemplates.find(p => p.Id === e.target.value);
+                    setSelectedPlanTemplate(plan);
+                  }}
+                >
+                  {planTemplates.map(plan => (
+                    <MenuItem key={plan.Id} value={plan.Id}>
+                      <b>{plan.Title}</b> - {plan.Description}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              {selectedPlanTemplate && (
+                <Box sx={{ mb: 2, p: 2, bgcolor: 'background.paper', border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                  <Typography variant="h6" sx={{ color: 'primary.main' }}>{selectedPlanTemplate.Title}</Typography>
+                  <Typography variant="body2" color="text.secondary">{selectedPlanTemplate.Description}</Typography>
+                  <Typography variant="body2" sx={{ whiteSpace: 'pre-line', mt: 1 }}>{selectedPlanTemplate.PlanDetail}</Typography>
+                </Box>
+              )}
+              <TextField
+                label="Ngày bắt đầu"
+                type="date"
+                value={planStartDate}
+                onChange={e => setPlanStartDate(e.target.value)}
+                sx={{ mb: 2, mr: 2 }}
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                label="Ngày kết thúc"
+                type="date"
+                value={planTargetDate}
+                onChange={e => setPlanTargetDate(e.target.value)}
+                sx={{ mb: 2 }}
+                InputLabelProps={{ shrink: true }}
+              />
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowPlanModal(false)}>Hủy</Button>
+          <Button
+            variant="contained"
+            disabled={!selectedPlanTemplate || !planStartDate || !planTargetDate}
+            onClick={async () => {
+              try {
+                await assignQuitPlanToUser({
+                  userId: planAssignBooking.MemberId,
+                  templateId: selectedPlanTemplate.Id,
+                  startDate: planStartDate,
+                  targetDate: planTargetDate
+                });
+                setSuccess('Đã gửi kế hoạch cai thuốc cho thành viên!');
+                setShowPlanModal(false);
+              } catch (err) {
+                setError('Lỗi khi gửi kế hoạch.');
+              }
+            }}
+          >
+            Gửi kế hoạch
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+      {/* Modal chọn thành viên để gửi kế hoạch */}
+      <Dialog open={showMemberSelectModal} onClose={() => setShowMemberSelectModal(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Chọn thành viên để gửi kế hoạch</DialogTitle>
+        <DialogContent>
+          {uniqueAcceptedMembers.length === 0 ? (
+            <div>Không có thành viên nào đã nhận lịch.</div>
+          ) : (
+            <FormControl fullWidth sx={{ mt: 2 }}>
+              <InputLabel>Chọn thành viên</InputLabel>
+              <Select
+                value={selectedMemberForPlan ? selectedMemberForPlan.MemberId : ''}
+                label="Chọn thành viên"
+                onChange={e => {
+                  const member = uniqueAcceptedMembers.find(b => b.MemberId === e.target.value);
+                  setSelectedMemberForPlan(member);
+                }}
+              >
+                {uniqueAcceptedMembers.map(b => (
+                  <MenuItem key={b.MemberId} value={b.MemberId}>
+                    {b.MemberName || b.MemberId}
+                    {b.MemberEmail ? ` (${b.MemberEmail})` : ''}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowMemberSelectModal(false)}>Hủy</Button>
+          <Button
+            variant="contained"
+            disabled={!selectedMemberForPlan}
+            onClick={async () => {
+              setShowMemberSelectModal(false);
+              // Hiện modal chọn kế hoạch mẫu cho member này
+              setPlanAssignBooking(selectedMemberForPlan);
+              setShowPlanModal(true);
+              setPlanStartDate(selectedMemberForPlan.SlotDate ? new Date(selectedMemberForPlan.SlotDate).toISOString().slice(0, 10) : '');
+              setPlanTargetDate('');
+              const templates = await getMyQuitPlanTemplates();
+              setPlanTemplates(templates);
+            }}
+          >
+            Tiếp tục
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
       {error && (
         <Snackbar open={!!error} autoHideDuration={6000} onClose={handleCloseSnackbar}>
           <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
@@ -446,6 +673,83 @@ const CoachDashboardPage = () => {
             {success}
           </Alert>
         </Snackbar>
+      )}
+
+      <h3 className="mb-3">Lịch hẹn đã thanh toán (chưa nhận)</h3>
+      {loadingAvailable ? (
+        <div>Đang tải lịch hẹn...</div>
+      ) : errorAvailable ? (
+        <div className="text-danger">{errorAvailable}</div>
+      ) : filteredAvailableBookings.length === 0 ? (
+        <div className="alert alert-info">Không có lịch hẹn nào đang chờ nhận.</div>
+      ) : (
+        <div className="table-responsive">
+          <table className="table table-bordered">
+            <thead>
+              <tr>
+                <th>Ngày hẹn</th>
+                <th>Khung giờ</th>
+                <th>Thành viên</th>
+                <th>Ghi chú</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredAvailableBookings.map(booking => (
+                <tr key={booking.Id}>
+                  <td>{new Date(booking.SlotDate).toLocaleDateString('vi-VN')}</td>
+                  <td>{booking.Slot}</td>
+                  <td>{booking.MemberId}</td>
+                  <td>{booking.Note || <i>Không có</i>}</td>
+                  <td>
+                    <button className="btn btn-success btn-sm" onClick={() => handleAcceptBooking(booking.Id)}>
+                      Nhận lịch
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <h3 className="mb-3">Lịch hẹn đã nhận</h3>
+      <div className="mb-3">
+        <Button variant="contained" color="success" onClick={() => setShowMemberSelectModal(true)}>
+          Gửi kế hoạch cai thuốc
+        </Button>
+      </div>
+      {loadingBookings ? (
+        <div>Đang tải lịch hẹn...</div>
+      ) : errorBookings ? (
+        <div className="text-danger">{errorBookings}</div>
+      ) : acceptedBookings.length === 0 ? (
+        <div className="alert alert-info">Bạn chưa nhận lịch hẹn nào.</div>
+      ) : (
+        <div className="table-responsive">
+          <table className="table table-bordered">
+            <thead>
+              <tr>
+                <th>Ngày hẹn</th>
+                <th>Khung giờ</th>
+                <th>Thành viên</th>
+                <th>Ghi chú</th>
+                <th>Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody>
+              {acceptedBookings.map(booking => (
+                <tr key={booking.Id}>
+                  <td>{new Date(booking.SlotDate).toLocaleDateString('vi-VN')}</td>
+                  <td>{booking.Slot}</td>
+                  <td>{booking.MemberName}</td>
+                  <td>{booking.Note || <i>Không có</i>}</td>
+                  <td>{booking.Status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </Container>
   );
