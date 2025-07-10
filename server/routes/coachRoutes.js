@@ -20,5 +20,7 @@ router.post('/award-badge', authenticateToken, isCoach, coachController.awardBad
 router.get('/member/:memberId/progress', authenticateToken, isCoach, coachController.getMemberProgress);
 // Member smoking history
 router.get('/member/:memberId/smoking-history', authenticateToken, isCoach, coachController.getMemberSmokingHistory);
+router.get('/my-quit-plan-templates', authenticateToken, coachController.getMyQuitPlanTemplates);
+router.post('/assign-quit-plan', authenticateToken, coachController.assignQuitPlanToUser);
 
 module.exports = router;

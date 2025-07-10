@@ -42,6 +42,7 @@ app.use('/api/booking', bookingRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/hlv', coachRoutes);
+app.use('/api/coach', require('./routes/coachRoutes'));
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 

@@ -22,6 +22,27 @@ ChartJS.register(
   Tooltip,
   Legend
 );
+  
+// Thêm service lấy kế hoạch do coach đề xuất
+const getCoachSuggestedPlans = async () => {
+  const token = localStorage.getItem('token');
+  const res = await axios.get('http://localhost:5000/api/auth/coach-suggested-plans', {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data.plans;
+};
+const acceptCoachPlan = async (planId) => {
+  const token = localStorage.getItem('token');
+  return axios.post('http://localhost:5000/api/auth/accept-coach-plan', { planId }, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+};
+const rejectCoachPlan = async (planId) => {
+  const token = localStorage.getItem('token');
+  return axios.post('http://localhost:5000/api/auth/reject-coach-plan', { planId }, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+};
 
 const MyProgressPage = () => {
   const [currentDate, setCurrentDate] = useState(new Date().toLocaleDateString('vi-VN', {
@@ -44,6 +65,7 @@ const MyProgressPage = () => {
       smokingFrequency: '',
       healthStatus: '',
       cigaretteType: '',
+      customCigaretteType: '',
       quitReason: '',
       dailyLog: {
         cigarettes: 0,
@@ -78,6 +100,30 @@ const MyProgressPage = () => {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [planDates, setPlanDates] = useState({ startDate: '', targetDate: '' });
   
+  // State cho kế hoạch do coach đề xuất
+  const [coachPlans, setCoachPlans] = useState([]);
+  const [loadingCoachPlans, setLoadingCoachPlans] = useState(true);
+  // Thêm state để lưu kế hoạch coach đã xác nhận
+  const [acceptedCoachPlans, setAcceptedCoachPlans] = useState([]);
+  const [selectedLogPlan, setSelectedLogPlan] = useState(null); // Kế hoạch được chọn để nhập nhật ký
+
+  useEffect(() => {
+    (async () => {
+      setLoadingCoachPlans(true);
+      try {
+        const plans = await getCoachSuggestedPlans();
+        setCoachPlans(plans || []);
+        // Tách các kế hoạch đã xác nhận
+        setAcceptedCoachPlans((plans || []).filter(p => p.Status === 'accepted'));
+      } catch (e) {
+        setCoachPlans([]);
+        setAcceptedCoachPlans([]);
+      } finally {
+        setLoadingCoachPlans(false);
+      }
+    })();
+  }, []);
+
   // Safely parse user from localStorage
   let user = null;
   try {
@@ -97,6 +143,24 @@ const MyProgressPage = () => {
       setChartView('daily');
     }
   }, [userData.quitPlan, chartView]);
+
+  // Lấy kế hoạch coach đã xác nhận mới nhất
+  const latestCoachPlan = acceptedCoachPlans.length > 0
+    ? acceptedCoachPlans.reduce((a, b) => new Date(a.CreatedAt || a.createdAt) > new Date(b.CreatedAt || b.createdAt) ? a : b)
+    : null;
+
+  // Khi userData.quitPlan hoặc latestCoachPlan thay đổi, chọn mặc định kế hoạch nhập nhật ký
+  useEffect(() => {
+    if (userData.quitPlan && !latestCoachPlan) {
+      setSelectedLogPlan({ type: 'system', plan: userData.quitPlan });
+    } else if (!userData.quitPlan && latestCoachPlan) {
+      setSelectedLogPlan({ type: 'coach', plan: latestCoachPlan });
+    } else if (userData.quitPlan && latestCoachPlan) {
+      setSelectedLogPlan({ type: 'system', plan: userData.quitPlan });
+    } else {
+      setSelectedLogPlan(null);
+    }
+  }, [userData.quitPlan, latestCoachPlan]);
 
   const fetchUserData = useCallback(async () => {
     try {
@@ -129,12 +193,14 @@ const MyProgressPage = () => {
         smokingFrequency: fetchedUserData.smokingStatus.smokingFrequency || '',
         healthStatus: fetchedUserData.smokingStatus.healthStatus || '',
         cigaretteType: fetchedUserData.smokingStatus.cigaretteType || '',
+        customCigaretteType: fetchedUserData.smokingStatus.customCigaretteType || '',
         quitReason: fetchedUserData.smokingStatus.quitReason || '',
         dailyLog: fetchedUserData.smokingStatus.dailyLog || {},
       };
 
       // Explicitly set default values for dailyLog properties
       fetchedUserData.smokingStatus.dailyLog = {
+        ...fetchedUserData.smokingStatus.dailyLog,
         cigarettes: fetchedUserData.smokingStatus.dailyLog.cigarettes || 0,
         feeling: fetchedUserData.smokingStatus.dailyLog.feeling || '',
       };
@@ -635,39 +701,23 @@ const MyProgressPage = () => {
     return weekData;
   };
 
+  // Sửa hàm handleDailyLogUpdate để truyền đúng planId/suggestedPlanId
   const handleDailyLogUpdate = async (updatedLog) => {
     try {
-      console.log('🎯 [handleDailyLogUpdate] ===================');
-      console.log('🎯 [handleDailyLogUpdate] Input updatedLog:', updatedLog);
-      console.log('🎯 [handleDailyLogUpdate] userData.currentUserSuggestedPlan:', userData.currentUserSuggestedPlan);
-      console.log('🎯 [handleDailyLogUpdate] userData.quitPlan:', userData.quitPlan);
-      
-      // Chuẩn bị payload cho API call
       let payload = {
         cigarettes: updatedLog.cigarettes || 0,
         feeling: updatedLog.feeling || '',
         logDate: updatedLog.date || new Date().toISOString().slice(0, 10)
       };
-      
-      // Thêm planId hoặc suggestedPlanId nếu có
-      if (userData.currentUserSuggestedPlan) {
-        payload.suggestedPlanId = userData.currentUserSuggestedPlan.id;
-        console.log('🎯 [handleDailyLogUpdate] Added suggestedPlanId:', payload.suggestedPlanId);
-      } else if (userData.quitPlan && userData.quitPlan.id) {
-        payload.planId = userData.quitPlan.id;
-        console.log('🎯 [handleDailyLogUpdate] Added planId:', payload.planId);
+      if (selectedLogPlan) {
+        if (selectedLogPlan.type === 'system') {
+          payload.planId = selectedLogPlan.plan.id;
+        } else if (selectedLogPlan.type === 'coach') {
+          payload.coachSuggestedPlanId = selectedLogPlan.plan.Id;
+        }
       }
-
-      console.log('🎯 [handleDailyLogUpdate] Final payload:', payload);
-      console.log('🎯 [handleDailyLogUpdate] Calling addDailyLog...');
-
       const response = await addDailyLog(payload);
-      
-      console.log('Daily log response:', response); // Debug log
-      
       setSuccess('Cập nhật nhật ký thành công!');
-      
-      // Cập nhật state local
       setUserData(prev => ({
         ...prev,
         smokingStatus: {
@@ -679,8 +729,6 @@ const MyProgressPage = () => {
           }
         }
       }));
-
-      // Thêm huy hiệu mới nếu có
       if (response.newBadges && response.newBadges.length > 0) {
         setUserData(prev => ({
           ...prev,
@@ -688,13 +736,9 @@ const MyProgressPage = () => {
         }));
         setSuccess(`Cập nhật nhật ký thành công! Bạn đã nhận được ${response.newBadges.length} huy hiệu mới!`);
       }
-
-      // Tải lại dữ liệu để đảm bảo đồng bộ
       await fetchUserData();
       await fetchSmokingHistory();
-      
     } catch (error) {
-      console.error('Daily log update error:', error); // Debug log
       setError(error.message || 'Cập nhật nhật ký thất bại.');
     }
   };
@@ -783,8 +827,17 @@ const MyProgressPage = () => {
                         </p>
                         <div className="d-flex flex-wrap gap-2">
                           <button 
-                            onClick={() => navigate(`/chat-coach/${userData.coach?.Id || userData.coach?.id || userData.coachId}`)} 
                             className="btn btn-success"
+                            onClick={() => {
+                              // Fix: Always resolve coach ID correctly
+                              const coachId = userData.coach?.Id || userData.coach?.id || userData.coachId;
+                              if (coachId) {
+                                navigate(`/chat-coach/${coachId}`);
+                              } else {
+                                alert('Không tìm thấy thông tin huấn luyện viên để nhắn tin.');
+                              }
+                            }}
+                            disabled={!(userData.coach?.Id || userData.coach?.id || userData.coachId)}
                           >
                             <i className="fas fa-comments me-2"></i>Nhắn tin với Coach
                           </button>
@@ -863,8 +916,32 @@ const MyProgressPage = () => {
                   <select
                     className="form-select"
                     id="cigaretteType"
-                    value={userData.smokingStatus.cigaretteType}
-                    onChange={(e) => handleUpdateSmokingStatus('cigaretteType', e.target.value)}
+                    value={
+                      [
+                        'Thuốc lá 555',
+                        'Thuốc lá Richmond',
+                        'Thuốc lá Esse',
+                        'Thuốc lá Craven',
+                        'Thuốc lá Marlboro',
+                        'Thuốc lá Camel',
+                        'Thuốc lá SG bạc',
+                        'Thuốc lá Jet',
+                        'Thuốc lá Thăng Long',
+                        'Thuốc lá Hero',
+                        'other',
+                        ''
+                      ].includes(userData.smokingStatus.cigaretteType)
+                        ? userData.smokingStatus.cigaretteType
+                        : 'other'
+                    }
+                    onChange={e => {
+                      if (e.target.value === 'other') {
+                        handleUpdateSmokingStatus('cigaretteType', 'other');
+                      } else {
+                        handleUpdateSmokingStatus('cigaretteType', e.target.value);
+                        handleUpdateSmokingStatus('customCigaretteType', '');
+                      }
+                    }}
                   >
                     <option value="">Chọn loại thuốc lá</option>
                     <option value="Thuốc lá 555">Thuốc lá 555</option>
@@ -877,7 +954,39 @@ const MyProgressPage = () => {
                     <option value="Thuốc lá Jet">Thuốc lá Jet</option>
                     <option value="Thuốc lá Thăng Long">Thuốc lá Thăng Long</option>
                     <option value="Thuốc lá Hero">Thuốc lá Hero</option>
+                    <option value="other">Khác</option>
                   </select>
+                  {/* Nếu chọn Khác thì hiển thị ô nhập tự do */}
+                  {([
+                    'other',
+                    ''
+                  ].includes(userData.smokingStatus.cigaretteType) ||
+                    ![
+                      'Thuốc lá 555',
+                      'Thuốc lá Richmond',
+                      'Thuốc lá Esse',
+                      'Thuốc lá Craven',
+                      'Thuốc lá Marlboro',
+                      'Thuốc lá Camel',
+                      'Thuốc lá SG bạc',
+                      'Thuốc lá Jet',
+                      'Thuốc lá Thăng Long',
+                      'Thuốc lá Hero',
+                      ''
+                    ].includes(userData.smokingStatus.cigaretteType)) && (
+                    <input
+                      type="text"
+                      className="form-control mt-2"
+                      placeholder="Nhập loại thuốc lá khác..."
+                      value={userData.smokingStatus.customCigaretteType}
+                      onChange={e => handleUpdateSmokingStatus('customCigaretteType', e.target.value)}
+                      onBlur={e => {
+                        if (e.target.value) {
+                          handleUpdateSmokingStatus('cigaretteType', e.target.value);
+                        }
+                      }}
+                    />
+                  )}
                 </div>
                 <div className="mb-3">
                   <label htmlFor="quitReason" className="form-label">Lý do cai thuốc</label>
@@ -902,7 +1011,7 @@ const MyProgressPage = () => {
                 <span>Kế hoạch Cai thuốc</span>
                 {(userData.quitPlan || userData.currentUserSuggestedPlan) && (
                   <span className={`badge ${userData.quitPlan ? 'bg-primary' : 'bg-info'}`}>
-                    {userData.quitPlan ? '📝 Tự tạo' : '🤖 Mẫu'}
+                    {userData.quitPlan ? 'Tự tạo' : 'Mẫu'}
                   </span>
                 )}
               </div>
@@ -1087,23 +1196,7 @@ const MyProgressPage = () => {
                         );
                       })()}
                     </div>
-                    <button
-                      className="btn btn-outline-danger mt-3"
-                      onClick={async () => {
-                        const token = localStorage.getItem('token');
-                        try {
-                          await axios.delete('http://localhost:5000/api/auth/user-suggested-quit-plan', {
-                            headers: { Authorization: `Bearer ${token}` }
-                          });
-                          setSuccess('Đã hủy kế hoạch!');
-                          fetchUserData();
-                        } catch (error) {
-                          setError(error.response?.data?.message || 'Hủy kế hoạch thất bại.');
-                        }
-                      }}
-                    >
-                      Đổi kế hoạch
-                    </button>
+                   
                   </div>
                 ) : (
                   userData.role === 'memberVip' || userData.isMemberVip ? (
@@ -1152,11 +1245,20 @@ const MyProgressPage = () => {
                           onSubmit={async e => {
                             e.preventDefault();
                             const token = localStorage.getItem('token');
+                            // Auto-calculate targetDate based on plan duration
+                            const startDateObj = new Date(planDates.startDate);
+                            let durationDays = 30; // Default
+                            if (selectedPlan.Title?.includes('60')) durationDays = 60;
+                            else if (selectedPlan.Title?.includes('90')) durationDays = 90;
+                            // You can also parse from Description or add a field in DB for duration
+                            const targetDateObj = new Date(startDateObj);
+                            targetDateObj.setDate(startDateObj.getDate() + durationDays - 1);
+                            const targetDate = targetDateObj.toISOString().slice(0, 10);
                             try {
                               await axios.post('http://localhost:5000/api/auth/user-suggested-quit-plan', {
                                 suggestedPlanId: selectedPlan.Id,
                                 startDate: planDates.startDate,
-                                targetDate: planDates.targetDate
+                                targetDate
                               }, {
                                 headers: { Authorization: `Bearer ${token}` }
                               });
@@ -1174,10 +1276,21 @@ const MyProgressPage = () => {
                             <label>Ngày bắt đầu</label>
                             <input type="date" className="form-control" value={planDates.startDate} onChange={e => setPlanDates({ ...planDates, startDate: e.target.value })} required />
                           </div>
-                          <div className="mb-2">
-                            <label>Ngày kết thúc</label>
-                            <input type="date" className="form-control" value={planDates.targetDate} onChange={e => setPlanDates({ ...planDates, targetDate: e.target.value })} required />
-                          </div>
+                          {/* Ngày kết thúc sẽ tự động tính toán và hiển thị */}
+                          {planDates.startDate && (
+                            <div className="mb-2">
+                              <label>Ngày kết thúc (tự động):</label>
+                              <input type="text" className="form-control" value={() => {
+                                const startDateObj = new Date(planDates.startDate);
+                                let durationDays = 30;
+                                if (selectedPlan.Title?.includes('60')) durationDays = 60;
+                                else if (selectedPlan.Title?.includes('90')) durationDays = 90;
+                                const targetDateObj = new Date(startDateObj);
+                                targetDateObj.setDate(startDateObj.getDate() + durationDays - 1);
+                                return targetDateObj.toISOString().slice(0, 10);
+                              }} readOnly />
+                            </div>
+                          )}
                           <button type="submit" className="btn btn-success">Lưu kế hoạch</button>
                           <button type="button" className="btn btn-secondary ms-2" onClick={() => setShowDateForm(false)}>Hủy</button>
                         </form>
@@ -1319,15 +1432,111 @@ const MyProgressPage = () => {
             </div>
           </div>
 
+          {/* Kế hoạch do coach đề xuất */}
+          {loadingCoachPlans ? (
+            <div>Đang tải kế hoạch do coach đề xuất...</div>
+          ) : coachPlans && coachPlans.length > 0 && (
+            <div className="col-md-6 mb-4">
+              <div className="card shadow-sm mb-4">
+                <div className="card-header bg-info text-white fw-bold">Kế hoạch cai thuốc do huấn luyện viên đề xuất</div>
+                <div className="card-body">
+                  {coachPlans.map(plan => (
+                    <div key={plan.Id} className="mb-3 p-2 border rounded">
+                      <h6>{plan.Title}</h6>
+                      <div><b>Mô tả:</b> {plan.Description}</div>
+                      <div><b>Chi tiết:</b> <pre style={{whiteSpace:'pre-line'}}>{plan.PlanDetail}</pre></div>
+                      <div><b>Ngày bắt đầu:</b> {plan.StartDate}</div>
+                      <div><b>Ngày kết thúc:</b> {plan.TargetDate}</div>
+                      <div className="mt-2">
+                        <button
+                          className="btn btn-success me-2"
+                          onClick={async () => {
+                            await acceptCoachPlan(plan.Id);
+                            setSuccess('Đã xác nhận kế hoạch!');
+                            // Reload danh sách kế hoạch coach đề xuất
+                            setLoadingCoachPlans(true);
+                            try {
+                              const plans = await getCoachSuggestedPlans();
+                              setCoachPlans(plans || []);
+                              // Tách các kế hoạch đã xác nhận
+                              setAcceptedCoachPlans((plans || []).filter(p => p.Status === 'accepted'));
+                            } catch (e) {
+                              setCoachPlans([]);
+                              setAcceptedCoachPlans([]);
+                            } finally {
+                              setLoadingCoachPlans(false);
+                            }
+                          }}
+                        >
+                          Xác nhận
+                        </button>
+                        <button
+                          className="btn btn-outline-danger"
+                          onClick={async () => {
+                            await rejectCoachPlan(plan.Id);
+                            setSuccess('Đã từ chối kế hoạch!');
+                            // Reload danh sách kế hoạch coach đề xuất
+                            setLoadingCoachPlans(true);
+                            try {
+                              const plans = await getCoachSuggestedPlans();
+                              setCoachPlans(plans || []);
+                              // Tách các kế hoạch đã xác nhận
+                              setAcceptedCoachPlans((plans || []).filter(p => p.Status === 'accepted'));
+                            } catch (e) {
+                              setCoachPlans([]);
+                              setAcceptedCoachPlans([]);
+                            } finally {
+                              setLoadingCoachPlans(false);
+                            }
+                          }}
+                        >
+                          Hủy
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Nhật ký hàng ngày (luôn luôn hiển thị) */}
           <div className="col-md-6 mb-4">
             <div className="card shadow-sm h-100">
               <div className="card-header bg-success text-white fw-bold">Nhật ký hàng ngày</div>
               <div className="card-body">
+                {/* Dropdown chọn kế hoạch */}
+                <div className="mb-3">
+                  <label className="form-label">Chọn kế hoạch để nhập nhật ký</label>
+                  <select
+                    className="form-select"
+                    value={selectedLogPlan ? (selectedLogPlan.type === 'system' ? `system-${userData.quitPlan?.id}` : `coach-${latestCoachPlan?.Id}`) : ''}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val.startsWith('system-')) {
+                        setSelectedLogPlan({ type: 'system', plan: userData.quitPlan });
+                      } else if (val.startsWith('coach-')) {
+                        setSelectedLogPlan({ type: 'coach', plan: latestCoachPlan });
+                      }
+                    }}
+                  >
+                    {userData.quitPlan && (
+                      <option value={`system-${userData.quitPlan.id}`}>Kế hoạch hệ thống/tự tạo</option>
+                    )}
+                    {latestCoachPlan && (
+                      <option value={`coach-${latestCoachPlan.Id}`}>Kế hoạch coach: {latestCoachPlan.Title}</option>
+                    )}
+                  </select>
+                </div>
                 <DailyLogSection 
                   dailyLog={userData.smokingStatus.dailyLog}
                   onUpdateLog={handleDailyLogUpdate}
                 />
+                {userData.smokingStatus.dailyLog && typeof userData.smokingStatus.dailyLog.savedMoney !== 'undefined' && (
+                  <div className="alert alert-info mt-3">
+                    💰 Tiền tiết kiệm hôm nay: <b>{userData.smokingStatus.dailyLog.savedMoney?.toLocaleString('vi-VN')} VNĐ</b>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1397,41 +1606,7 @@ const MyProgressPage = () => {
 
                   return (
                     <div>
-                      {/* Statistics Cards */}
-                      <div className="row mb-4">
-                        <div className="col-md-3">
-                          <div className="card bg-primary text-white">
-                            <div className="card-body text-center">
-                              <h6 className="card-title">Tổng điếu tuần</h6>
-                              <h4>{totalCigarettes}</h4>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="col-md-3">
-                          <div className="card bg-success text-white">
-                            <div className="card-body text-center">
-                              <h6 className="card-title">Trung bình/ngày</h6>
-                              <h4>{averagePerDay}</h4>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="col-md-3">
-                          <div className="card bg-warning text-dark">
-                            <div className="card-body text-center">
-                              <h6 className="card-title">Ngày không hút</h6>
-                              <h4>{daysWithoutSmoking}</h4>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="col-md-3">
-                          <div className="card bg-info text-white">
-                            <div className="card-body text-center">
-                              <h6 className="card-title">Chuỗi hiện tại</h6>
-                              <h4>{currentStreak} ngày</h4>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                     
 
                       {/* Chart */}
                       {weekDataArr.length > 0 ? (

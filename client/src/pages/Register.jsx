@@ -31,6 +31,9 @@ function Register() {
     address: ''
   });
 
+  // State for account type
+  const [accountType, setAccountType] = useState('member'); // 'member' or 'coach'
+
   // Validation functions
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -116,42 +119,29 @@ function Register() {
         email: formData.email,
         password: formData.password,
         phoneNumber: formData.phoneNumber,
-        address: formData.address
+        address: formData.address,
+        role: accountType // Gửi role lên backend
       };
 
       const response = await axios.post('http://localhost:5000/api/auth/register', registerPayload);
       
       if (response.status === 201) {
-        // Đảm bảo user data có đúng format nếu API trả về user data
-        if (response.data.user) {
-          const normalizedUser = {
-            ...response.data.user,
-            isMemberVip: response.data.user.isMemberVip || false,
-            role: response.data.user.role || 'member'
-          };
-          // Lưu user data nếu có token
-          if (response.data.token) {
-            localStorage.setItem('token', response.data.token);
-            localStorage.setItem('user', JSON.stringify(normalizedUser));
-          }
+        if (accountType === 'member') {
+          setSuccess("Bạn đã đăng ký thành công! Đang chuyển về trang đăng nhập...");
+          setTimeout(() => {
+            navigate('/login');
+          }, 2000);
+        } else if (accountType === 'coach') {
+          setSuccess("Bạn đã đăng ký tài khoản huấn luyện viên thành công! Vui lòng chờ admin xác nhận trước khi đăng nhập.");
         }
-        
-        setSuccess("Bạn đã đăng ký thành công! Đang chuyển về trang đăng nhập...");
-        // Delay để user có thể đọc thông báo
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000);
       }
     } catch (error) {
       console.error('Register error:', error);
       if (error.response) {
-        // Server responded with error status
         setError(error.response.data.message || 'Đăng ký thất bại. Vui lòng thử lại!');
       } else if (error.request) {
-        // Network error
         setError('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng!');
       } else {
-        // Other error
         setError('Đăng ký thất bại. Vui lòng thử lại!');
       }
     } finally {
@@ -202,6 +192,38 @@ function Register() {
 
         {/* Register Form */}
         <form onSubmit={handleSubmit} className="register-form">
+          {/* Account Type Selection */}
+          <div className="form-group mb-3 d-flex flex-column align-items-start">
+            <div className="form-check mb-1">
+              <input
+                className="form-check-input"
+                type="radio"
+                name="accountType"
+                id="accountTypeMember"
+                value="member"
+                checked={accountType === 'member'}
+                onChange={() => setAccountType('member')}
+              />
+              <label className="form-check-label" htmlFor="accountTypeMember">
+                Tôi muốn đăng ký tài khoản thường
+              </label>
+            </div>
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                type="radio"
+                name="accountType"
+                id="accountTypeCoach"
+                value="coach"
+                checked={accountType === 'coach'}
+                onChange={() => setAccountType('coach')}
+              />
+              <label className="form-check-label" htmlFor="accountTypeCoach">
+                Tôi muốn đăng ký là huấn luyện viên
+              </label>
+            </div>
+          </div>
+
           {/* Username Input */}
           <div className="form-group">
             <input

@@ -4,7 +4,7 @@ const adminController = {
     getAllUsers: async (req, res) => {
         try {
             const result = await sql.query`
-                SELECT Id, Username, Email, Role, IsMemberVip, PhoneNumber, Address, CreatedAt
+                SELECT Id, Username, Email, Role, IsMemberVip, PhoneNumber, Address, CreatedAt, IsCoachApproved
                 FROM Users
                 ORDER BY CreatedAt DESC
             `;
@@ -612,6 +612,12 @@ const adminController = {
             console.error('Error getting post detail:', error);
             res.status(500).json({ message: 'Error getting post detail', error: error.message });
         }
+    },
+
+    approveCoach: async (req, res) => {
+        const { coachId } = req.params;
+        await sql.query`UPDATE Users SET IsCoachApproved = 1 WHERE Id = ${coachId} AND Role = 'coach'`;
+        res.json({ message: 'Coach approved successfully' });
     },
 };
 

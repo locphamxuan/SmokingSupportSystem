@@ -98,20 +98,47 @@ exports.addDailyLog = async (req, res) => {
       // Update existing log
       logId = existingLog.recordset[0].Id;
       console.log('[addDailyLog] Updating existing log with ID:', logId);
+      // 1. Lấy profile hút thuốc của user
+      const profileResult = await sql.query`
+        SELECT cigarettesPerDay, costPerPack FROM SmokingProfiles WHERE UserId = ${userId}
+      `;
+      const profile = profileResult.recordset[0] || { cigarettesPerDay: 0, costPerPack: 0 };
+      const cigarettesPerDay = profile.cigarettesPerDay || 0;
+      const costPerPack = profile.costPerPack || 0;
+
+      // 2. Tính số điếu không hút và tiền tiết kiệm
+      const notSmoked = Math.max(0, cigarettesPerDay - cigarettes);
+      const savedMoney = +(notSmoked * (costPerPack / 20)).toFixed(2);
+
+      // Khi update:
       await sql.query`
         UPDATE SmokingDailyLog 
         SET Cigarettes = ${cigarettes}, 
             Feeling = ${feeling || ''}, 
             PlanId = ${planId || null}, 
-            SuggestedPlanId = ${suggestedPlanId || null}
+            SuggestedPlanId = ${suggestedPlanId || null},
+            SavedMoney = ${savedMoney}
         WHERE Id = ${logId}
       `;
     } else {
       // Insert new log
       console.log('[addDailyLog] Inserting new log for date:', currentDate);
+      // 1. Lấy profile hút thuốc của user
+      const profileResult = await sql.query`
+        SELECT cigarettesPerDay, costPerPack FROM SmokingProfiles WHERE UserId = ${userId}
+      `;
+      const profile = profileResult.recordset[0] || { cigarettesPerDay: 0, costPerPack: 0 };
+      const cigarettesPerDay = profile.cigarettesPerDay || 0;
+      const costPerPack = profile.costPerPack || 0;
+
+      // 2. Tính số điếu không hút và tiền tiết kiệm
+      const notSmoked = Math.max(0, cigarettesPerDay - cigarettes);
+      const savedMoney = +(notSmoked * (costPerPack / 20)).toFixed(2);
+
+      // Khi insert:
       const result = await sql.query`
-        INSERT INTO SmokingDailyLog (UserId, Cigarettes, Feeling, LogDate, PlanId, SuggestedPlanId)
-        VALUES (${userId}, ${cigarettes}, ${feeling || ''}, ${currentDate}, ${planId || null}, ${suggestedPlanId || null});
+        INSERT INTO SmokingDailyLog (UserId, Cigarettes, Feeling, LogDate, PlanId, SuggestedPlanId, SavedMoney)
+        VALUES (${userId}, ${cigarettes}, ${feeling || ''}, ${currentDate}, ${planId || null}, ${suggestedPlanId || null}, ${savedMoney});
         SELECT SCOPE_IDENTITY() AS Id;
       `;
       logId = result.recordset[0].Id;

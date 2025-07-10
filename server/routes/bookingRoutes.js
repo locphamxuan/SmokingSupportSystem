@@ -23,6 +23,10 @@ router.post('/book-appointment', authenticateToken, bookingController.bookAppoin
 router.post('/:bookingId/confirm', authenticateToken, bookingController.confirmBooking);
 router.post('/:bookingId/cancel', authenticateToken, bookingController.cancelBooking);
 router.post('/:bookingId/cancel-by-member', authenticateToken, bookingController.cancelBookingByMember);
+router.post('/:bookingId/pay', authenticateToken, bookingController.payBooking);
+router.get('/available', authenticateToken, bookingController.getAvailableBookings);
+router.post('/:bookingId/accept', authenticateToken, bookingController.acceptBooking);
 router.get('/history', authenticateToken, bookingController.getUserBookingHistory);
+router.get('/accepted', authenticateToken, bookingController.getAcceptedBookings);
 
 module.exports = router; 

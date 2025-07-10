@@ -28,6 +28,7 @@ import CreatePostPage from './pages/CreatePostPage.jsx';
 import AdminPackagePage from './pages/AdminPackagePage.jsx';
 import MainLayout from './layouts/MainLayout.jsx';
 import NotificationsPage from './pages/NotificationsPage';
+import PaymentPage from './pages/PaymentPage.jsx';
 
 const theme = createTheme({
   palette: {
@@ -87,6 +88,7 @@ const AppRoutes = () => {
         <Route path="/blog" element={<CommunityPage />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/payment" element={<PaymentPage />} />
         {/* Protected routes */}
         <Route 
           path="/profile" 
@@ -107,7 +109,7 @@ const AppRoutes = () => {
         <Route 
           path="/chat-coach/:coachId" 
           element={
-            <ProtectedRoute allowedRoles={['member']}> 
+            <ProtectedRoute allowedRoles={['member', 'memberVip']}>
               <ChatCoachPage />
             </ProtectedRoute>
           } 

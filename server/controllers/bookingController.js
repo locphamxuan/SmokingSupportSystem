@@ -50,41 +50,23 @@ const bookingController = {
 
     bookAppointment: async (req, res) => {
         try {
-            const { coachId, slotDate, slot, note } = req.body;
+            const { slotDate, slot, note } = req.body;
             const memberId = req.user.id;
-
-            if (!coachId || !slotDate || !slot) {
-                return res.status(400).json({ message: 'Huấn luyện viên, ngày và khung giờ là bắt buộc.' });
+            // Chỉ kiểm tra ngày và khung giờ
+            if (!slotDate || !slot) {
+                return res.status(400).json({ message: 'Ngày và khung giờ là bắt buộc.' });
             }
-
-            // Kiểm tra người dùng có phải là thành viên VIP không
-            const userResult = await sql.query`
-                SELECT IsMemberVip FROM Users WHERE Id = ${memberId}
-            `;
-            const user = userResult.recordset[0];
-
-            if (!user || !user.IsMemberVip) {
-                return res.status(403).json({ message: 'Chỉ thành viên VIP mới có thể đặt lịch với huấn luyện viên.' });
-            }
-
             await sql.query`
-                INSERT INTO Booking (MemberId, CoachId, Slot, SlotDate, Note, Status, CreatedAt)
-                VALUES (${memberId}, ${coachId}, ${slot}, ${slotDate}, ${note || null}, N'đang chờ xác nhận', GETDATE())
+                INSERT INTO Booking (MemberId, SlotDate, Slot, Status, Note, CreatedAt)
+                VALUES (${memberId}, ${slotDate}, ${slot}, N'chưa thanh toán', ${note || ''}, GETDATE())
             `;
-
-            await sql.query`
-                UPDATE Users SET CoachId = ${coachId} WHERE Id = ${memberId}
-            `;
-
-            // Cập nhật CoachId cho kế hoạch cai thuốc của người dùng
-            await sql.query`
-                UPDATE QuitPlans SET CoachId = ${coachId} WHERE UserId = ${memberId} AND CoachId IS NULL
-            `;
-
-            res.status(201).json({ message: 'Yêu cầu đặt lịch đã được tạo thành công.' });
+            // Lấy bookingId vừa tạo (nếu cần trả về)
+            const result = await sql.query`SELECT TOP 1 Id FROM Booking WHERE MemberId = ${memberId} ORDER BY Id DESC`;
+            const bookingId = result.recordset[0]?.Id;
+            res.json({ message: 'Đặt lịch thành công, vui lòng thanh toán để hoàn tất!', bookingId });
         } catch (error) {
-            console.error('Error booking appointment:', error);
-            res.status(500).json({ message: 'Lỗi khi tạo yêu cầu đặt lịch.', error: error.message });
+            console.error('Book appointment error:', error);
+            res.status(500).json({ message: 'Không thể đặt lịch hẹn', error: error.message });
         }
     },
 
@@ -252,6 +234,89 @@ const bookingController = {
         } catch (error) {
             console.error('Member cancel booking error:', error);
             res.status(500).json({ message: 'Không thể hủy lịch hẹn', error: error.message });
+        }
+    },
+
+    payBooking: async (req, res) => {
+        try {
+            const bookingId = req.params.bookingId;
+            const memberId = req.user.id;
+            const { paymentMethod, amount, transactionId, note } = req.body; // nhận thêm từ frontend
+
+            const result = await sql.query`
+                SELECT * FROM Booking WHERE Id = ${bookingId} AND MemberId = ${memberId} AND Status = N'chưa thanh toán'
+            `;
+            if (result.recordset.length === 0) return res.status(400).json({ message: 'Không tìm thấy booking hợp lệ' });
+
+            await sql.query`
+                UPDATE Booking SET Status = N'đã thanh toán' WHERE Id = ${bookingId}
+            `;
+
+            // Lưu thông tin thanh toán
+            await sql.query`
+                INSERT INTO BookingPayment (BookingId, PaymentMethod, Amount, TransactionId, Status, Note)
+                VALUES (
+                    ${bookingId},
+                    ${paymentMethod || 'unknown'},
+                    ${amount || 199000},
+                    ${transactionId || ''},
+                    N'thành công',
+                    ${note || ''}
+                )
+            `;
+
+            res.json({ message: 'Thanh toán thành công!' });
+        } catch (error) {
+            console.error('Pay booking error:', error);
+            res.status(500).json({ message: 'Không thể thanh toán lịch hẹn', error: error.message });
+        }
+    },
+
+    getAvailableBookings: async (req, res) => {
+        try {
+            const result = await sql.query`
+                SELECT * FROM Booking WHERE Status = N'đã thanh toán'
+            `;
+            res.json({ bookings: result.recordset });
+        } catch (error) {
+            console.error('Get available bookings error:', error);
+            res.status(500).json({ message: 'Không thể lấy lịch hẹn đã thanh toán', error: error.message });
+        }
+    },
+
+    acceptBooking: async (req, res) => {
+        try {
+            const coachId = req.user.id;
+            const bookingId = req.params.bookingId;
+            const check = await sql.query`
+                SELECT * FROM Booking_Coach WHERE BookingId = ${bookingId} AND CoachId = ${coachId}
+            `;
+            if (check.recordset.length > 0) return res.status(400).json({ message: 'Bạn đã nhận lịch này rồi' });
+            await sql.query`
+                INSERT INTO Booking_Coach (BookingId, CoachId, Status, AcceptedAt)
+                VALUES (${bookingId}, ${coachId}, N'đã nhận', GETDATE())
+            `;
+            res.json({ message: 'Nhận lịch thành công!' });
+        } catch (error) {
+            console.error('Accept booking error:', error);
+            res.status(500).json({ message: 'Không thể nhận lịch hẹn', error: error.message });
+        }
+    },
+
+    getAcceptedBookings: async (req, res) => {
+        try {
+            const coachId = req.user.id;
+            const result = await sql.query`
+                SELECT b.*, u.Username AS MemberName
+                FROM Booking_Coach bc
+                JOIN Booking b ON bc.BookingId = b.Id
+                JOIN Users u ON b.MemberId = u.Id
+                WHERE bc.CoachId = ${coachId}
+            `;
+            res.json({ bookings: result.recordset });
+        } catch (error) {
+            console.error('Get accepted bookings error:', error);
+            res.status(500).json({ message: 'Không thể lấy lịch hẹn đã nhận', error: error.message });
         }
     }
 };

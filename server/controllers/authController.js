@@ -4,8 +4,9 @@ const SECRET_KEY = process.env.JWT_SECRET || 'your-super-secret-key';
 
 // Đăng ký
 exports.register = async (req, res) => {
+  console.log('Register payload:', req.body);
   try {
-    const { username, email, password, phoneNumber, address } = req.body;
+    const { username, email, password, phoneNumber, address, role } = req.body;
     if (!username || !email || !password || !phoneNumber || !address) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
@@ -16,40 +17,54 @@ exports.register = async (req, res) => {
     if (check.recordset.length > 0) {
       return res.status(400).json({ message: 'Email hoặc username đã tồn tại' });
     }
-    // Thêm user mới
-    const insert = await sql.query`
-      INSERT INTO Users (Username, Email, Password, PhoneNumber, Address, Role, IsMemberVip, CreatedAt, CoachId)
-      VALUES (${username}, ${email}, ${password}, ${phoneNumber}, ${address}, 'member', 0, GETDATE(), NULL);
-      SELECT SCOPE_IDENTITY() AS Id;
-    `;
-    const userId = insert.recordset[0].Id;
-
-    // Khởi tạo một bản ghi SmokingProfiles mặc định cho người dùng mới
-    await sql.query`
-      INSERT INTO SmokingProfiles (UserId, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, QuitReason)
-      VALUES (${userId}, 0, 0, '', '', '', '')
-    `;
-
-    // Lấy thông tin user vừa tạo
-    const userResult = await sql.query`SELECT * FROM Users WHERE Id = ${userId}`;
-    const user = userResult.recordset[0];
-    // Tạo token
-    const token = jwt.sign({ userId: user.Id, role: user.Role }, SECRET_KEY, { expiresIn: '24h' });
-    res.status(201).json({
-      token,
-      user: {
-        id: user.Id,
-        username: user.Username,
-        email: user.Email,
-        phoneNumber: user.PhoneNumber,
-        address: user.Address,
-        role: user.Role,
-        isMemberVip: user.IsMemberVip,
-        createdAt: user.CreatedAt,
-        password: user.Password,
-        coachId: user.CoachId
-      }
-    });
+    let userId;
+    if (role === 'coach') {
+      // Đăng ký coach: chưa duyệt
+      const insert = await sql.query`
+        INSERT INTO Users (Username, Email, Password, PhoneNumber, Address, Role, IsMemberVip, CreatedAt, CoachId, IsCoachApproved)
+        VALUES (${username}, ${email}, ${password}, ${phoneNumber}, ${address}, 'coach', 0, GETDATE(), NULL, 0);
+        SELECT SCOPE_IDENTITY() AS Id;
+      `;
+      userId = insert.recordset[0].Id;
+      // Khởi tạo SmokingProfiles cho coach (có thể bỏ qua nếu không cần)
+      await sql.query`
+        INSERT INTO SmokingProfiles (UserId, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, QuitReason)
+        VALUES (${userId}, 0, 0, '', '', '', '')
+      `;
+      return res.status(201).json({ message: 'Đăng ký tài khoản huấn luyện viên thành công! Vui lòng chờ admin xác nhận.' });
+    } else {
+      // Đăng ký member như cũ
+      const insert = await sql.query`
+        INSERT INTO Users (Username, Email, Password, PhoneNumber, Address, Role, IsMemberVip, CreatedAt, CoachId)
+        VALUES (${username}, ${email}, ${password}, ${phoneNumber}, ${address}, 'member', 0, GETDATE(), NULL);
+        SELECT SCOPE_IDENTITY() AS Id;
+      `;
+      userId = insert.recordset[0].Id;
+      await sql.query`
+        INSERT INTO SmokingProfiles (UserId, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, QuitReason)
+        VALUES (${userId}, 0, 0, '', '', '', '')
+      `;
+      // Lấy thông tin user vừa tạo
+      const userResult = await sql.query`SELECT * FROM Users WHERE Id = ${userId}`;
+      const user = userResult.recordset[0];
+      // Tạo token
+      const token = jwt.sign({ userId: user.Id, role: user.Role }, SECRET_KEY, { expiresIn: '24h' });
+      res.status(201).json({
+        token,
+        user: {
+          id: user.Id,
+          username: user.Username,
+          email: user.Email,
+          phoneNumber: user.PhoneNumber,
+          address: user.Address,
+          role: user.Role,
+          isMemberVip: user.IsMemberVip,
+          createdAt: user.CreatedAt,
+          password: user.Password,
+          coachId: user.CoachId
+        }
+      });
+    }
   } catch (error) {
     console.error('Register error:', error);
     res.status(500).json({ message: 'Registration failed', error: error.message });
@@ -70,6 +85,10 @@ exports.login = async (req, res) => {
     const user = result.recordset[0];
     if (!user) {
       return res.status(401).json({ message: 'Email/tên đăng nhập hoặc mật khẩu không đúng' });
+    }
+    // Nếu là coach và chưa được duyệt
+    if (user.Role === 'coach' && user.IsCoachApproved === false) {
+      return res.status(403).json({ message: 'Tài khoản huấn luyện viên chưa được admin duyệt.' });
     }
     // Tạo token
     const token = jwt.sign({ userId: user.Id, role: user.Role }, SECRET_KEY, { expiresIn: '24h' });
@@ -171,7 +190,8 @@ exports.getProfile = async (req, res) => {
       if (progressResult.recordset.length > 0) {
         dailyLog = {
           cigarettes: progressResult.recordset[0].Cigarettes || 0,
-          feeling: progressResult.recordset[0].Feeling || ''
+          feeling: progressResult.recordset[0].Feeling || '',
+          savedMoney: progressResult.recordset[0].SavedMoney || 0
         };
       }
     } else {
@@ -182,7 +202,8 @@ exports.getProfile = async (req, res) => {
       if (progressResult.recordset.length > 0) {
         dailyLog = {
           cigarettes: progressResult.recordset[0].Cigarettes || 0,
-          feeling: progressResult.recordset[0].Feeling || ''
+          feeling: progressResult.recordset[0].Feeling || '',
+          savedMoney: progressResult.recordset[0].SavedMoney || 0
         };
       }
     }
@@ -1109,5 +1130,47 @@ exports.getUserBadges = async (req, res) => {
   } catch (error) {
     console.error('Get user badges error:', error);
     res.status(500).json({ message: 'Failed to get user badges', error: error.message });
+  }
+};
+
+exports.getCoachSuggestedPlans = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    // Trả về cả pending và accepted
+    const result = await sql.query`
+      SELECT * FROM CoachSuggestedQuitPlans
+      WHERE UserId = ${userId} AND (Status IS NULL OR Status = 'pending' OR Status = 'accepted')
+    `;
+    res.json({ plans: result.recordset });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi khi lấy kế hoạch coach đề xuất', error: error.message });
+  }
+};
+
+exports.acceptCoachPlan = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { planId } = req.body;
+    // Đánh dấu kế hoạch này là đã xác nhận
+    await sql.query`
+      UPDATE CoachSuggestedQuitPlans SET Status = 'accepted' WHERE Id = ${planId} AND UserId = ${userId}
+    `;
+    // (Tuỳ chọn) Copy sang bảng QuitPlans nếu muốn dùng như kế hoạch chính
+    res.json({ message: 'Đã xác nhận kế hoạch coach đề xuất!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi khi xác nhận kế hoạch', error: error.message });
+  }
+};
+
+exports.rejectCoachPlan = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { planId } = req.body;
+    await sql.query`
+      UPDATE CoachSuggestedQuitPlans SET Status = 'rejected' WHERE Id = ${planId} AND UserId = ${userId}
+    `;
+    res.json({ message: 'Đã từ chối kế hoạch coach đề xuất!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi khi từ chối kế hoạch', error: error.message });
   }
 };
