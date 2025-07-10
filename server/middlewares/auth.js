@@ -25,7 +25,7 @@ const authenticateToken = async (req, res, next) => {
 
         // Lấy dữ liệu người dùng từ cơ sở dữ liệu
         const result = await sql.query`
-            SELECT Id, Username, Email, Role, IsMemberVip, CoachId 
+            SELECT Id, Username, Email, Role, IsMemberVip, CoachId, IsCoachApproved 
             FROM Users 
             WHERE Id = ${userId}
         `;
@@ -41,7 +41,8 @@ const authenticateToken = async (req, res, next) => {
             email: result.recordset[0].Email,
             role: result.recordset[0].Role,
             isMemberVip: result.recordset[0].IsMemberVip,
-            coachId: result.recordset[0].CoachId
+            coachId: result.recordset[0].CoachId,
+            isCoachApproved: result.recordset[0].IsCoachApproved
         };
 
         next();
@@ -61,8 +62,8 @@ const isAdmin = (req, res, next) => {
 
 // Middleware kiểm tra quyền huấn luyện viên
 const isCoach = (req, res, next) => {
-    if (!req.user || req.user.role !== 'coach') {
-        return res.status(403).json({ message: 'Coach access required' });
+    if (!req.user || req.user.role !== 'coach' || !req.user.isCoachApproved) {
+        return res.status(403).json({ message: 'Coach access required (not approved)' });
     }
     next();
 };

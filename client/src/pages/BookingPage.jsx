@@ -3,20 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../style/BookingPage.scss'; // Assuming you'll create this file for custom styles
 import 'bootstrap/dist/css/bootstrap.min.css';
+// Không cần import Payment nữa
 
 const BookingPage = () => {
   const navigate = useNavigate();
   const [slotDate, setSlotDate] = useState('');
   const [selectedSlot, setSelectedSlot] = useState('');
   const [note, setNote] = useState('');
-  const [coaches, setCoaches] = useState([]);
-  const [selectedCoachId, setSelectedCoachId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [bookingHistory, setBookingHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [userProfile, setUserProfile] = useState(null);
+  // Không cần state showPayment, pendingPaymentId nữa
 
   // Available time slots as defined in the database
   const availableSlots = [
@@ -82,21 +82,21 @@ const BookingPage = () => {
 
         // If user has assigned coach, use that coach
         if (profileResponse.data.coachId) {
-          setSelectedCoachId(profileResponse.data.coachId);
-          // Set the coach info for display
-          setCoaches([{
-            Id: profileResponse.data.coachId,
-            Username: profileResponse.data.coach?.Username || `Coach ID: ${profileResponse.data.coachId}`
-          }]);
+          // setSelectedCoachId(profileResponse.data.coachId); // Removed as per new flow
+          // Set the coach info for display // Removed as per new flow
+          // setCoaches([{ // Removed as per new flow
+          //   Id: profileResponse.data.coachId, // Removed as per new flow
+          //   Username: profileResponse.data.coach?.Username || `Coach ID: ${profileResponse.data.coachId}` // Removed as per new flow
+          // }]); // Removed as per new flow
         } else {
-          // If no assigned coach, get all coaches
-          const response = await axios.get('http://localhost:5000/api/auth/coaches', {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          setCoaches(response.data.coaches);
-          if (response.data.coaches.length > 0) {
-            setSelectedCoachId(response.data.coaches[0].Id);
-          }
+          // If no assigned coach, get all coaches // Removed as per new flow
+          // const response = await axios.get('http://localhost:5000/api/auth/coaches', { // Removed as per new flow
+          //   headers: { Authorization: `Bearer ${token}` } // Removed as per new flow
+          // }); // Removed as per new flow
+          // setCoaches(response.data.coaches); // Removed as per new flow
+          // if (response.data.coaches.length > 0) { // Removed as per new flow
+          //   setSelectedCoachId(response.data.coaches[0].Id); // Removed as per new flow
+          // } // Removed as per new flow
         }
       } catch (err) {
         console.error('Lỗi khi tải thông tin:', err);
@@ -116,10 +116,6 @@ const BookingPage = () => {
     setSuccess('');
     try {
       const token = localStorage.getItem('token');
-      if (!selectedCoachId || isNaN(Number(selectedCoachId))) {
-        setError('Vui lòng chọn một huấn luyện viên.');
-        return;
-      }
       if (!slotDate) {
         setError('Vui lòng chọn ngày hẹn.');
         return;
@@ -129,23 +125,29 @@ const BookingPage = () => {
         return;
       }
 
-      // Check if booking time is valid
-      const selectedDate = new Date(slotDate);
-      const currentDate = new Date();
-      const isToday = selectedDate.toDateString() === currentDate.toDateString();
-      
-      if (isToday) {
-        const currentHour = currentDate.getHours();
-        const selectedSlotEndHour = getSlotEndHour(selectedSlot);
-        
-        if (currentHour >= selectedSlotEndHour) {
-          setError(`Không thể đặt lịch cho khung giờ ${getSlotLabel(selectedSlot)} vì đã qua giờ này. Vui lòng chọn khung giờ khác hoặc ngày khác.`);
-          return;
-        }
+      // Check if booking time is valid (at least 30 minutes in advance)
+      const slotStartMap = {
+        '7h-9h': 7,
+        '10h-12h': 10,
+        '13h-15h': 13,
+        '16h-18h': 16
+      };
+      const slotHour = slotStartMap[selectedSlot];
+      if (!slotHour) {
+        setError('Khung giờ không hợp lệ.');
+        return;
+      }
+      const now = new Date();
+      const bookingDate = new Date(slotDate);
+      bookingDate.setHours(slotHour, 0, 0, 0);
+      const diffMs = bookingDate - now;
+      const diffMinutes = diffMs / (1000 * 60);
+      if (diffMinutes < 30) {
+        setError('Bạn phải đặt lịch trước ít nhất 30 phút so với thời gian bắt đầu khung giờ.');
+        return;
       }
 
       const response = await axios.post('http://localhost:5000/api/booking/book-appointment', {
-        coachId: Number(selectedCoachId),
         slotDate,
         slot: selectedSlot,
         note
@@ -155,18 +157,13 @@ const BookingPage = () => {
 
       console.log("BookingPage - Booking response:", response.data);
       setSuccess('Lịch hẹn của bạn đã được gửi thành công!');
-      
-      // Refresh booking history after successful booking
-      fetchBookingHistory();
-      
+      // Chuyển hướng sang trang thanh toán và truyền bookingId
+      navigate('/payment', { state: { bookingId: response.data.bookingId } });
       // Reset form
       setSlotDate('');
       setSelectedSlot('');
       setNote('');
       
-      setTimeout(() => {
-        setSuccess('');
-      }, 3000);
     } catch (err) {
       console.error('Lỗi khi đặt lịch hẹn:', err);
       console.error('Error details:', err.response?.data);
@@ -207,9 +204,22 @@ const BookingPage = () => {
     }
     
     const currentHour = currentDate.getHours();
+    const currentMinute = currentDate.getMinutes();
     return availableSlots.filter(slot => {
-      const slotEndHour = getSlotEndHour(slot.value);
-      return currentHour < slotEndHour;
+      const slotStartMap = {
+        '7h-9h': 7,
+        '10h-12h': 10,
+        '13h-15h': 13,
+        '16h-18h': 16
+      };
+      const slotHour = slotStartMap[slot.value];
+      if (!slotHour) return false;
+      // Tính thời gian bắt đầu slot
+      const slotStart = new Date(slotDate);
+      slotStart.setHours(slotHour, 0, 0, 0);
+      const diffMs = slotStart - currentDate;
+      const diffMinutes = diffMs / (1000 * 60);
+      return diffMinutes >= 30;
     });
   };
 
@@ -258,6 +268,10 @@ const BookingPage = () => {
         return 'Bạn đã hủy'; // Member xem lịch mình đã hủy
       case 'coach đã hủy':
         return 'Coach đã hủy'; // Member xem lịch coach đã hủy
+      case 'chờ thanh toán':
+        return 'Chờ thanh toán';
+      case 'đã thanh toán':
+        return 'Đã thanh toán';
       default:
         return status;
     }
@@ -274,6 +288,10 @@ const BookingPage = () => {
         return 'badge bg-secondary';
       case 'coach đã hủy':
         return 'badge bg-danger';
+      case 'chờ thanh toán':
+        return 'badge bg-info';
+      case 'đã thanh toán':
+        return 'badge bg-success';
       default:
         return 'badge bg-primary';
     }
@@ -371,28 +389,6 @@ const BookingPage = () => {
         )}
 
         <form onSubmit={handleSubmit} className="booking-form">
-          <div className="mb-3">
-            <label htmlFor="coachSelect" className="form-label">Huấn luyện viên được chỉ định</label>
-            <select
-              className="form-select"
-              id="coachSelect"
-              value={selectedCoachId}
-              onChange={(e) => setSelectedCoachId(e.target.value)}
-              disabled={coaches.length === 1} // Disable if only one coach (assigned coach)
-              required
-            >
-              {coaches.map((coach) => (
-                <option key={coach.Id} value={coach.Id}>
-                  {coach.Username}
-                </option>
-              ))}
-            </select>
-            {coaches.length === 1 && (
-              <small className="form-text text-muted">
-                Đây là huấn luyện viên được phân công cho bạn.
-              </small>
-            )}
-          </div>
           <div className="mb-3">
             <label htmlFor="slotDate" className="form-label">Ngày hẹn</label>
             <input
@@ -493,7 +489,6 @@ const BookingPage = () => {
                   <tr>
                     <th>Ngày hẹn</th>
                     <th>Khung giờ</th>
-                    <th>Huấn luyện viên</th>
                     <th>Trạng thái</th>
                     <th>Ghi chú</th>
                     <th>Hành động</th>
@@ -508,7 +503,6 @@ const BookingPage = () => {
                           {getSlotLabel(booking.Slot)}
                         </span>
                       </td>
-                      <td>{booking.CoachName || 'Chưa có thông tin'}</td>
                       <td>
                         <span className={getStatusBadgeClass(booking.Status)}>
                           {getDisplayStatus(booking.Status)}
@@ -522,27 +516,27 @@ const BookingPage = () => {
                         )}
                       </td>
                       <td>
-                        {(booking.Status === 'đang chờ xác nhận' || booking.Status === 'đã xác nhận') && (
+                        {(booking.Status === 'đang chờ xác nhận' || booking.Status === 'đã xác nhận' || booking.Status === 'chờ thanh toán') && (
                           <button
-                            className="btn btn-sm btn-outline-danger"
+                            className="btn btn-sm btn-outline-success"
                             onClick={async () => {
-                              if (window.confirm('Bạn có chắc chắn muốn hủy lịch hẹn này?')) {
+                              if (window.confirm('Bạn có chắc chắn muốn thanh toán lịch hẹn này?')) {
                                 try {
                                   const token = localStorage.getItem('token');
-                                  await axios.post(`http://localhost:5000/api/booking/${booking.Id}/cancel-by-member`, {}, {
+                                  await axios.post(`http://localhost:5000/api/booking/${booking.Id}/pay`, {}, {
                                     headers: { Authorization: `Bearer ${token}` }
                                   });
-                                  setSuccess('Đã hủy lịch hẹn thành công!');
+                                  setSuccess('Đã thanh toán lịch hẹn thành công!');
                                   fetchBookingHistory(); // Refresh danh sách
                                 } catch (err) {
-                                  console.error('Lỗi khi hủy lịch hẹn:', err);
-                                  setError(err.response?.data?.message || 'Không thể hủy lịch hẹn.');
+                                  console.error('Lỗi khi thanh toán lịch hẹn:', err);
+                                  setError(err.response?.data?.message || 'Không thể thanh toán lịch hẹn.');
                                 }
                               }
                             }}
                           >
-                            <i className="fas fa-times me-1"></i>
-                            Hủy
+                            <i className="fas fa-dollar-sign me-1"></i>
+                            Thanh toán
                           </button>
                         )}
                         {(booking.Status === 'khách hàng đã hủy' || booking.Status === 'coach đã hủy') && (
@@ -557,6 +551,7 @@ const BookingPage = () => {
           )}
         </div>
       </div>
+      {/* Đã bỏ dialog Payment, chuyển sang trang PaymentPage riêng */}
     </div>
   );
 };
