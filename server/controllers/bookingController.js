@@ -292,6 +292,25 @@ const bookingController = {
                 SELECT * FROM Booking_Coach WHERE BookingId = ${bookingId} AND CoachId = ${coachId}
             `;
             if (check.recordset.length > 0) return res.status(400).json({ message: 'Bạn đã nhận lịch này rồi' });
+
+            // Lấy MemberId từ bảng Booking
+            const bookingResult = await sql.query`
+                SELECT MemberId FROM Booking WHERE Id = ${bookingId}
+            `;
+            const memberId = bookingResult.recordset[0]?.MemberId;
+            if (!memberId) {
+                console.error('Không tìm thấy thành viên cho lịch này, bookingId:', bookingId);
+                return res.status(400).json({ message: 'Không tìm thấy thành viên cho lịch này' });
+            }
+
+            // Cập nhật CoachId cho user (memberVip)
+            console.log('Updating CoachId for member:', memberId, 'to coach:', coachId);
+            const updateResult = await sql.query`
+                UPDATE Users SET CoachId = ${coachId} WHERE Id = ${memberId}
+            `;
+            console.log('Update CoachId result:', updateResult);
+
+            // Thêm vào bảng Booking_Coach
             await sql.query`
                 INSERT INTO Booking_Coach (BookingId, CoachId, Status, AcceptedAt)
                 VALUES (${bookingId}, ${coachId}, N'đã nhận', GETDATE())
@@ -307,7 +326,7 @@ const bookingController = {
         try {
             const coachId = req.user.id;
             const result = await sql.query`
-                SELECT b.*, u.Username AS MemberName
+                SELECT b.*, u.Username AS MemberName, u.Email AS MemberEmail, u.PhoneNumber AS MemberPhoneNumber
                 FROM Booking_Coach bc
                 JOIN Booking b ON bc.BookingId = b.Id
                 JOIN Users u ON b.MemberId = u.Id

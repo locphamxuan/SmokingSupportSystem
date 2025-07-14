@@ -331,105 +331,6 @@ const CoachDashboardPage = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 15, paddingTop: '20px' }}>
-      {members.length !== 0 && (
-        <div className="table-responsive mt-2">
-          <table className="table table-striped">
-            <thead>
-              <tr>
-                <th>Thành viên</th>
-                <th>Email</th>
-                <th>SĐT</th>
-                <th>Ngày hẹn</th>
-                <th>Trạng thái</th>
-                <th className="text-end">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((member) => (
-                <tr key={member.Id}>
-                  <td>
-                    <p className="fw-semibold mb-0">{member.Username}</p>
-                  </td>
-                  <td>{member.Email}</td>
-                  <td>{member.PhoneNumber}</td>
-                  <td>
-                    {member.appointment?.slotDate
-                      ? `${new Date(member.appointment.slotDate).toLocaleDateString()} (${member.appointment.slot})`
-                      : 'Không có lịch hẹn'}
-                  </td>
-                  <td>
-                    {member.appointment?.status ? getStatusChip(member.appointment.status.toLowerCase()) : 'Không có lịch hẹn'}
-                  </td>
-                  <td className="text-end">
-                    <div className="d-flex gap-1 justify-content-end align-items-center">
-                      {/* Primary Action - Chat (most important) */}
-                      <Button
-                        size="small"
-                        variant="contained"
-                        color="primary"
-                        startIcon={<ChatIcon />}
-                        onClick={() => navigate(`/coach/chat/${member.Id}`)}
-                        sx={{ minWidth: 'auto', px: 1.5 }}
-                      >
-                        Chat
-                      </Button>
-
-                      {/* Appointment Status Actions */}
-                      {member.appointment?.id && member.appointment.status?.toLowerCase() === 'đang chờ xác nhận' && (
-                        <>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            color="success"
-                            startIcon={<CheckIcon />}
-                            onClick={() => handleConfirmAppointment(member)}
-                            sx={{ minWidth: 'auto', px: 1 }}
-                          >
-                            Xác nhận
-                          </Button>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            color="error"
-                            startIcon={<CloseIcon />}
-                            onClick={() => handleCancelAppointment(member)}
-                            sx={{ minWidth: 'auto', px: 1 }}
-                          >
-                            Hủy
-                          </Button>
-                        </>
-                      )}
-                      
-                      {member.appointment?.id && member.appointment.status?.toLowerCase() === 'đã xác nhận' && (
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="error"
-                          startIcon={<CloseIcon />}
-                          onClick={() => handleCancelAppointment(member)}
-                          sx={{ minWidth: 'auto', px: 1 }}
-                        >
-                          Hủy lịch
-                        </Button>
-                      )}
-
-                      {/* More Actions Menu */}
-                      <IconButton
-                        size="small"
-                        onClick={(e) => handleMenuOpen(e, member)}
-                        sx={{ ml: 0.5 }}
-                      >
-                        <MoreVertIcon />
-                      </IconButton>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      
       {/* Action Menu */}
       <Menu
         anchorEl={anchorEl}
@@ -450,90 +351,10 @@ const CoachDashboardPage = () => {
         </MenuItem>
         
         <Divider />
-        <MenuItem onClick={() => {
-          handleOpenBadgeModal(menuMember);
-          handleMenuClose();
-        }}>
-          <ListItemIcon>
-            <BadgeIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Trao huy hiệu</ListItemText>
-        </MenuItem>
+        
       </Menu>
       
-      {/* Badge Award Modal */}
-      <Dialog open={openBadgeModal} onClose={handleCloseBadgeModal} maxWidth="md" fullWidth>
-        <DialogTitle>
-          🎖️ Trao huy hiệu cho {selectedMember?.Username}
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            <FormControl fullWidth sx={{ mb: 3 }}>
-              <InputLabel>Chọn huy hiệu</InputLabel>
-              <Select
-                value={selectedBadge}
-                label="Chọn huy hiệu"
-                onChange={(e) => setSelectedBadge(e.target.value)}
-              >
-                {allBadges.map((badge) => (
-                  <MenuItem key={badge.Id} value={badge.Id}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <span>{badge.Name}</span>
-                      <Chip 
-                        label={`Yêu cầu: ${badge.Requirement} ngày`} 
-                        size="small" 
-                        color="info"
-                      />
-                    </Box>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            
-            {selectedBadge && (
-              <Box sx={{ mb: 3, p: 2, bgcolor: 'background.paper', border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                {(() => {
-                  const badge = allBadges.find(b => b.Id === selectedBadge);
-                  return badge ? (
-                    <>
-                      <Typography variant="h6" sx={{ color: 'primary.main' }}>
-                        {badge.Name}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {badge.Description}
-                      </Typography>
-                    </>
-                  ) : null;
-                })()}
-              </Box>
-            )}
-            
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              label="Lý do trao huy hiệu (tùy chọn)"
-              value={badgeReason}
-              onChange={(e) => setBadgeReason(e.target.value)}
-              placeholder="Ví dụ: Hoàn thành mục tiêu tuần này xuất sắc, rất cố gắng trong quá trình cai thuốc..."
-              helperText="Thành viên sẽ nhận được thông báo kèm lý do này"
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseBadgeModal}>
-            Hủy
-          </Button>
-          <Button 
-            onClick={handleAwardBadge} 
-            variant="contained" 
-            disabled={!selectedBadge || awardingBadge}
-            startIcon={awardingBadge ? <CircularProgress size={20} /> : '🎖️'}
-          >
-            {awardingBadge ? 'Đang trao...' : 'Trao huy hiệu'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      
       
       {/* Modal chọn kế hoạch mẫu */}
       <Dialog open={showPlanModal} onClose={() => setShowPlanModal(false)} maxWidth="md" fullWidth>
@@ -735,6 +556,7 @@ const CoachDashboardPage = () => {
                 <th>Thành viên</th>
                 <th>Ghi chú</th>
                 <th>Trạng thái</th>
+                <th>Hành động</th>
               </tr>
             </thead>
             <tbody>
@@ -745,6 +567,31 @@ const CoachDashboardPage = () => {
                   <td>{booking.MemberName}</td>
                   <td>{booking.Note || <i>Không có</i>}</td>
                   <td>{booking.Status}</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="primary"
+                        startIcon={<ChatIcon />}
+                        onClick={() => navigate(`/coach/chat/${booking.MemberId}`)}
+                      >
+                        Nhắn tin
+                      </Button>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          setAnchorEl(e.currentTarget);
+                          setMenuMember({
+                            Id: booking.MemberId,
+                            Username: booking.MemberName
+                          });
+                        }}
+                      >
+                        <MoreVertIcon />
+                      </IconButton>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

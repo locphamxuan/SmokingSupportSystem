@@ -165,7 +165,7 @@ exports.getProfile = async (req, res) => {
 
     // Lấy thông tin hút thuốc
     const smokingResult = await sql.query`
-      SELECT cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, QuitReason, cigaretteType
+      SELECT cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, QuitReason, cigaretteType, customCigaretteType
       FROM SmokingProfiles WHERE UserId = ${userId}
     `;
     const dbSmoking = smokingResult.recordset[0];
@@ -217,6 +217,7 @@ exports.getProfile = async (req, res) => {
       healthStatus: dbSmoking.healthStatus || '',
       quitReason: dbSmoking.QuitReason || '',
       cigaretteType: dbSmoking.cigaretteType || '',
+      customCigaretteType: dbSmoking.customCigaretteType || '',
       dailyLog // This is fine as it's merged later
     } : {
       cigarettesPerDay: 0,
@@ -225,6 +226,7 @@ exports.getProfile = async (req, res) => {
       healthStatus: '',
       quitReason: '',
       cigaretteType: '',
+      customCigaretteType: '',
       dailyLog
     };
 
@@ -392,11 +394,12 @@ exports.updateSmokingStatus = async (req, res) => {
       smokingFrequency = '',
       healthStatus = '',
       cigaretteType = '',
+      customCigaretteType = '',
       quitReason = ''
     } = req.body;
 
     console.log(`[updateSmokingStatus] Received data for userId ${userId}:`, {
-      cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, quitReason
+      cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, customCigaretteType, quitReason
     }); // DEBUG: Log the final processed values
 
     // Kiểm tra xem đã có bản ghi SmokingProfiles cho người dùng này chưa
@@ -415,6 +418,7 @@ exports.updateSmokingStatus = async (req, res) => {
           smokingFrequency = ${smokingFrequency},
           healthStatus = ${healthStatus},
           cigaretteType = ${cigaretteType},
+          customCigaretteType = ${customCigaretteType},
           QuitReason = ${quitReason}
         WHERE UserId = ${userId}
       `;
@@ -422,7 +426,7 @@ exports.updateSmokingStatus = async (req, res) => {
     } else {
       // Tạo bản ghi mới nếu chưa tồn tại
       await sql.query`
-        INSERT INTO SmokingProfiles (UserId, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, QuitReason)
+        INSERT INTO SmokingProfiles (UserId, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, customCigaretteType, QuitReason)
         VALUES (
           ${userId},
           ${cigarettesPerDay},
@@ -430,6 +434,7 @@ exports.updateSmokingStatus = async (req, res) => {
           ${smokingFrequency},
           ${healthStatus},
           ${cigaretteType},
+          ${customCigaretteType},
           ${quitReason}
         )
       `;
