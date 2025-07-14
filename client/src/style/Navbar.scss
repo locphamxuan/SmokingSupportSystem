@@ -170,6 +170,22 @@
     z-index: 2;
 }
 
+.admin-dashboard-link {
+  font-weight: 600 !important;
+  color: #3699ff !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  margin-bottom: 5px;
+  padding-bottom: 10px !important;
+
+  i {
+    color: #3699ff;
+  }
+
+  &:hover {
+    background-color: rgba(54, 153, 255, 0.1) !important;
+  }
+}
+
 @media (max-width: 768px) {
     .header-container {
         padding: 1rem;

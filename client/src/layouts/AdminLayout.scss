@@ -1,0 +1,118 @@
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f5f6fa;
+
+  .admin-sidebar {
+    width: 250px;
+    background-color: #1e1e2d;
+    color: #ffffff;
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 1000;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+
+    .sidebar-header {
+      padding: 20px;
+      text-align: center;
+      background-color: #1b1b28;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+      i {
+        font-size: 24px;
+        color: #3699ff;
+        margin-bottom: 10px;
+      }
+
+      h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #ffffff;
+      }
+    }
+
+    .sidebar-nav {
+      padding: 20px 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+
+      .sidebar-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 25px;
+        color: #9899ac;
+        text-decoration: none;
+        transition: all 0.3s ease;
+
+        &:hover {
+          background-color: #1b1b28;
+          color: #ffffff;
+
+          i {
+            color: #3699ff;
+          }
+        }
+
+        &.active {
+          background-color: #1b1b28;
+          color: #ffffff;
+          border-left: 3px solid #3699ff;
+
+          i {
+            color: #3699ff;
+          }
+        }
+
+        i {
+          font-size: 18px;
+          margin-right: 12px;
+          width: 20px;
+          text-align: center;
+        }
+
+        span {
+          font-size: 14px;
+          font-weight: 500;
+        }
+      }
+
+      .sidebar-footer {
+        margin-top: auto;
+        padding-top: 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+        .home-button {
+          color: #3699ff;
+          
+          i {
+            color: #3699ff;
+          }
+
+          &:hover {
+            background-color: rgba(54, 153, 255, 0.1);
+            color: #ffffff;
+
+            i {
+              color: #ffffff;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .admin-content {
+    flex: 1;
+    margin-left: 250px;
+    padding: 20px;
+    background-color: #f5f6fa;
+    min-height: 100vh;
+  }
+} 
