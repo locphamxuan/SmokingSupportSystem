@@ -1,4 +1,4 @@
-﻿CREATE DATABASE SmokingSupportPlatform;
+CREATE DATABASE SmokingSupportPlatform;
 GO
 
 USE SmokingSupportPlatform;
@@ -19,6 +19,12 @@ CREATE TABLE Users (
     FOREIGN KEY (CoachId) REFERENCES Users(Id)
 );
 GO
+
+ALTER TABLE SmokingDailyLog
+ADD CoachSuggestedPlanId INT NULL;
+
+
+
 
 -- SMOKING PROFILES
 CREATE TABLE SmokingProfiles (

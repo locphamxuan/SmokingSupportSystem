@@ -74,7 +74,11 @@ const BookingPage = () => {
         setUserProfile(profileResponse.data);
 
         // Check if user has permission to book appointments
-        if (profileResponse.data.role !== 'memberVip' || !profileResponse.data.isMemberVip) {
+        if (
+          profileResponse.data.role?.toLowerCase() !== 'membervip' &&
+          profileResponse.data.isMemberVip !== 1 &&
+          profileResponse.data.isMemberVip !== true
+        ) {
           setError('Chỉ thành viên VIP đã mua gói mới có thể đặt lịch tư vấn.');
           setLoading(false);
           return;
@@ -308,7 +312,12 @@ const BookingPage = () => {
   }
 
   // Show error if no access permission
-  if (userProfile && (userProfile.role !== 'memberVip' || !userProfile.isMemberVip)) {
+  if (
+    userProfile &&
+    userProfile.role?.toLowerCase() !== 'membervip' &&
+    userProfile.isMemberVip !== 1 &&
+    userProfile.isMemberVip !== true
+  ) {
     return (
       <div className="booking-page-wrapper">
         <div className="booking-page-container">
