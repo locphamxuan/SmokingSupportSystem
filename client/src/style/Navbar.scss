@@ -186,6 +186,40 @@
   }
 }
 
+// Sidebar user overlay for member
+.sidebar-user-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.3);
+  z-index: 2000;
+  display: none;
+  transition: background 0.3s;
+}
+.sidebar-user-overlay.show {
+  display: block;
+}
+
+.sidebar-user {
+  position: fixed;
+  top: 0;
+  left: -260px;
+  width: 260px;
+  height: 100vh;
+  background: #212529;
+  color: #fff;
+  z-index: 2100;
+  transition: left 0.3s;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.2);
+  padding: 24px 16px 16px 16px;
+  overflow-y: auto;
+}
+.sidebar-user.show {
+  left: 0;
+}
+
 @media (max-width: 768px) {
     .header-container {
         padding: 1rem;

@@ -86,6 +86,9 @@ const CoachDashboardPage = () => {
   // State cho modal chọn thành viên để gửi kế hoạch
   const [showMemberSelectModal, setShowMemberSelectModal] = useState(false);
   const [selectedMemberForPlan, setSelectedMemberForPlan] = useState(null);
+  const [showChatList, setShowChatList] = useState(false);
+  const [conversations, setConversations] = useState([]);
+  const [loadingConversations, setLoadingConversations] = useState(false);
 
   const fetchAssignedMembers = async () => {
     try {
@@ -130,10 +133,26 @@ const CoachDashboardPage = () => {
     }
   };
 
+  const fetchConversations = async () => {
+    setLoadingConversations(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('http://localhost:5000/api/messages/coach/conversations', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setConversations(res.data.conversations || []);
+    } catch (err) {
+      setConversations([]);
+    } finally {
+      setLoadingConversations(false);
+    }
+  };
+
   useEffect(() => {
     fetchAssignedMembers();
     fetchAllBadges();
-  }, [navigate]);
+    if (showChatList) fetchConversations();
+  }, [navigate, showChatList]);
 
   // Đưa 2 hàm fetchAcceptedBookings và fetchAvailableBookings ra ngoài useEffect để có thể gọi lại
   const fetchAcceptedBookings = async () => {
@@ -480,6 +499,45 @@ const CoachDashboardPage = () => {
         </DialogActions>
       </Dialog>
       
+      {/* Modal hiển thị danh sách hội thoại */}
+      <Dialog open={showChatList} onClose={() => setShowChatList(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Danh sách hội thoại</DialogTitle>
+        <DialogContent dividers>
+          {loadingConversations ? (
+            <div>Đang tải...</div>
+          ) : conversations.length === 0 ? (
+            <div>Chưa có hội thoại nào.</div>
+          ) : (
+            <ul className="list-group">
+              {conversations.map(conv => (
+                <li
+                  key={conv.memberId}
+                  className="list-group-item list-group-item-action d-flex align-items-center"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    setShowChatList(false);
+                    navigate(`/coach/chat/${conv.memberId}`);
+                  }}
+                >
+                  {conv.memberAvatar ? (
+                    <img src={conv.memberAvatar} alt="" style={{ width: 36, height: 36, borderRadius: '50%', marginRight: 12 }} />
+                  ) : (
+                    <i className="bi bi-person-circle" style={{ fontSize: 36, marginRight: 12 }}></i>
+                  )}
+                  <div>
+                    <div className="fw-bold">{conv.memberName}</div>
+                    <div className="text-muted" style={{ fontSize: 13 }}>{conv.lastMessage}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowChatList(false)}>Đóng</Button>
+        </DialogActions>
+      </Dialog>
+      
       {error && (
         <Snackbar open={!!error} autoHideDuration={6000} onClose={handleCloseSnackbar}>
           <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
@@ -535,10 +593,11 @@ const CoachDashboardPage = () => {
       )}
 
       <h3 className="mb-3">Lịch hẹn đã nhận</h3>
-      <div className="mb-3">
+      <div className="mb-3" style={{ display: 'flex', gap: 12 }}>
         <Button variant="contained" color="success" onClick={() => setShowMemberSelectModal(true)}>
           Gửi kế hoạch cai thuốc
         </Button>
+        {/* Đã xóa nút Chat ở đây */}
       </div>
       {loadingBookings ? (
         <div>Đang tải lịch hẹn...</div>
@@ -556,7 +615,6 @@ const CoachDashboardPage = () => {
                 <th>Thành viên</th>
                 <th>Ghi chú</th>
                 <th>Trạng thái</th>
-                <th>Hành động</th>
               </tr>
             </thead>
             <tbody>
@@ -567,31 +625,7 @@ const CoachDashboardPage = () => {
                   <td>{booking.MemberName}</td>
                   <td>{booking.Note || <i>Không có</i>}</td>
                   <td>{booking.Status}</td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Button
-                        size="small"
-                        variant="contained"
-                        color="primary"
-                        startIcon={<ChatIcon />}
-                        onClick={() => navigate(`/coach/chat/${booking.MemberId}`)}
-                      >
-                        Nhắn tin
-                      </Button>
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          setAnchorEl(e.currentTarget);
-                          setMenuMember({
-                            Id: booking.MemberId,
-                            Username: booking.MemberName
-                          });
-                        }}
-                      >
-                        <MoreVertIcon />
-                      </IconButton>
-                    </div>
-                  </td>
+                  {/* Đã xóa <td> Hành động */}
                 </tr>
               ))}
             </tbody>

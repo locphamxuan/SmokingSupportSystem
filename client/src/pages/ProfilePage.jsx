@@ -208,15 +208,6 @@ const ProfilePage = () => {
   return (
     <div className="profile-wrapper">
       <div className="profile-container">
-        <div className="d-flex align-items-center mb-3">
-          <button
-            onClick={() => navigate('/')}
-            className="btn btn-outline-primary me-2"
-          >
-            <i className="fas fa-arrow-left me-2"></i>Quay lại trang chủ
-          </button>
-        </div>
-        
         <h4 className="mb-3 fw-bold text-success">Hồ sơ cá nhân</h4>
 
         {/* Alert messages with dismissible functionality */}

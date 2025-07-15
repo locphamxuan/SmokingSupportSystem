@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, Link } from 'react-router-dom';
 import { ThemeProvider, createTheme, CircularProgress, Box } from '@mui/material';
 
 // Import AuthContext
@@ -32,6 +32,9 @@ import CreatePostPage from './pages/CreatePostPage.jsx';
 import AdminPackagePage from './pages/AdminPackagePage.jsx';
 import NotificationsPage from './pages/NotificationsPage';
 import PaymentPage from './pages/PaymentPage.jsx';
+import AdminStatisticsPage from './pages/AdminStatisticsPage.jsx';
+import ChatCoachListPage from './pages/ChatCoachListPage.jsx';
+import CoachChatListPage from './pages/CoachChatListPage.jsx';
 
 const theme = createTheme({
   palette: {
@@ -67,6 +70,100 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   return children;
 };
 
+function SidebarUser({ show, onClose, user }) {
+  return (
+    <div>
+      {/* Overlay */}
+      <div
+        className={`sidebar-user-overlay${show ? ' show' : ''}`}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: show ? 'rgba(0,0,0,0.3)' : 'transparent',
+          zIndex: 99998,
+          display: show ? 'block' : 'none',
+        }}
+        onClick={onClose}
+      />
+      {/* Sidebar */}
+      <nav
+        className={`sidebar-user bg-dark text-white d-flex flex-column p-3${show ? ' show' : ''}`}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: show ? 0 : '-260px',
+          width: 260,
+          height: '100vh',
+          zIndex: 99999,
+          transition: 'left 0.3s',
+          boxShadow: show ? '2px 0 8px rgba(0,0,0,0.2)' : 'none',
+          display: 'block',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <div className="sidebar-header text-center">
+            <i className="bi bi-person-circle fs-1 mb-2"></i>
+            <div className="fw-bold">Xin chào, {user?.username || 'Người dùng'}</div>
+          </div>
+          <button className="btn btn-sm btn-light ms-2" onClick={onClose}>
+            <i className="bi bi-x-lg"></i>
+          </button>
+        </div>
+        <ul className="nav nav-pills flex-column mb-auto">
+          <li className="nav-item mb-2">
+            <Link to="/" className="nav-link text-white">
+              <i className="bi bi-house me-2"></i>Trang chủ
+            </Link>
+          </li>
+          <li className="nav-item mb-2">
+            <Link to="/profile" className="nav-link text-white">
+              <i className="bi bi-person me-2"></i>Hồ sơ cá nhân
+            </Link>
+          </li>
+          <li className="nav-item mb-2">
+            <Link to="/booking" className="nav-link text-white">
+              <i className="bi bi-calendar-check me-2"></i>Đặt lịch
+            </Link>
+          </li>
+          <li className="nav-item mb-2">
+            <Link to="/create-post" className="nav-link text-white">
+              <i className="bi bi-plus-square me-2"></i>Tạo bài đăng mới
+            </Link>
+          </li>
+          <li className="nav-item mb-2">
+            <Link to="/achievements" className="nav-link text-white">
+              <i className="bi bi-award me-2"></i>Thành tích
+            </Link>
+          </li>
+          <li className="nav-item mt-4">
+            <button className="btn btn-outline-light w-100" onClick={() => {
+              localStorage.clear();
+              window.location.href = '/login';
+            }}>
+              <i className="bi bi-box-arrow-right me-2"></i>Đăng xuất
+            </button>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  );
+}
+
+function UserLayout() {
+  return (
+    <div className="d-flex" style={{ minHeight: '100vh', background: '#f8f9fa' }}>
+      <SidebarUser show={false} onClose={() => {}} user={null} />
+      <div className="flex-grow-1">
+        <Outlet />
+      </div>
+    </div>
+  );
+}
+
 // App Routes Component
 const AppRoutes = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -91,6 +188,11 @@ const AppRoutes = () => {
         <Route path="users" element={<AdminUserPage />} />
         <Route path="posts" element={<AdminPostsPage />} />
         <Route path="packages" element={<AdminPackagePage />} />
+        <Route path="statistics" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminStatisticsPage />
+          </ProtectedRoute>
+        } />
       </Route>
 
       {/* Main routes */}
@@ -125,6 +227,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['member', 'memberVip']}>
               <ChatCoachPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/chat-coach" 
+          element={
+            <ProtectedRoute allowedRoles={['member', 'memberVip']}>
+              <ChatCoachListPage />
             </ProtectedRoute>
           } 
         />
@@ -186,6 +296,22 @@ const AppRoutes = () => {
             </ProtectedRoute>
           } 
         />
+        <Route 
+          path="/coach/chat-list" 
+          element={
+            <ProtectedRoute allowedRoles={['coach']}>
+              <CoachChatListPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/coach/member-progress" 
+          element={
+            <ProtectedRoute allowedRoles={['coach']}>
+              <CoachMemberProgressPage />
+            </ProtectedRoute>
+          } 
+        />
 
         {/* Other routes */}
         <Route path="/notifications" element={<NotificationsPage />} />
@@ -193,16 +319,40 @@ const AppRoutes = () => {
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
+
+      {/* User routes */}
+      <Route element={<UserLayout />}>
+        <Route path="/my-progress" element={<MyProgressPage />} />
+        <Route path="/booking" element={<BookingPage />} />
+        <Route path="/create-post" element={<CreatePostPage />} />
+        <Route path="/chat-coach/:coachId" element={<ChatCoachPage />} />
+        <Route path="/chat-coach" element={<ChatCoachListPage />} />
+        <Route path="/subscribe" element={<SubscriptionPlans />} />
+        <Route path="/achievements" element={<AchievementsPage />} />
+      </Route>
     </Routes>
   );
 };
+
+function AppContent() {
+  const { user, isAuthenticated } = useAuth();
+  const [showSidebar, setShowSidebar] = useState(false);
+
+  return (
+    <>
+      <Navbar onAvatarClick={() => setShowSidebar(true)} />
+      {isAuthenticated && <SidebarUser show={showSidebar} onClose={() => setShowSidebar(false)} user={user} />}
+      <AppRoutes />
+    </>
+  );
+}
 
 function App() {
   return (
     <ThemeProvider theme={theme}>
       <AuthProvider>
         <Router future={{ v7_relativeSplatPath: true }}>
-          <AppRoutes />
+          <AppContent />
         </Router>
       </AuthProvider>
     </ThemeProvider>
