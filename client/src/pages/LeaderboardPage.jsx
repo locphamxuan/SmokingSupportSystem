@@ -12,7 +12,8 @@ const LeaderboardPage = () => {
       try {
         setLoading(true);
         const response = await getRankings();
-        setUsers(response || []);
+        // API mới trả về { success, rankings }
+        setUsers(response.rankings || []);
       } catch (error) {
         setError('Không thể tải bảng xếp hạng');
       } finally {
@@ -53,16 +54,14 @@ const LeaderboardPage = () => {
                     <th scope="col">#</th>
                     <th scope="col">Tên người dùng</th>
                     <th scope="col" className="text-end">Số ngày không hút thuốc</th>
-                    <th scope="col" className="text-end">Tiền tiết kiệm (VNĐ)</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((user, index) => (
-                    <tr key={user.id || user.Id}>
-                      <th scope="row">{index + 1}</th>
-                      <td>{user.username || user.Username}</td>
-                      <td className="text-end">{user.totalDaysWithoutSmoking || user.TotalDaysWithoutSmoking}</td>
-                      <td className="text-end">{(user.totalMoneySaved || user.TotalMoneySaved || 0).toLocaleString()}</td>
+                  {users.map((user) => (
+                    <tr key={user.userId}>
+                      <th scope="row">{user.rank}</th>
+                      <td>{user.username}</td>
+                      <td className="text-end">{user.daysWithoutSmoking}</td>
                     </tr>
                   ))}
                 </tbody>

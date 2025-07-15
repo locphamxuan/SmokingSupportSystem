@@ -711,11 +711,46 @@ const MyProgressPage = () => {
       };
       if (selectedLogPlan) {
         if (selectedLogPlan.type === 'system') {
-          payload.planId = selectedLogPlan.plan.id;
+          payload.planId = selectedLogPlan.plan.id || selectedLogPlan.plan.Id;
         } else if (selectedLogPlan.type === 'coach') {
-          payload.coachSuggestedPlanId = selectedLogPlan.plan.Id;
+          payload.coachSuggestedPlanId = selectedLogPlan.plan.Id || selectedLogPlan.plan.id;
+        } else if (selectedLogPlan.type === 'suggested') {
+          payload.suggestedPlanId = selectedLogPlan.plan.id || selectedLogPlan.plan.Id;
         }
       }
+      // XÓA các trường còn lại nếu không phải loại đó
+      if (payload.planId) {
+        delete payload.suggestedPlanId;
+        delete payload.coachSuggestedPlanId;
+      }
+      if (payload.suggestedPlanId) {
+        delete payload.planId;
+        delete payload.coachSuggestedPlanId;
+      }
+      if (payload.coachSuggestedPlanId) {
+        delete payload.planId;
+        delete payload.suggestedPlanId;
+      }
+      // ... gửi payload như cũ
+      console.log('[handleDailyLogUpdate] selectedLogPlan:', selectedLogPlan);
+      if (selectedLogPlan) {
+        if (selectedLogPlan.type === 'system') {
+          console.log('[handleDailyLogUpdate] Gửi nhật ký cho kế hoạch hệ thống/tự tạo:', selectedLogPlan.plan);
+          payload.planId = selectedLogPlan.plan.id || selectedLogPlan.plan.Id;
+        } else if (selectedLogPlan.type === 'coach') {
+          console.log('[handleDailyLogUpdate] Gửi nhật ký cho kế hoạch coach:', selectedLogPlan.plan);
+          if (selectedLogPlan.plan && (selectedLogPlan.plan.Id || selectedLogPlan.plan.id)) {
+            payload.coachSuggestedPlanId = selectedLogPlan.plan.Id || selectedLogPlan.plan.id;
+            console.log('[handleDailyLogUpdate] coachSuggestedPlanId gửi lên:', payload.coachSuggestedPlanId);
+          } else {
+            console.warn('[handleDailyLogUpdate] Không tìm thấy Id kế hoạch coach trong selectedLogPlan.plan:', selectedLogPlan.plan);
+            alert('Không tìm thấy Id kế hoạch coach!');
+          }
+        }
+      } else {
+        console.warn('[handleDailyLogUpdate] Không có selectedLogPlan khi gửi nhật ký!');
+      }
+      console.log('[handleDailyLogUpdate] Payload gửi lên:', payload);
       const response = await addDailyLog(payload);
       setSuccess('Cập nhật nhật ký thành công!');
       setUserData(prev => ({
@@ -916,24 +951,7 @@ const MyProgressPage = () => {
                   <select
                     className="form-select"
                     id="cigaretteType"
-                    value={
-                      [
-                        'Thuốc lá 555',
-                        'Thuốc lá Richmond',
-                        'Thuốc lá Esse',
-                        'Thuốc lá Craven',
-                        'Thuốc lá Marlboro',
-                        'Thuốc lá Camel',
-                        'Thuốc lá SG bạc',
-                        'Thuốc lá Jet',
-                        'Thuốc lá Thăng Long',
-                        'Thuốc lá Hero',
-                        'other',
-                        ''
-                      ].includes(userData.smokingStatus.cigaretteType)
-                        ? userData.smokingStatus.cigaretteType
-                        : 'other'
-                    }
+                    value={userData.smokingStatus.cigaretteType || ''}
                     onChange={e => {
                       if (e.target.value === 'other') {
                         handleUpdateSmokingStatus('cigaretteType', 'other');
@@ -983,7 +1001,7 @@ const MyProgressPage = () => {
         </div> {/* End of first row (Account Info & Smoking Profile) */}
 
         <div className="row">
-          {/* Kế hoạch Cai thuốc */}
+          {/* Kế hoạch Cai thuốc của hệ thống/tự tạo */}
           <div className="col-md-6 mb-4">
             <div className="card shadow-sm h-100">
               <div className="card-header bg-success text-white fw-bold d-flex justify-content-between align-items-center">
@@ -1009,7 +1027,6 @@ const MyProgressPage = () => {
                         const startDate = new Date(userData.quitPlan.startDate);
                         const endDate = new Date(userData.quitPlan.targetDate);
                         const today = new Date();
-
                         if (today < startDate) {
                           return (
                             <div>
@@ -1022,16 +1039,13 @@ const MyProgressPage = () => {
                             </div>
                           );
                         }
-
                         if (today > endDate) {
                           const recentLogs = smokingHistory
                             .filter(log => new Date(log.Date) >= startDate && new Date(log.Date) <= endDate)
                             .sort((a, b) => new Date(b.Date) - new Date(a.Date));
-
                           const noSmokingDays = recentLogs.filter(log => log.Cigarettes === 0).length;
                           const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
                           const successRate = Math.round((noSmokingDays / totalDays) * 100);
-
                           return (
                             <div>
                               <div className="progress" style={{ height: 24 }}>
@@ -1046,18 +1060,14 @@ const MyProgressPage = () => {
                             </div>
                           );
                         }
-
                         const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
                         const daysPassed = Math.ceil((today - startDate) / (1000 * 60 * 60 * 24));
                         const progressPercent = Math.round((daysPassed / totalDays) * 100);
-
                         const recentLogs = smokingHistory
                           .filter(log => new Date(log.Date) >= startDate && new Date(log.Date) <= today)
                           .sort((a, b) => new Date(b.Date) - new Date(a.Date));
-
                         const noSmokingDays = recentLogs.filter(log => log.Cigarettes === 0).length;
                         const successRate = noSmokingDays > 0 ? Math.round((noSmokingDays / daysPassed) * 100) : 0;
-
                         return (
                           <div>
                             <div className="progress" style={{ height: 24 }}>
@@ -1080,12 +1090,7 @@ const MyProgressPage = () => {
                         );
                       })()}
                     </div>
-                    <button
-                      className="btn btn-outline-warning mt-3"
-                      onClick={() => setShowCreateForm(true)}
-                    >
-                      Chỉnh sửa kế hoạch
-                    </button>
+                    {/* Biểu đồ tiến độ hệ thống giữ nguyên như cũ */}
                   </div>
                 ) : userData.currentUserSuggestedPlan ? (
                   <div>
@@ -1411,69 +1416,155 @@ const MyProgressPage = () => {
             </div>
           </div>
 
-          {/* Kế hoạch do coach đề xuất */}
-          {loadingCoachPlans ? (
-            <div>Đang tải kế hoạch do coach đề xuất...</div>
-          ) : coachPlans && coachPlans.length > 0 && (
+          {/* Kế hoạch do coach đề xuất đã xác nhận (song song, có tiến độ và biểu đồ) */}
+          {latestCoachPlan && (
             <div className="col-md-6 mb-4">
-              <div className="card shadow-sm mb-4">
+              <div className="card shadow-sm h-100">
                 <div className="card-header bg-info text-white fw-bold">Kế hoạch cai thuốc do huấn luyện viên đề xuất</div>
                 <div className="card-body">
-                  {coachPlans.map(plan => (
-                    <div key={plan.Id} className="mb-3 p-2 border rounded">
-                      <h6>{plan.Title}</h6>
-                      <div><b>Mô tả:</b> {plan.Description}</div>
-                      <div><b>Chi tiết:</b> <pre style={{whiteSpace:'pre-line'}}>{plan.PlanDetail}</pre></div>
-                      <div><b>Ngày bắt đầu:</b> {plan.StartDate}</div>
-                      <div><b>Ngày kết thúc:</b> {plan.TargetDate}</div>
-                      <div className="mt-2">
-                        <button
-                          className="btn btn-success me-2"
-                          onClick={async () => {
-                            await acceptCoachPlan(plan.Id);
-                            setSuccess('Đã xác nhận kế hoạch!');
-                            // Reload danh sách kế hoạch coach đề xuất
-                            setLoadingCoachPlans(true);
-                            try {
-                              const plans = await getCoachSuggestedPlans();
-                              setCoachPlans(plans || []);
-                              // Tách các kế hoạch đã xác nhận
-                              setAcceptedCoachPlans((plans || []).filter(p => p.Status === 'accepted'));
-                            } catch (e) {
-                              setCoachPlans([]);
-                              setAcceptedCoachPlans([]);
-                            } finally {
-                              setLoadingCoachPlans(false);
-                            }
+                  <h5>{latestCoachPlan.Title}</h5>
+                  <div><b>Mô tả:</b> {latestCoachPlan.Description}</div>
+                  <div><b>Chi tiết:</b> <pre style={{whiteSpace:'pre-line'}}>{latestCoachPlan.PlanDetail}</pre></div>
+                  <div><b>Ngày bắt đầu:</b> {latestCoachPlan.StartDate}</div>
+                  <div><b>Ngày kết thúc:</b> {latestCoachPlan.TargetDate}</div>
+                  {/* Tiến độ hiện tại cho kế hoạch coach */}
+                  <div className="my-3">
+                    <label className="fw-bold">Tiến độ hiện tại:</label>
+                    {(() => {
+                      const startDate = new Date(latestCoachPlan.StartDate);
+                      const endDate = new Date(latestCoachPlan.TargetDate);
+                      const today = new Date();
+                      if (today < startDate) {
+                        return (
+                          <div>
+                            <div className="progress" style={{ height: 24 }}>
+                              <div className="progress-bar bg-secondary" style={{ width: '0%' }}>
+                                0%
+                              </div>
+                            </div>
+                            <small className="text-muted">Kế hoạch chưa bắt đầu</small>
+                          </div>
+                        );
+                      }
+                      if (today > endDate) {
+                        const recentLogs = smokingHistory
+                          .filter(log => new Date(log.Date) >= startDate && new Date(log.Date) <= endDate)
+                          .sort((a, b) => new Date(b.Date) - new Date(a.Date));
+                        const noSmokingDays = recentLogs.filter(log => log.Cigarettes === 0).length;
+                        const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                        const successRate = Math.round((noSmokingDays / totalDays) * 100);
+                        return (
+                          <div>
+                            <div className="progress" style={{ height: 24 }}>
+                              <div 
+                                className={`progress-bar ${successRate >= 70 ? 'bg-success' : successRate >= 40 ? 'bg-warning' : 'bg-danger'}`}
+                                style={{ width: '100%' }}
+                              >
+                                Hoàn thành - {successRate}% ngày không hút thuốc
+                              </div>
+                            </div>
+                            <small className="text-muted">Kế hoạch đã kết thúc</small>
+                          </div>
+                        );
+                      }
+                      const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                      const daysPassed = Math.ceil((today - startDate) / (1000 * 60 * 60 * 24));
+                      const progressPercent = Math.round((daysPassed / totalDays) * 100);
+                      const recentLogs = smokingHistory
+                        .filter(log => new Date(log.Date) >= startDate && new Date(log.Date) <= today)
+                        .sort((a, b) => new Date(b.Date) - new Date(a.Date));
+                      const noSmokingDays = recentLogs.filter(log => log.Cigarettes === 0).length;
+                      const successRate = noSmokingDays > 0 ? Math.round((noSmokingDays / daysPassed) * 100) : 0;
+                      return (
+                        <div>
+                          <div className="progress" style={{ height: 24 }}>
+                            <div 
+                              className={`progress-bar ${successRate >= 70 ? 'bg-success' : successRate >= 40 ? 'bg-warning' : 'bg-danger'}`}
+                              style={{ width: `${progressPercent}%` }}
+                            >
+                              {progressPercent}% - {successRate}% ngày không hút thuốc
+                            </div>
+                          </div>
+                          <div className="mt-2 d-flex justify-content-between">
+                            <small className="text-muted">
+                              {noSmokingDays} ngày không hút / {daysPassed} ngày đã qua
+                            </small>
+                            <small className="text-muted">
+                              Còn {totalDays - daysPassed} ngày
+                            </small>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  {/* Biểu đồ tiến độ cho kế hoạch coach */}
+                  <div className="mt-4">
+                    <label className="fw-bold mb-2">Biểu đồ tiến độ hút thuốc (theo kế hoạch coach)</label>
+                    {(() => {
+                      // Lấy dữ liệu lịch sử trong khoảng ngày của kế hoạch coach
+                      const startDate = new Date(latestCoachPlan.StartDate);
+                      const endDate = new Date(latestCoachPlan.TargetDate);
+                      const chartData = [];
+                      const chartLabels = [];
+                      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                        const dateStr = d.toISOString().slice(0, 10);
+                        chartLabels.push(d.toLocaleDateString('vi-VN', {
+                          weekday: 'short', day: '2-digit', month: '2-digit'
+                        }));
+                        const entry = smokingHistory.find(e => e.Date.slice(0, 10) === dateStr);
+                        chartData.push(entry ? entry.Cigarettes : 0);
+                      }
+                      return chartData.length > 0 ? (
+                        <Line
+                          data={{
+                            labels: chartLabels,
+                            datasets: [
+                              {
+                                label: 'Số điếu hút',
+                                data: chartData,
+                                borderColor: 'rgb(0, 123, 255)',
+                                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                                tension: 0.4,
+                                fill: true,
+                              }
+                            ],
                           }}
-                        >
-                          Xác nhận
-                        </button>
-                        <button
-                          className="btn btn-outline-danger"
-                          onClick={async () => {
-                            await rejectCoachPlan(plan.Id);
-                            setSuccess('Đã từ chối kế hoạch!');
-                            // Reload danh sách kế hoạch coach đề xuất
-                            setLoadingCoachPlans(true);
-                            try {
-                              const plans = await getCoachSuggestedPlans();
-                              setCoachPlans(plans || []);
-                              // Tách các kế hoạch đã xác nhận
-                              setAcceptedCoachPlans((plans || []).filter(p => p.Status === 'accepted'));
-                            } catch (e) {
-                              setCoachPlans([]);
-                              setAcceptedCoachPlans([]);
-                            } finally {
-                              setLoadingCoachPlans(false);
-                            }
+                          options={{
+                            responsive: true,
+                            interaction: { mode: 'index', intersect: false },
+                            plugins: {
+                              legend: { position: 'top' },
+                              title: { display: true, text: 'Biểu đồ hút thuốc theo kế hoạch coach' },
+                              tooltip: {
+                                callbacks: {
+                                  afterBody: function(context) {
+                                    const dataIndex = context[0].dataIndex;
+                                    const cigarettes = chartData[dataIndex] || 0;
+                                    return `\nSố điếu: ${cigarettes}`;
+                                  }
+                                }
+                              }
+                            },
+                            scales: {
+                              x: { title: { display: true, text: 'Ngày' } },
+                              y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                title: { display: true, text: 'Số điếu thuốc' },
+                                min: 0,
+                              }
+                            },
                           }}
-                        >
-                          Hủy
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                        />
+                      ) : (
+                        <div className="text-center py-3">
+                          <i className="fas fa-chart-line fa-2x text-muted mb-2"></i>
+                          <p className="text-secondary">Chưa có dữ liệu cho kế hoạch này.</p>
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1487,25 +1578,48 @@ const MyProgressPage = () => {
                 {/* Dropdown chọn kế hoạch */}
                 <div className="mb-3">
                   <label className="form-label">Chọn kế hoạch để nhập nhật ký</label>
-                  <select
-                    className="form-select"
-                    value={selectedLogPlan ? (selectedLogPlan.type === 'system' ? `system-${userData.quitPlan?.id}` : `coach-${latestCoachPlan?.Id}`) : ''}
-                    onChange={e => {
-                      const val = e.target.value;
-                      if (val.startsWith('system-')) {
-                        setSelectedLogPlan({ type: 'system', plan: userData.quitPlan });
-                      } else if (val.startsWith('coach-')) {
-                        setSelectedLogPlan({ type: 'coach', plan: latestCoachPlan });
-                      }
-                    }}
-                  >
-                    {userData.quitPlan && (
-                      <option value={`system-${userData.quitPlan.id}`}>Kế hoạch hệ thống/tự tạo</option>
-                    )}
-                    {latestCoachPlan && (
-                      <option value={`coach-${latestCoachPlan.Id}`}>Kế hoạch coach: {latestCoachPlan.Title}</option>
-                    )}
-                  </select>
+                  {/* Dropdown cho tất cả các loại kế hoạch */}
+                  {(() => {
+                    // Tạo mảng các kế hoạch có thể chọn
+                    const availablePlans = [
+                      userData.quitPlan ? { type: 'system', plan: userData.quitPlan } : null,
+                      userData.currentUserSuggestedPlan ? { type: 'suggested', plan: userData.currentUserSuggestedPlan } : null,
+                      latestCoachPlan ? { type: 'coach', plan: latestCoachPlan } : null
+                    ].filter(Boolean);
+                    return (
+                      <select
+                        className="form-select"
+                        value={
+                          selectedLogPlan
+                            ? `${selectedLogPlan.type}-${selectedLogPlan.plan.id || selectedLogPlan.plan.Id}`
+                            : ''
+                        }
+                        onChange={e => {
+                          const [type, id] = e.target.value.split('-');
+                          const found = availablePlans.find(
+                            p => p.type === type && (p.plan.id?.toString() === id || p.plan.Id?.toString() === id)
+                          );
+                          setSelectedLogPlan(found || null);
+                        }}
+                      >
+                        <option value="">Chọn...</option>
+                        {availablePlans.map(p => (
+                          <option
+                            key={`${p.type}-${p.plan.id || p.plan.Id}`}
+                            value={`${p.type}-${p.plan.id || p.plan.Id}`}
+                          >
+                            {p.type === 'system'
+                              ? `Kế hoạch tự tạo: ${p.plan.planDetail || p.plan.title || ''}`
+                              : p.type === 'suggested'
+                              ? `Kế hoạch mẫu: ${p.plan.title || ''}`
+                              : p.type === 'coach'
+                              ? `Kế hoạch coach: ${p.plan.Title || p.plan.title || ''}`
+                              : ''}
+                          </option>
+                        ))}
+                      </select>
+                    );
+                  })()}
                 </div>
                 <DailyLogSection 
                   dailyLog={userData.smokingStatus.dailyLog}
