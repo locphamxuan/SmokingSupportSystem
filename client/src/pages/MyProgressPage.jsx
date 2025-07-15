@@ -975,28 +975,12 @@ const MyProgressPage = () => {
                     <option value="other">Khác</option>
                   </select>
                   {/* Nếu chọn Khác thì hiển thị ô nhập tự do */}
-                  {([
-                    'other',
-                    ''
-                  ].includes(userData.smokingStatus.cigaretteType) ||
-                    ![
-                      'Thuốc lá 555',
-                      'Thuốc lá Richmond',
-                      'Thuốc lá Esse',
-                      'Thuốc lá Craven',
-                      'Thuốc lá Marlboro',
-                      'Thuốc lá Camel',
-                      'Thuốc lá SG bạc',
-                      'Thuốc lá Jet',
-                      'Thuốc lá Thăng Long',
-                      'Thuốc lá Hero',
-                      ''
-                    ].includes(userData.smokingStatus.cigaretteType)) && (
+                  {userData.smokingStatus.cigaretteType === 'other' && (
                     <input
                       type="text"
                       className="form-control mt-2"
                       placeholder="Nhập loại thuốc lá khác..."
-                      value={userData.smokingStatus.customCigaretteType}
+                      value={userData.smokingStatus.customCigaretteType || ''}
                       onChange={e => handleUpdateSmokingStatus('customCigaretteType', e.target.value)}
                     />
                   )}

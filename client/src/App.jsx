@@ -5,7 +5,11 @@ import { ThemeProvider, createTheme, CircularProgress, Box } from '@mui/material
 // Import AuthContext
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
 
-// Import components and pages (đảm bảo đuôi .jsx)
+// Import layouts
+import MainLayout from './layouts/MainLayout.jsx';
+import AdminLayout from './layouts/AdminLayout.jsx';
+
+// Import components and pages
 import Navbar from './components/Navbar.jsx'; 
 import HomePage from './pages/HomePage.jsx';
 import CommunityPage from './pages/CommunityPage.jsx'; 
@@ -26,7 +30,6 @@ import AboutPage from './pages/AboutPage.jsx';
 import BookingPage from './pages/BookingPage.jsx';
 import CreatePostPage from './pages/CreatePostPage.jsx';
 import AdminPackagePage from './pages/AdminPackagePage.jsx';
-import MainLayout from './layouts/MainLayout.jsx';
 import NotificationsPage from './pages/NotificationsPage';
 import PaymentPage from './pages/PaymentPage.jsx';
 
@@ -82,13 +85,22 @@ const AppRoutes = () => {
       <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} />
       <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
 
-      {/* Routes with MainLayout */}
+      {/* Admin routes */}
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<Navigate to="users" replace />} />
+        <Route path="users" element={<AdminUserPage />} />
+        <Route path="posts" element={<AdminPostsPage />} />
+        <Route path="packages" element={<AdminPackagePage />} />
+      </Route>
+
+      {/* Main routes */}
       <Route element={<MainLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/blog" element={<CommunityPage />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/payment" element={<PaymentPage />} />
+
         {/* Protected routes */}
         <Route 
           path="/profile" 
@@ -98,6 +110,8 @@ const AppRoutes = () => {
             </ProtectedRoute>
           } 
         />
+
+        {/* Member routes */}
         <Route 
           path="/my-progress" 
           element={
@@ -111,46 +125,6 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['member', 'memberVip']}>
               <ChatCoachPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/admin/users" 
-          element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AdminUserPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/admin/posts" 
-          element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AdminPostsPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/coach/dashboard" 
-          element={
-            <ProtectedRoute allowedRoles={['coach']}>
-              <CoachDashboardPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/coach/chat/:memberId" 
-          element={
-            <ProtectedRoute allowedRoles={['coach']}>
-              <CoachChatPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/coach/member/:memberId/progress" 
-          element={
-            <ProtectedRoute allowedRoles={['coach']}>
-              <CoachMemberProgressPage />
             </ProtectedRoute>
           } 
         />
@@ -178,14 +152,6 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-        <Route 
-          path="/admin/packages" 
-          element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AdminPackagePage />
-            </ProtectedRoute>
-          } 
-        />
         <Route
           path="/create-post"
           element={
@@ -194,7 +160,36 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+
+        {/* Coach routes */}
+        <Route 
+          path="/coach/dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={['coach']}>
+              <CoachDashboardPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/coach/chat/:memberId" 
+          element={
+            <ProtectedRoute allowedRoles={['coach']}>
+              <CoachChatPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/coach/member/:memberId/progress" 
+          element={
+            <ProtectedRoute allowedRoles={['coach']}>
+              <CoachMemberProgressPage />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Other routes */}
         <Route path="/notifications" element={<NotificationsPage />} />
+        
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
