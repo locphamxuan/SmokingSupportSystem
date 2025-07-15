@@ -61,7 +61,7 @@ export async function getDailyLog() {
   return res.json();
 }
 
-export async function addDailyLog({ cigarettes, feeling, logDate, planId, suggestedPlanId }) {
+export async function addDailyLog({ cigarettes, feeling, logDate, planId, suggestedPlanId, coachSuggestedPlanId }) {
   console.log('🚀 [addDailyLog] ===================');
   console.log('🚀 [addDailyLog] Input parameters:', { cigarettes, feeling, logDate, planId, suggestedPlanId });
   console.log('🚀 [addDailyLog] cigarettes type:', typeof cigarettes, 'value:', cigarettes);
@@ -78,6 +78,9 @@ export async function addDailyLog({ cigarettes, feeling, logDate, planId, sugges
   }
   if (suggestedPlanId) {
     payload.suggestedPlanId = suggestedPlanId;
+  }
+  if (coachSuggestedPlanId) {
+    payload.coachSuggestedPlanId = coachSuggestedPlanId;
   }
 
   console.log('📦 [addDailyLog] Final payload:', payload);

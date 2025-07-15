@@ -45,7 +45,10 @@ exports.addDailyLog = async (req, res) => {
     });
 
     const userId = req.user.id;
-    let { cigarettes, feeling, logDate, planId, suggestedPlanId } = req.body;
+    let { cigarettes, feeling, logDate, planId, suggestedPlanId, coachSuggestedPlanId } = req.body;
+    
+    // Ưu tiên coachSuggestedPlanId nếu có
+    let coachPlanId = coachSuggestedPlanId || null;
     
     console.log('[addDailyLog] Parsed data:', { userId, cigarettes, feeling, logDate, planId, suggestedPlanId });
     
@@ -117,6 +120,7 @@ exports.addDailyLog = async (req, res) => {
             Feeling = ${feeling || ''}, 
             PlanId = ${planId || null}, 
             SuggestedPlanId = ${suggestedPlanId || null},
+            CoachSuggestedPlanId = ${coachPlanId},
             SavedMoney = ${savedMoney}
         WHERE Id = ${logId}
       `;
@@ -137,8 +141,8 @@ exports.addDailyLog = async (req, res) => {
 
       // Khi insert:
       const result = await sql.query`
-        INSERT INTO SmokingDailyLog (UserId, Cigarettes, Feeling, LogDate, PlanId, SuggestedPlanId, SavedMoney)
-        VALUES (${userId}, ${cigarettes}, ${feeling || ''}, ${currentDate}, ${planId || null}, ${suggestedPlanId || null}, ${savedMoney});
+        INSERT INTO SmokingDailyLog (UserId, Cigarettes, Feeling, LogDate, PlanId, SuggestedPlanId, CoachSuggestedPlanId, SavedMoney)
+        VALUES (${userId}, ${cigarettes}, ${feeling || ''}, ${currentDate}, ${planId || null}, ${suggestedPlanId || null}, ${coachPlanId}, ${savedMoney});
         SELECT SCOPE_IDENTITY() AS Id;
       `;
       logId = result.recordset[0].Id;
