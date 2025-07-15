@@ -9,6 +9,7 @@ const Footer = () => {
         <div className="footer-top">
           <div className="footer-section">
             <h4>Về chúng tôi</h4>
+            <div className="footer-underline"></div>
             <p>
               Hỗ trợ cai nghiện thuốc lá là sứ mệnh của chúng tôi. Chúng tôi cam
               kết đồng hành cùng bạn trên hành trình hướng tới một cuộc sống
@@ -18,16 +19,17 @@ const Footer = () => {
 
           <div className="footer-section">
             <h4>Liên kết nhanh</h4>
+            <div className="footer-underline"></div>
             <ul>
-              <li><Link to="/about">Giới thiệu</Link></li>
-              <li><Link to="/services">Dịch vụ</Link></li>
-              <li><Link to="/blog">Blog</Link></li>
-              <li><Link to="/contact">Liên hệ</Link></li>
+              <li><a href="/about">Thông tin về thuốc lá</a></li>
+              <li><a href="/blog">Cộng đồng</a></li>
+              <li><a href="/leaderboard">Bảng xếp hạng</a></li>
             </ul>
           </div>
 
           <div className="footer-section">
             <h4>Dịch vụ hỗ trợ</h4>
+            <div className="footer-underline"></div>
             <ul>
               <li><Link to="/consultation">Tư vấn trực tuyến</Link></li>
               <li><Link to="/community">Cộng đồng</Link></li>
@@ -38,14 +40,18 @@ const Footer = () => {
 
           <div className="footer-section">
             <h4>Liên hệ</h4>
+            <div className="footer-underline"></div>
             <ul className="contact-info">
               <li>
                 <i className="fas fa-phone"></i>
                 <span>Hotline: 1800-xxxx</span>
               </li>
               <li>
-                <i className="fas fa-envelope"></i>
-                <span>Email: support@smokingsupport.com</span>
+                <div className="contact-item" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <i className="bi bi-envelope"></i>
+                  <span>Email</span>
+                  <span className="ms-2">support@smokingsupport.com</span>
+                </div>
               </li>
               <li>
                 <i className="fas fa-clock"></i>
@@ -70,12 +76,6 @@ const Footer = () => {
             </a>
             <a href="https://www.instagram.com/xlocpham/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
               <i className="fab fa-instagram"></i>
-            </a>
-            <a href="#" target="_blank" rel="noopener noreferrer" aria-label="YouTube">
-              <i className="fab fa-youtube"></i>
-            </a>
-            <a href="#" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
-              <i className="fab fa-linkedin"></i>
             </a>
           </div>
         </div>

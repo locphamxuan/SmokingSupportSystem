@@ -28,5 +28,6 @@ router.get('/available', authenticateToken, bookingController.getAvailableBookin
 router.post('/:bookingId/accept', authenticateToken, bookingController.acceptBooking);
 router.get('/history', authenticateToken, bookingController.getUserBookingHistory);
 router.get('/accepted', authenticateToken, bookingController.getAcceptedBookings);
+router.get('/accepted-coaches', authenticateToken, bookingController.getAcceptedCoachesForMember);
 
 module.exports = router; 

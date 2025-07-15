@@ -49,17 +49,6 @@ $warning-color: #ffc107;
         font-weight: 600;
         margin-bottom: 1.5rem;
         position: relative;
-        
-        &::after {
-          content: '';
-          position: absolute;
-          left: 0;
-          bottom: -8px;
-          width: 40px;
-          height: 3px;
-          background: #6aaa6d;
-          border-radius: 2px;
-        }
       }
 
       p {
@@ -253,6 +242,14 @@ $warning-color: #ffc107;
         }
       }
     }
+  }
+
+  .footer-underline {
+    width: 48px;
+    height: 3px;
+    background: #43a047;
+    border-radius: 2px;
+    margin: 0 auto 16px auto;
   }
 
   @media (max-width: 768px) {

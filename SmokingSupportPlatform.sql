@@ -25,7 +25,6 @@ ADD CoachSuggestedPlanId INT NULL;
 
 
 
-
 -- SMOKING PROFILES
 CREATE TABLE SmokingProfiles (
     Id INT IDENTITY(1,1) PRIMARY KEY,
@@ -296,7 +295,7 @@ GO
 
 -- Insert sample membership packages
 INSERT INTO MembershipPackages (Name, Description, Price, DurationInDays, Features) 
-VALUES (N'Gói Thường', N'Gói cơ bản cho phép nhập thông tin hút thuốc và truy cập blog cộng đồng.', 0, 0, 
+VALUES (N'Gói Thường', N'Gói cơ bản cho phép nhập thông tin hút thuốc và truy cập blog cộng đồng.', 0, ' ', 
 N'Nhập thông tin hút thuốc
 Truy cập blog chia sẻ kinh nghiệm từ cộng đồng');
 GO
@@ -308,6 +307,7 @@ Chat với huấn luyện viên
 Đặt lịch hẹn
 Được trao thành tích khi đạt mốc');
 GO
+
 
 -- Insert sample badges
 INSERT INTO Badges (Name, Description, BadgeType, Requirement) VALUES

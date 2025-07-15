@@ -10,4 +10,7 @@ router.post('/', authenticateToken, messageController.sendMessage);
 // Protected route for coaches to get messages with a specific member
 router.get('/member/:memberId', authenticateToken, isCoach, messageController.getCoachMessagesWithMember);
 
+// Lấy danh sách hội thoại của coach
+router.get('/coach/conversations', authenticateToken, isCoach, messageController.getCoachConversations);
+
 module.exports = router;

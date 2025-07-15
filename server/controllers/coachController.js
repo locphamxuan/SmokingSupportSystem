@@ -233,11 +233,8 @@ const coachController = {
             const memberId = parseInt(req.params.memberId); // Convert to integer
             const coachId = req.user.id;
 
-            console.log(`[getMemberProgress] Fetching progress for member ${memberId} (type: ${typeof memberId}) by coach ${coachId}`);
-            
             // Validate memberId
             if (isNaN(memberId) || memberId <= 0) {
-                console.log(`[getMemberProgress] Invalid memberId: ${req.params.memberId}`);
                 return res.status(400).json({ message: 'Invalid member ID' });
             }
 
@@ -247,20 +244,8 @@ const coachController = {
                 FROM Users u 
                 WHERE u.Id = ${memberId} AND u.CoachId = ${coachId}
             `;
-            
-            console.log(`[getMemberProgress] Member check result:`, memberCheck.recordset);
-            
             if (memberCheck.recordset.length === 0) {
-                console.log(`[getMemberProgress] Member ${memberId} not assigned to coach ${coachId}`);
-                // Let's also check what members are actually assigned to this coach
-                const assignedMembersCheck = await sql.query`
-                    SELECT Id, Username, CoachId FROM Users WHERE CoachId = ${coachId}
-                `;
-                console.log(`[getMemberProgress] Members assigned to coach ${coachId}:`, assignedMembersCheck.recordset);
-                return res.status(403).json({ 
-                    message: 'You do not have access to this member\'s progress',
-                    assignedMembers: assignedMembersCheck.recordset
-                });
+                return res.status(403).json({ message: 'You do not have access to this member\'s progress' });
             }
 
             // Get smoking profile
@@ -269,7 +254,6 @@ const coachController = {
                 FROM SmokingProfiles 
                 WHERE UserId = ${memberId}
             `;
-
             let smokingProfile = null;
             if (smokingProfileResult.recordset.length > 0) {
                 const profile = smokingProfileResult.recordset[0];
@@ -283,140 +267,86 @@ const coachController = {
                 };
             }
 
-            // Get latest progress from SmokingDailyLog (by highest ID = most recent record)
-            console.log(`[getMemberProgress] Executing query to get latest progress for UserId: ${memberId}`);
-            
-            // First, let's see all records for this user to debug
+            // Get ALL progress history from SmokingDailyLog
             const allRecordsResult = await sql.query`
                 SELECT Id, UserId, LogDate, Cigarettes, Feeling 
                 FROM SmokingDailyLog 
                 WHERE UserId = ${memberId}
-                ORDER BY Id DESC
+                ORDER BY LogDate DESC
             `;
-            console.log(`[getMemberProgress] ALL records for UserId ${memberId}:`, allRecordsResult.recordset);
-            
-            // Also check without UserId filter to see what's in the table
-            const debugAllResult = await sql.query`
-                SELECT TOP 10 Id, UserId, LogDate, Cigarettes, Feeling 
-                FROM SmokingDailyLog 
-                ORDER BY Id DESC
-            `;
-            console.log(`[getMemberProgress] DEBUG - Latest 10 records in SmokingDailyLog:`, debugAllResult.recordset);
-            
-            const latestProgressResult = await sql.query`
-                SELECT TOP 1 Id, LogDate, Cigarettes, Feeling 
-                FROM SmokingDailyLog 
-                WHERE UserId = ${memberId}
-                ORDER BY Id DESC
-            `;
+            const history = allRecordsResult.recordset.map(log => ({
+                id: log.Id,
+                date: log.LogDate,
+                cigarettes: log.Cigarettes,
+                feeling: log.Feeling
+            }));
 
-            console.log(`[getMemberProgress] SQL Query executed:`);
-            console.log(`[getMemberProgress] SELECT TOP 1 Id, LogDate, Cigarettes, Feeling FROM SmokingDailyLog WHERE UserId = ${memberId} ORDER BY Id DESC`);
-            console.log(`[getMemberProgress] Query returned ${latestProgressResult.recordset.length} records`);
-            console.log(`[getMemberProgress] Latest progress query result for member ${memberId}:`, latestProgressResult.recordset);
-
-            let latestProgress = null;
-            if (latestProgressResult.recordset.length > 0) {
-                const progress = latestProgressResult.recordset[0];
-                latestProgress = {
-                    id: progress.Id,
-                    date: progress.LogDate,
-                    cigarettes: progress.Cigarettes,
-                    feeling: progress.Feeling
-                };
-                console.log(`[getMemberProgress] Latest progress formatted:`, latestProgress);
-            } else {
-                console.log(`[getMemberProgress] No progress data found for member ${memberId}`);
-            }
-
-            // Get quit plan from both QuitPlans and UserSuggestedQuitPlans
-            console.log(`[getMemberProgress] Fetching quit plan for member ${memberId}`);
-            
-            let quitPlan = null;
-            
-            // First try to get from QuitPlans (custom plans)
+            // Get coach's custom quit plan (coachQuitPlan)
+            let coachQuitPlan = null;
             const customQuitPlanResult = await sql.query`
-                SELECT TOP 1 StartDate, TargetDate, PlanDetail, 
-                       InitialCigarettes, DailyReduction, UserId, CoachId
+                SELECT TOP 1 Id, StartDate, TargetDate, PlanDetail, InitialCigarettes, DailyReduction, UserId, CoachId, CreatedAt
                 FROM QuitPlans 
-                WHERE UserId = ${memberId}
+                WHERE UserId = ${memberId} AND CoachId = ${coachId}
                 ORDER BY CreatedAt DESC
             `;
-            
-            console.log(`[getMemberProgress] Custom QuitPlan result for UserId ${memberId}:`, customQuitPlanResult.recordset);
-            
             if (customQuitPlanResult.recordset.length > 0) {
                 const plan = customQuitPlanResult.recordset[0];
-                quitPlan = {
+                coachQuitPlan = {
+                    id: plan.Id,
                     startDate: plan.StartDate ? plan.StartDate.toISOString().slice(0, 10) : null,
                     targetDate: plan.TargetDate ? plan.TargetDate.toISOString().slice(0, 10) : null,
                     initialCigarettes: plan.InitialCigarettes || 0,
                     dailyReduction: plan.DailyReduction || 0,
                     planDetail: plan.PlanDetail || '',
                     createdAt: plan.CreatedAt || null,
-                    planSource: 'custom',
-                    id: plan.Id
+                    planSource: 'coach'
                 };
-            } else {
-                // If no custom plan, try to get from UserSuggestedQuitPlans
-                const suggestedQuitPlanResult = await sql.query`
-                    SELECT TOP 1 usp.StartDate, usp.TargetDate, usp.Status, usp.SuggestedPlanId, usp.UserId
-                    FROM UserSuggestedQuitPlans usp
-                    WHERE usp.UserId = ${memberId}
-                    ORDER BY usp.CreatedAt DESC
-                `;
-                
-                console.log(`[getMemberProgress] UserSuggestedQuitPlans query result:`, suggestedQuitPlanResult.recordset);
-                
-                // If we found a suggested plan, get details from SuggestedQuitPlans
-                let suggestedPlanDetails = null;
-                if (suggestedQuitPlanResult.recordset.length > 0) {
-                    const userPlan = suggestedQuitPlanResult.recordset[0];
-                    try {
-                        const planDetailsResult = await sql.query`
-                            SELECT PlanDetail, InitialCigarettes, DailyReduction
-                            FROM SuggestedQuitPlans 
-                            WHERE Id = ${userPlan.SuggestedPlanId}
-                        `;
-                        
-                        console.log(`[getMemberProgress] SuggestedQuitPlans details result:`, planDetailsResult.recordset);
-                        suggestedPlanDetails = planDetailsResult.recordset[0] || {};
-                    } catch (planDetailsError) {
-                        console.error('[getMemberProgress] Error getting suggested plan details:', planDetailsError);
-                        suggestedPlanDetails = {};
-                    }
-                }
-                
-                if (suggestedQuitPlanResult.recordset.length > 0 && suggestedPlanDetails) {
-                    const plan = suggestedQuitPlanResult.recordset[0];
-                    quitPlan = {
-                        startDate: plan.StartDate ? plan.StartDate.toISOString().slice(0, 10) : null,
-                        targetDate: plan.TargetDate ? plan.TargetDate.toISOString().slice(0, 10) : null,
-                        planType: 'suggested',
-                        initialCigarettes: suggestedPlanDetails.InitialCigarettes || 0,
-                        dailyReduction: suggestedPlanDetails.DailyReduction || 0,
-                        milestones: [], // SuggestedQuitPlans không có milestones
-                        status: plan.Status || 'active',
-                        planDetail: suggestedPlanDetails.PlanDetail || 'Kế hoạch được gợi ý từ hệ thống',
-                        planSource: 'suggested'
-                    };
-                }
             }
-            
-            console.log(`[getMemberProgress] Final quitPlan object:`, quitPlan);
+
+            // Get system suggested quit plan (systemQuitPlan)
+            let systemQuitPlan = null;
+            const suggestedQuitPlanResult = await sql.query`
+                SELECT TOP 1 usp.StartDate, usp.TargetDate, usp.Status, usp.SuggestedPlanId, usp.UserId, usp.CreatedAt
+                FROM UserSuggestedQuitPlans usp
+                WHERE usp.UserId = ${memberId}
+                ORDER BY usp.CreatedAt DESC
+            `;
+            let suggestedPlanDetails = null;
+            if (suggestedQuitPlanResult.recordset.length > 0) {
+                const userPlan = suggestedQuitPlanResult.recordset[0];
+                try {
+                    const planDetailsResult = await sql.query`
+                        SELECT PlanDetail, InitialCigarettes, DailyReduction
+                        FROM SuggestedQuitPlans 
+                        WHERE Id = ${userPlan.SuggestedPlanId}
+                    `;
+                    suggestedPlanDetails = planDetailsResult.recordset[0] || {};
+                } catch (planDetailsError) {
+                    suggestedPlanDetails = {};
+                }
+                systemQuitPlan = {
+                    startDate: userPlan.StartDate ? userPlan.StartDate.toISOString().slice(0, 10) : null,
+                    targetDate: userPlan.TargetDate ? userPlan.TargetDate.toISOString().slice(0, 10) : null,
+                    planType: 'suggested',
+                    initialCigarettes: suggestedPlanDetails.InitialCigarettes || 0,
+                    dailyReduction: suggestedPlanDetails.DailyReduction || 0,
+                    milestones: [],
+                    status: userPlan.Status || 'active',
+                    planDetail: suggestedPlanDetails.PlanDetail || 'Kế hoạch được gợi ý từ hệ thống',
+                    planSource: 'system',
+                    createdAt: userPlan.CreatedAt || null
+                };
+            }
 
             const responseData = {
                 smokingProfile: smokingProfile,
-                latestProgress: latestProgress,
-                quitPlan: quitPlan
+                history: history,
+                coachQuitPlan: coachQuitPlan,
+                systemQuitPlan: systemQuitPlan
             };
-            
-            console.log(`[getMemberProgress] Final response data:`, responseData);
             res.json(responseData);
 
         } catch (error) {
-            console.error('[getMemberProgress] Error getting member progress:', error);
-            console.error('[getMemberProgress] Error stack:', error.stack);
             res.status(500).json({ message: 'Failed to get member progress', error: error.message });
         }
     },
@@ -497,6 +427,23 @@ const coachController = {
           return res.status(404).json({ message: 'Không tìm thấy mẫu.' });
         }
         const template = result.recordset[0];
+
+        // Kiểm tra đã từng gửi kế hoạch cho member này chưa (theo coachId, userId)
+        const existingPlan = await sql.query`
+          SELECT TOP 1 * FROM CoachSuggestedQuitPlans WHERE CoachId = ${coachId} AND UserId = ${userId} ORDER BY CreatedAt DESC
+        `;
+        if (existingPlan.recordset.length > 0) {
+          // Đã từng gửi, kiểm tra xem member có booking mới với note khác không
+          const lastPlanCreatedAt = existingPlan.recordset[0].CreatedAt;
+          // Lấy booking mới nhất của member với coach này, có note khác
+          const latestBooking = await sql.query`
+            SELECT TOP 1 * FROM Booking WHERE MemberId = ${userId} AND CoachId = ${coachId} AND CreatedAt > ${lastPlanCreatedAt} AND Note IS NOT NULL AND LEN(Note) > 0 ORDER BY CreatedAt DESC
+          `;
+          if (latestBooking.recordset.length === 0) {
+            return res.status(400).json({ message: 'Bạn đã gửi kế hoạch cho thành viên này rồi. Nếu muốn gửi kế hoạch mới, thành viên cần đặt lịch mới và ghi chú lý do.' });
+          }
+          // Cho phép gửi lại nếu có booking mới với note
+        }
         // Gán kế hoạch cho user
         await sql.query`
           INSERT INTO CoachSuggestedQuitPlans (CoachId, UserId, Title, Description, PlanDetail, StartDate, TargetDate)
