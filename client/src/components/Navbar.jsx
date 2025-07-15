@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from '../contexts/AuthContext.jsx';
 import '../style/Navbar.scss';
 import logo from "../assets/images/logo.jpg";
@@ -8,14 +8,14 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 const Navbar = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
-
-  console.log('Navbar render:', { user, isAuthenticated, showDropdown });
 
   const isAdmin = user && user.role === 'admin';
   const isCoach = user && user.role === 'coach';
   const isMember = user && (user.role === 'member' || user.role === 'memberVip');
+  const isAdminDashboard = location.pathname.startsWith('/admin');
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -38,14 +38,12 @@ const Navbar = () => {
   }, [isAuthenticated]);
 
   const handleLogout = () => {
-    console.log('Logout clicked');
     logout();
     setShowDropdown(false);
     navigate('/login');
   };
 
   const handleNavClick = (path) => {
-    console.log('Navigation clicked:', path);
     setShowDropdown(false);
   };
 
@@ -88,10 +86,7 @@ const Navbar = () => {
               </Link>
               <div
                 className="avatar-container"
-                onClick={() => {
-                  console.log('Avatar clicked, current dropdown state:', showDropdown);
-                  setShowDropdown(!showDropdown);
-                }}
+                onClick={() => setShowDropdown(!showDropdown)}
               >
                 <img
                   src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || 'default'}`}
@@ -120,15 +115,23 @@ const Navbar = () => {
                 {/* Menu riêng cho Admin */}
                 {isAdmin && (
                   <>
-                    <Link to="/admin/users" className="dropdown-item" onClick={() => handleNavClick('/admin/users')}>
-                      Quản lý tài khoản
+                    <Link to="/admin" className="dropdown-item admin-dashboard-link" onClick={() => handleNavClick('/admin')}>
+                      <i className="bi bi-speedometer2 me-2"></i>
+                      Admin Dashboard
                     </Link>
-                    <Link to="/admin/packages" className="dropdown-item" onClick={() => handleNavClick('/admin/packages')}>
-                      Quản lý gói thành viên
-                    </Link>
-                    <Link to="/admin/posts" className="dropdown-item" onClick={() => handleNavClick('/admin/posts')}>
-                      Duyệt bài viết
-                    </Link>
+                    {isAdminDashboard && (
+                      <>
+                        <Link to="/admin/users" className="dropdown-item" onClick={() => handleNavClick('/admin/users')}>
+                          Quản lý tài khoản
+                        </Link>
+                        <Link to="/admin/packages" className="dropdown-item" onClick={() => handleNavClick('/admin/packages')}>
+                          Quản lý gói thành viên
+                        </Link>
+                        <Link to="/admin/posts" className="dropdown-item" onClick={() => handleNavClick('/admin/posts')}>
+                          Duyệt bài viết
+                        </Link>
+                      </>
+                    )}
                   </>
                 )}
                 {/* Menu riêng cho Coach */}

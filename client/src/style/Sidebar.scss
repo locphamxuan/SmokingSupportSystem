@@ -1,0 +1,122 @@
+.sidebar {
+  width: 250px;
+  height: 100vh;
+  background-color: #2f3542; // Màu xám đen chủ đạo
+  color: #ffffff;
+  position: fixed;
+  left: 0;
+  top: 0;
+  padding-top: 60px;
+  transition: all 0.3s ease;
+  z-index: 100;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+
+  .sidebar-header {
+    padding: 20px;
+    text-align: center;
+    background-color: #242832;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+    h3 {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #ffffff;
+      letter-spacing: 0.5px;
+    }
+  }
+
+  .sidebar-nav {
+    padding: 15px 0;
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 20px;
+      color: #a4b0be;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      border-radius: 0 4px 4px 0;
+      margin: 4px 0;
+      margin-right: 8px;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+
+      &:hover {
+        background-color: #353b48;
+        color: #ffffff;
+        padding-left: 25px;
+
+        i {
+          color: #00d2d3; // Màu accent khi hover
+        }
+      }
+
+      &.active {
+        background-color: #353b48;
+        color: #ffffff;
+        border-left: 3px solid #00d2d3;
+        padding-left: 17px;
+
+        i {
+          color: #00d2d3; // Màu accent cho icon khi active
+        }
+      }
+
+      i {
+        font-size: 1.1rem;
+        margin-right: 12px;
+        color: #a4b0be;
+        transition: all 0.3s ease;
+      }
+
+      span {
+        font-size: 0.9rem;
+        font-weight: 500;
+      }
+    }
+
+    .logout-button {
+      margin-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 20px;
+    }
+  }
+
+  .sidebar-footer {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    padding: 0 20px;
+
+    span {
+      display: block;
+      font-size: 0.9rem;
+      color: #a4b0be;
+    }
+
+    small {
+      display: block;
+      font-size: 0.8rem;
+      color: #747d8c;
+      margin-top: 5px;
+    }
+  }
+
+  // Thêm overlay gradient ở bottom
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: linear-gradient(to bottom, rgba(47, 53, 66, 0), #2f3542);
+    pointer-events: none;
+  }
+} 
