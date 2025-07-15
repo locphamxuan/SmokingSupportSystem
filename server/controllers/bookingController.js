@@ -13,7 +13,7 @@ const bookingController = {
             `;
             const user = userResult.recordset[0];
 
-            if (!user || !user.IsMemberVip) {
+            if (!user || !(user.IsMemberVip === 1 || user.IsMemberVip === true || user.IsMemberVip === '1' || user.IsMemberVip === 'true' || user.Role === 'memberVip')) {
                 return res.status(403).json({ message: 'Bạn cần là thành viên Premium để đặt lịch với huấn luyện viên' });
             }
 
@@ -52,6 +52,25 @@ const bookingController = {
         try {
             const { slotDate, slot, note } = req.body;
             const memberId = req.user.id;
+
+            // Lấy thông tin user để kiểm tra quyền
+            const userResult = await sql.query`
+                SELECT Role, IsMemberVip FROM Users WHERE Id = ${memberId}
+            `;
+            const user = userResult.recordset[0];
+            if (
+                !user ||
+                (
+                    user.Role?.toLowerCase() !== 'membervip' &&
+                    user.IsMemberVip !== 1 &&
+                    user.IsMemberVip !== true &&
+                    user.IsMemberVip !== '1' &&
+                    user.IsMemberVip !== 'true'
+                )
+            ) {
+                return res.status(403).json({ message: 'Chỉ thành viên VIP đã mua gói mới có thể đặt lịch tư vấn.' });
+            }
+
             // Chỉ kiểm tra ngày và khung giờ
             if (!slotDate || !slot) {
                 return res.status(400).json({ message: 'Ngày và khung giờ là bắt buộc.' });

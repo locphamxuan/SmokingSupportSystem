@@ -392,19 +392,24 @@ exports.updateSmokingStatus = async (req, res) => {
       smokingFrequency = '',
       healthStatus = '',
       cigaretteType = '',
+      customCigaretteType = '',
       quitReason = ''
     } = req.body;
 
-    console.log(`[updateSmokingStatus] Received data for userId ${userId}:`, {
-      cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, quitReason
-    }); // DEBUG: Log the final processed values
+    // Xác định giá trị lưu vào DB
+    let dbCigaretteType = cigaretteType;
+    let dbCustomCigaretteType = null;
+    if (cigaretteType === 'other' || cigaretteType === 'Khác') {
+      dbCigaretteType = 'Khác';
+      dbCustomCigaretteType = customCigaretteType;
+    } else {
+      dbCustomCigaretteType = null;
+    }
 
     // Kiểm tra xem đã có bản ghi SmokingProfiles cho người dùng này chưa
     const existingProfile = await sql.query`
       SELECT * FROM SmokingProfiles WHERE UserId = ${userId}
     `;
-    console.log(`[updateSmokingStatus] Existing profile found:`, existingProfile.recordset.length > 0); // DEBUG
-
     if (existingProfile.recordset.length > 0) {
       // Cập nhật bản ghi hiện có
       await sql.query`
@@ -414,26 +419,26 @@ exports.updateSmokingStatus = async (req, res) => {
           costPerPack = ${costPerPack},
           smokingFrequency = ${smokingFrequency},
           healthStatus = ${healthStatus},
-          cigaretteType = ${cigaretteType},
+          cigaretteType = ${dbCigaretteType},
+          CustomCigaretteType = ${dbCustomCigaretteType},
           QuitReason = ${quitReason}
         WHERE UserId = ${userId}
       `;
-      console.log(`[updateSmokingStatus] Executed UPDATE for userId ${userId}.`); // DEBUG
     } else {
       // Tạo bản ghi mới nếu chưa tồn tại
       await sql.query`
-        INSERT INTO SmokingProfiles (UserId, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, QuitReason)
+        INSERT INTO SmokingProfiles (UserId, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, CustomCigaretteType, QuitReason)
         VALUES (
           ${userId},
           ${cigarettesPerDay},
           ${costPerPack},
           ${smokingFrequency},
           ${healthStatus},
-          ${cigaretteType},
+          ${dbCigaretteType},
+          ${dbCustomCigaretteType},
           ${quitReason}
         )
       `;
-      console.log(`[updateSmokingStatus] Executed INSERT for userId ${userId}.`); // DEBUG
     }
 
     res.status(200).json({ message: 'Tình trạng hút thuốc đã được cập nhật thành công' });
@@ -640,37 +645,102 @@ const checkAndAwardBadges = async (userId) => {
 exports.addProgress = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { cigarettes, note, planId } = req.body;
+    // Lấy thêm coachSuggestedPlanId từ req.body
+    const { cigarettes, note, planId, suggestedPlanId, coachSuggestedPlanId } = req.body;
 
-    console.log('[addProgress] Received Request Body:', { cigarettes, note, planId });
+    console.log('[addProgress] Received Request Body:', { cigarettes, note, planId, suggestedPlanId, coachSuggestedPlanId });
     console.log('[addProgress] User ID:', userId);
 
-    // Check if there's an existing progress entry for today for this user and plan
+    // Xác định điều kiện tìm nhật ký hôm nay
     const today = new Date().toISOString().slice(0, 10); // Format YYYY-MM-DD
-    const existingProgress = await sql.query`
-      SELECT Id FROM SmokingDailyLog WHERE UserId = ${userId} AND LogDate = ${today} AND PlanId = ${planId || null}
-    `;
+    let existingProgress;
+    if (coachSuggestedPlanId) {
+      existingProgress = await sql.query`
+        SELECT Id FROM SmokingDailyLog WHERE UserId = ${userId} AND LogDate = ${today} AND CoachSuggestedPlanId = ${coachSuggestedPlanId}
+      `;
+    } else if (suggestedPlanId) {
+      existingProgress = await sql.query`
+        SELECT Id FROM SmokingDailyLog WHERE UserId = ${userId} AND LogDate = ${today} AND SuggestedPlanId = ${suggestedPlanId}
+      `;
+    } else if (planId) {
+      existingProgress = await sql.query`
+        SELECT Id FROM SmokingDailyLog WHERE UserId = ${userId} AND LogDate = ${today} AND PlanId = ${planId}
+      `;
+    } else {
+      existingProgress = await sql.query`
+        SELECT Id FROM SmokingDailyLog WHERE UserId = ${userId} AND LogDate = ${today}
+      `;
+    }
     console.log('[addProgress] Existing progress for today:', existingProgress.recordset);
 
     let progressId;
     if (existingProgress.recordset.length > 0) {
       // Update existing entry
       progressId = existingProgress.recordset[0].Id;
-      await sql.query`
-        UPDATE SmokingDailyLog
-        SET Cigarettes = ${cigarettes},
-            Feeling = ${note || null}
-        WHERE Id = ${progressId}
-      `;
+      if (coachSuggestedPlanId) {
+        await sql.query`
+          UPDATE SmokingDailyLog
+          SET Cigarettes = ${cigarettes},
+              Feeling = ${note || null},
+              CoachSuggestedPlanId = ${coachSuggestedPlanId}
+          WHERE Id = ${progressId}
+        `;
+      } else if (suggestedPlanId) {
+        await sql.query`
+          UPDATE SmokingDailyLog
+          SET Cigarettes = ${cigarettes},
+              Feeling = ${note || null},
+              SuggestedPlanId = ${suggestedPlanId}
+          WHERE Id = ${progressId}
+        `;
+      } else if (planId) {
+        await sql.query`
+          UPDATE SmokingDailyLog
+          SET Cigarettes = ${cigarettes},
+              Feeling = ${note || null},
+              PlanId = ${planId}
+          WHERE Id = ${progressId}
+        `;
+      } else {
+        await sql.query`
+          UPDATE SmokingDailyLog
+          SET Cigarettes = ${cigarettes},
+              Feeling = ${note || null}
+          WHERE Id = ${progressId}
+        `;
+      }
       console.log('[addProgress] Updated existing progress entry.');
     } else {
       // Insert new entry
-      const insertResult = await sql.query`
-        INSERT INTO SmokingDailyLog (UserId, PlanId, LogDate, Cigarettes, Feeling)
-        VALUES (${userId}, ${planId || null}, ${today}, ${cigarettes}, ${note || null});
-        SELECT SCOPE_IDENTITY() AS Id;
-      `;
-      progressId = insertResult.recordset[0].Id;
+      if (coachSuggestedPlanId) {
+        const insertResult = await sql.query`
+          INSERT INTO SmokingDailyLog (UserId, LogDate, Cigarettes, Feeling, CoachSuggestedPlanId)
+          VALUES (${userId}, ${today}, ${cigarettes}, ${note || null}, ${coachSuggestedPlanId});
+          SELECT SCOPE_IDENTITY() AS Id;
+        `;
+        progressId = insertResult.recordset[0].Id;
+      } else if (suggestedPlanId) {
+        const insertResult = await sql.query`
+          INSERT INTO SmokingDailyLog (UserId, LogDate, Cigarettes, Feeling, SuggestedPlanId)
+          VALUES (${userId}, ${today}, ${cigarettes}, ${note || null}, ${suggestedPlanId});
+          SELECT SCOPE_IDENTITY() AS Id;
+        `;
+        progressId = insertResult.recordset[0].Id;
+      } else if (planId) {
+        const insertResult = await sql.query`
+          INSERT INTO SmokingDailyLog (UserId, PlanId, LogDate, Cigarettes, Feeling)
+          VALUES (${userId}, ${planId}, ${today}, ${cigarettes}, ${note || null});
+          SELECT SCOPE_IDENTITY() AS Id;
+        `;
+        progressId = insertResult.recordset[0].Id;
+      } else {
+        const insertResult = await sql.query`
+          INSERT INTO SmokingDailyLog (UserId, LogDate, Cigarettes, Feeling)
+          VALUES (${userId}, ${today}, ${cigarettes}, ${note || null});
+          SELECT SCOPE_IDENTITY() AS Id;
+        `;
+        progressId = insertResult.recordset[0].Id;
+      }
       console.log('[addProgress] Inserted new progress entry.');
     }
 
@@ -726,7 +796,7 @@ exports.getUserBadgesByUserId = async (req, res) => {
     console.log(`[getUserBadgesByUserId] Member check result:`, memberCheck.recordset);
     
     if (memberCheck.recordset.length === 0) {
-      console.log(`[getUserBadgesByUserId] ❌ Coach doesn't have access to this user`);
+      console.log(`[getUserBadgesByUserId]  Coach doesn't have access to this user`);
       return res.status(403).json({ message: 'Bạn không có quyền xem huy hiệu của thành viên này' });
     }
     
@@ -744,7 +814,7 @@ exports.getUserBadgesByUserId = async (req, res) => {
     
     res.json({ badges: badgesResult.recordset });
   } catch (error) {
-    console.error('[getUserBadgesByUserId] ❌ Error getting user badges by userId:', error);
+    console.error('[getUserBadgesByUserId]  Error getting user badges by userId:', error);
     console.error('[getUserBadgesByUserId] Error stack:', error.stack);
     res.status(500).json({ message: 'Failed to get user badges', error: error.message });
   }

@@ -19,6 +19,7 @@ const DailyLogSection = ({ dailyLog, onUpdateLog }) => {
   }));
 
   const handleUpdate = () => {
+    console.log('[DailyLogSection] Gọi onUpdateLog với:', { ...localLog, date: todayStr });
     onUpdateLog({
       ...localLog,
       date: todayStr

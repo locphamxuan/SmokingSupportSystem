@@ -19,7 +19,8 @@ CREATE TABLE Users (
     FOREIGN KEY (CoachId) REFERENCES Users(Id)
 );
 GO
-
+ALTER TABLE SmokingDailyLog
+ADD CoachSuggestedPlanId INT NULL;
 
 
 -- SMOKING PROFILES
