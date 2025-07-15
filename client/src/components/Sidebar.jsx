@@ -31,6 +31,11 @@ const Sidebar = () => {
       path: '/admin/posts',
       icon: 'bi-file-text',
       label: 'Duyệt bài viết'
+    },
+    {
+      path: '/admin/statistics',
+      icon: 'bi-bar-chart-line',
+      label: 'Thống kê hệ thống'
     }
   ];
 

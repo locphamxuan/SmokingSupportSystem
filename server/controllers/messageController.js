@@ -312,6 +312,25 @@ const messageController = {
         } catch (error) {
             return { error: 'Lỗi gửi tin nhắn' };
         }
+    },
+
+    // Lấy danh sách hội thoại của coach (các thành viên đã nhắn tin với coach)
+    getCoachConversations: async (req, res) => {
+        try {
+            const coachId = req.user.id;
+            // Lấy member đã nhận lịch với coach này
+            const result = await sql.query`
+                SELECT DISTINCT u.Id as memberId, u.Username as memberName
+                FROM Booking_Coach bc
+                JOIN Booking b ON bc.BookingId = b.Id
+                JOIN Users u ON b.MemberId = u.Id
+                WHERE bc.CoachId = ${coachId} AND bc.Status = N'đã nhận'
+            `;
+            res.json({ conversations: result.recordset });
+        } catch (err) {
+            console.error('Get coach conversations error:', err);
+            res.status(500).json({ error: 'Internal server error', detail: err.message });
+        }
     }
 };
 

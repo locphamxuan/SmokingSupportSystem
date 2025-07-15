@@ -1137,8 +1137,8 @@ exports.createQuitPlan = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy người dùng' });
     }
     const user = userCheck.recordset[0];
-    if (user.Role !== 'memberVip' && !user.IsMemberVip) {
-      return res.status(403).json({ message: 'Chỉ thành viên VIP mới có thể tự tạo kế hoạch cai thuốc' });
+    if (user.Role !== 'member' && user.Role !== 'memberVip') {
+      return res.status(403).json({ message: 'Chỉ thành viên mới có thể tự tạo kế hoạch cai thuốc' });
     }
 
     // Validate input

@@ -433,16 +433,71 @@ const adminController = {
 
     getStatistics: async (req, res) => {
         try {
+            // Tổng số người dùng, coach, member, guest (giữ nguyên)
             const totalUsers = await sql.query`SELECT COUNT(*) as count FROM Users`;
             const totalCoaches = await sql.query`SELECT COUNT(*) as count FROM Users WHERE Role = 'coach'`;
             const totalMembers = await sql.query`SELECT COUNT(*) as count FROM Users WHERE IsMemberVip = 1`;
             const totalGuests = await sql.query`SELECT COUNT(*) as count FROM Users WHERE Role = 'guest'`;
 
+            // Tổng số ngày không hút thuốc (Cigarettes = 0)
+            const smokeFreeDaysResult = await sql.query`
+                SELECT COUNT(*) as count FROM SmokingDailyLog WHERE Cigarettes = 0
+            `;
+            const totalSmokeFreeDays = smokeFreeDaysResult.recordset[0].count || 0;
+
+            // Tổng số tiền tiết kiệm (SavedMoney)
+            const moneySavedResult = await sql.query`
+                SELECT SUM(SavedMoney) as total FROM SmokingDailyLog
+            `;
+            const totalMoneySaved = moneySavedResult.recordset[0].total || 0;
+
+            // Tổng số tiền đã nhận được (chỉ các thanh toán thành công)
+            // BookingPayment: Amount, Status = 'thành công'
+            const receivedResult = await sql.query`
+                SELECT SUM(Amount) as total FROM BookingPayment WHERE Status = N'thành công'
+            `;
+            const totalReceived = receivedResult.recordset[0].total || 0;
+
+            // Thống kê theo ngày (7 ngày gần nhất)
+            const dailyStatsResult = await sql.query`
+                SELECT TOP 7 LogDate as date,
+                    SUM(CASE WHEN Cigarettes = 0 THEN 1 ELSE 0 END) as smokeFreeDays,
+                    SUM(SavedMoney) as moneySaved
+                FROM SmokingDailyLog
+                GROUP BY LogDate
+                ORDER BY LogDate DESC
+            `;
+            const dailyStats = dailyStatsResult.recordset.map(row => ({
+                date: row.date,
+                smokeFreeDays: row.smokeFreeDays,
+                moneySaved: row.moneySaved || 0
+            })).reverse(); // Đảo ngược để ngày cũ lên trước
+
+            // Thống kê theo tháng (6 tháng gần nhất)
+            const monthlyStatsResult = await sql.query`
+                SELECT FORMAT(LogDate, 'yyyy-MM') as month,
+                    SUM(CASE WHEN Cigarettes = 0 THEN 1 ELSE 0 END) as smokeFreeDays,
+                    SUM(SavedMoney) as moneySaved
+                FROM SmokingDailyLog
+                GROUP BY FORMAT(LogDate, 'yyyy-MM')
+                ORDER BY month DESC
+            `;
+            const monthlyStats = monthlyStatsResult.recordset.map(row => ({
+                month: row.month,
+                smokeFreeDays: row.smokeFreeDays,
+                moneySaved: row.moneySaved || 0
+            })).reverse();
+
             res.json({
                 totalUsers: totalUsers.recordset[0].count,
                 totalCoaches: totalCoaches.recordset[0].count,
                 totalMembers: totalMembers.recordset[0].count,
-                totalGuests: totalGuests.recordset[0].count
+                totalGuests: totalGuests.recordset[0].count,
+                totalSmokeFreeDays,
+                totalMoneySaved,
+                totalReceived,
+                dailyStats,
+                monthlyStats
             });
         } catch (error) {
             console.error('Statistics error:', error);

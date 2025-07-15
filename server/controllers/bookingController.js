@@ -356,6 +356,23 @@ const bookingController = {
             console.error('Get accepted bookings error:', error);
             res.status(500).json({ message: 'Không thể lấy lịch hẹn đã nhận', error: error.message });
         }
+    },
+
+    getAcceptedCoachesForMember: async (req, res) => {
+      try {
+        const memberId = req.user.id;
+        const result = await sql.query`
+          SELECT DISTINCT u.Id as id, u.Username as username
+          FROM Booking b
+          JOIN Booking_Coach bc ON b.Id = bc.BookingId
+          JOIN Users u ON bc.CoachId = u.Id
+          WHERE b.MemberId = ${memberId} AND bc.Status = N'đã nhận'
+        `;
+        res.json({ coaches: result.recordset });
+      } catch (err) {
+        console.error('Lỗi SQL getAcceptedCoachesForMember:', err);
+        res.status(500).json({ message: 'Lỗi server khi lấy danh sách coach.', error: err.message });
+      }
     }
 };
 

@@ -1895,17 +1895,6 @@ body {
         font-weight: 600;
         margin-bottom: 1.5rem;
         position: relative;
-        
-        &::after {
-          content: '';
-          position: absolute;
-          left: 0;
-          bottom: -8px;
-          width: 40px;
-          height: 3px;
-          background: #6aaa6d;
-          border-radius: 2px;
-        }
       }
 
       p {
