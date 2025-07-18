@@ -27,4 +27,7 @@ router.delete('/packages/:id', authenticateToken, isAdmin, membershipController.
 // Route cho admin duyệt coach
 router.post('/approve-coach/:coachId', authenticateToken, isAdmin, adminController.approveCoach);
 
+// Lấy toàn bộ feedback
+router.get('/feedback', authenticateToken, adminController.getAllFeedback);
+
 module.exports = router;

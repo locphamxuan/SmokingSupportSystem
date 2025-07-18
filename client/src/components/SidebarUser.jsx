@@ -1,8 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
 const SidebarUser = ({ show, onClose, user, menuItems }) => {
-  console.log('SidebarUser render, show:', show, 'user:', user, 'menuItems:', menuItems);
+  const { user: authUser } = useAuth();
   // Nếu không truyền menuItems, xác định theo role member/coach
   let items = menuItems;
   if (!items) {
@@ -21,6 +22,7 @@ const SidebarUser = ({ show, onClose, user, menuItems }) => {
         { href: '/coach/chat-list', icon: 'bi-chat-dots', label: 'Chat với thành viên' },
         { href: '/coach/member-progress', icon: 'bi-graph-up', label: 'Xem tiến trình thành viên' },
         { href: '/coach/dashboard', icon: 'bi-calendar-check', label: 'Lịch tư vấn' },
+        { href: '/coach/feedback', icon: 'bi-star', label: 'Đánh giá của khách hàng' },
       ];
     }
   }
@@ -73,6 +75,13 @@ const SidebarUser = ({ show, onClose, user, menuItems }) => {
               </Link>
             </li>
           ))}
+          {authUser && authUser.role === 'memberVip' && (
+            <li className="nav-item mb-2">
+              <Link to="/feedback-coach" className="nav-link text-white">
+                <i className="bi bi-star me-2"></i>Đánh giá HLV
+              </Link>
+            </li>
+          )}
           <li className="nav-item mt-4">
             <button className="btn btn-outline-light w-100" onClick={() => {
               localStorage.clear();

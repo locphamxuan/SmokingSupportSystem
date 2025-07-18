@@ -451,12 +451,8 @@ const adminController = {
             `;
             const totalMoneySaved = moneySavedResult.recordset[0].total || 0;
 
-            // Tổng số tiền đã nhận được (chỉ các thanh toán thành công)
-            // BookingPayment: Amount, Status = 'thành công'
-            const receivedResult = await sql.query`
-                SELECT SUM(Amount) as total FROM BookingPayment WHERE Status = N'thành công'
-            `;
-            const totalReceived = receivedResult.recordset[0].total || 0;
+            // Tổng số tiền đã nhận được (tạm thời set0ưa có bảng BookingPayment)
+            const totalReceived = 0;
 
             // Thống kê theo ngày (7 ngày gần nhất)
             const dailyStatsResult = await sql.query`
@@ -673,6 +669,21 @@ const adminController = {
         const { coachId } = req.params;
         await sql.query`UPDATE Users SET IsCoachApproved = 1 WHERE Id = ${coachId} AND Role = 'coach'`;
         res.json({ message: 'Coach approved successfully' });
+    },
+
+    getAllFeedback: async (req, res) => {
+      try {
+        const result = await sql.query`
+          SELECT f.FeedbackId, u.Username as CustomerName, f.CoachId, f.Rating, f.Messages, f.SentAt
+          FROM Feedback f
+          JOIN Users u ON f.UserId = u.Id
+          ORDER BY f.SentAt DESC
+        `;
+        res.status(200).json({ feedbacks: result.recordset });
+      } catch (err) {
+        console.error('Lỗi khi lấy feedback cho admin:', err);
+        res.status(500).json({ message: 'Không thể lấy feedback.', error: err.message });
+      }
     },
 };
 

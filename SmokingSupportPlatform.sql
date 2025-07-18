@@ -1,4 +1,4 @@
-CREATE DATABASE SmokingSupportPlatform;
+﻿CREATE DATABASE SmokingSupportPlatform;
 GO
 
 USE SmokingSupportPlatform;
@@ -19,11 +19,6 @@ CREATE TABLE Users (
     FOREIGN KEY (CoachId) REFERENCES Users(Id)
 );
 GO
-
-ALTER TABLE SmokingDailyLog
-ADD CoachSuggestedPlanId INT NULL;
-
-
 
 -- SMOKING PROFILES
 CREATE TABLE SmokingProfiles (
@@ -187,6 +182,7 @@ CREATE TABLE SmokingDailyLog (
     PlanId INT NULL,
     SavedMoney DECIMAL(18,2) DEFAULT 0,
     SuggestedPlanId INT NULL,
+    CoachSuggestedPlanId INT NULL,
     FOREIGN KEY (UserId) REFERENCES Users(Id),
     FOREIGN KEY (PlanId) REFERENCES QuitPlans(Id),
     FOREIGN KEY (SuggestedPlanId) REFERENCES SuggestedQuitPlans(Id)
@@ -288,6 +284,12 @@ CREATE TABLE CoachSuggestedQuitPlans (
 );
 GO
 
+-- Add foreign key for CoachSuggestedPlanId in SmokingDailyLog
+ALTER TABLE SmokingDailyLog
+ADD CONSTRAINT FK_SmokingDailyLog_CoachSuggestedQuitPlans 
+FOREIGN KEY (CoachSuggestedPlanId) REFERENCES CoachSuggestedQuitPlans(Id);
+GO
+
 -- Insert sample data
 INSERT INTO Users (Username, Password, Email, Role, IsMemberVip) 
 VALUES (N'admin', N'admin123', N'admin@smoking.com', 'admin', 0);
@@ -295,7 +297,7 @@ GO
 
 -- Insert sample membership packages
 INSERT INTO MembershipPackages (Name, Description, Price, DurationInDays, Features) 
-VALUES (N'Gói Thường', N'Gói cơ bản cho phép nhập thông tin hút thuốc và truy cập blog cộng đồng.', 0, ' ', 
+VALUES (N'Gói Thường', N'Gói cơ bản cho phép nhập thông tin hút thuốc và truy cập blog cộng đồng.', 0, 0, 
 N'Nhập thông tin hút thuốc
 Truy cập blog chia sẻ kinh nghiệm từ cộng đồng');
 GO
@@ -401,4 +403,17 @@ INSERT INTO CoachSuggestedQuitPlans (CoachId, UserId, Title, Description, PlanDe
 N'Tháng 1: Giảm 2 điếu/ngày mỗi tuần.
 Tháng 2: Ổn định ở 10 điếu/ngày.
 Tháng 3: Ngưng hoàn toàn, tập trung thể thao và thiền.', NULL, NULL);
+GO
+
+-- FEEDBACK
+CREATE TABLE Feedback (
+    FeedbackId INT IDENTITY(1,1) PRIMARY KEY,
+    UserId INT NOT NULL,
+    CoachId INT NOT NULL,
+    Messages NVARCHAR(1000) NOT NULL,
+    SentAt DATETIME DEFAULT GETDATE(),
+    Rating INT NULL,
+    FOREIGN KEY (UserId) REFERENCES Users(Id),
+    FOREIGN KEY (CoachId) REFERENCES Users(Id)
+);
 GO

@@ -28,13 +28,13 @@ const HomePage = () => {
       title: "Chào mừng bạn đến với hành trình cai nghiện thuốc lá",
       subtitle:
         "Tìm lại cuộc sống không khói thuốc với sự hỗ trợ từ cộng đồng và các chuyên gia hàng đầu.",
-      image: homepagebackground2,
+      image: backgroundhomepage, // đổi thành backr0undh0mepage.jpg
     },
     {
       id: 2,
       title: "Bắt đầu cuộc sống mới không thuốc lá",
       subtitle: "Chúng tôi sẽ đồng hành cùng bạn trên con đường cai nghiện thành công.",
-      image: backgroundhomepage,
+      image: homepagebackground2, // đổi thành homepagebackground2.jpg
     },
   ];
 

@@ -3,6 +3,28 @@
   min-height: 100vh;
   background-color: #f5f6fa;
 
+  /* Đảm bảo tất cả nội dung admin không bị che bởi navbar */
+  .admin-content {
+    flex: 1;
+    margin-left: 250px;
+    padding: 20px;
+    padding-top: 100px; /* Tăng padding-top để tránh navbar */
+    background-color: #f5f6fa;
+    min-height: 100vh;
+    
+    /* Đảm bảo các trang con cũng có spacing phù hợp */
+    > * {
+      margin-top: 0;
+    }
+    
+    /* Điều chỉnh cho các bảng và card */
+    .table-container,
+    .stats-container,
+    .card {
+      margin-top: 0;
+    }
+  }
+
   .admin-sidebar {
     width: 250px;
     background-color: #1e1e2d;
@@ -12,7 +34,7 @@
     top: 0;
     height: 100vh;
     overflow-y: auto;
-    z-index: 1000;
+    z-index: 1001; /* Tăng z-index để cao hơn navbar */
     transition: all 0.3s ease;
     display: flex;
     flex-direction: column;
@@ -108,11 +130,5 @@
     }
   }
 
-  .admin-content {
-    flex: 1;
-    margin-left: 250px;
-    padding: 20px;
-    background-color: #f5f6fa;
-    min-height: 100vh;
-  }
+
 } 

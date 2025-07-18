@@ -36,6 +36,11 @@ const Sidebar = () => {
       path: '/admin/statistics',
       icon: 'bi-bar-chart-line',
       label: 'Thống kê hệ thống'
+    },
+    {
+      path: '/admin/feedback',
+      icon: 'bi-star',
+      label: 'Đánh giá của khách hàng'
     }
   ];
 

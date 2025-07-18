@@ -35,6 +35,9 @@ import PaymentPage from './pages/PaymentPage.jsx';
 import AdminStatisticsPage from './pages/AdminStatisticsPage.jsx';
 import ChatCoachListPage from './pages/ChatCoachListPage.jsx';
 import CoachChatListPage from './pages/CoachChatListPage.jsx';
+import FeedbackCoachPage from './pages/FeedbackCoachPage.jsx';
+import CoachFeedbackPage from './pages/CoachFeedbackPage.jsx';
+import AdminFeedbackPage from './pages/AdminFeedbackPage.jsx';
 
 const theme = createTheme({
   palette: {
@@ -193,6 +196,14 @@ const AppRoutes = () => {
             <AdminStatisticsPage />
           </ProtectedRoute>
         } />
+        <Route 
+          path="/admin/feedback" 
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminFeedbackPage />
+            </ProtectedRoute>
+          } 
+        />
       </Route>
 
       {/* Main routes */}
@@ -270,6 +281,14 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+        <Route 
+          path="/feedback-coach" 
+          element={
+            <ProtectedRoute allowedRoles={['memberVip']}>
+              <FeedbackCoachPage />
+            </ProtectedRoute>
+          } 
+        />
 
         {/* Coach routes */}
         <Route 
@@ -312,6 +331,14 @@ const AppRoutes = () => {
             </ProtectedRoute>
           } 
         />
+        <Route 
+          path="/coach/feedback" 
+          element={
+            <ProtectedRoute allowedRoles={['coach']}>
+              <CoachFeedbackPage />
+            </ProtectedRoute>
+          } 
+        />
 
         {/* Other routes */}
         <Route path="/notifications" element={<NotificationsPage />} />
@@ -329,6 +356,7 @@ const AppRoutes = () => {
         <Route path="/chat-coach" element={<ChatCoachListPage />} />
         <Route path="/subscribe" element={<SubscriptionPlans />} />
         <Route path="/achievements" element={<AchievementsPage />} />
+        <Route path="/feedback-coach" element={<FeedbackCoachPage />} />
       </Route>
     </Routes>
   );

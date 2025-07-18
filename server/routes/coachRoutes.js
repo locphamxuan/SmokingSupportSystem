@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const coachController = require('../controllers/coachController');
+const feedbackController = require('../controllers/feedbackController');
 const { authenticateToken, isCoach } = require('../middlewares/auth');
 
 // Test route for database connection
@@ -22,5 +23,8 @@ router.get('/member/:memberId/progress', authenticateToken, isCoach, coachContro
 router.get('/member/:memberId/smoking-history', authenticateToken, isCoach, coachController.getMemberSmokingHistory);
 router.get('/my-quit-plan-templates', authenticateToken, coachController.getMyQuitPlanTemplates);
 router.post('/assign-quit-plan', authenticateToken, coachController.assignQuitPlanToUser);
+
+// Lấy feedback cho coach
+router.get('/feedback', authenticateToken, feedbackController.getFeedbackForCoach);
 
 module.exports = router;

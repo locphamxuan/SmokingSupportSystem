@@ -7,6 +7,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 
 const Navbar = ({ onAvatarClick }) => {
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showAdminSidebar, setShowAdminSidebar] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
@@ -40,6 +41,20 @@ const Navbar = ({ onAvatarClick }) => {
     }
     fetchNotifications();
   }, [isAuthenticated]);
+
+  // Đóng sidebar khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showAdminSidebar && !event.target.closest('.user-menu') && !event.target.closest('.admin-sidebar-overlay')) {
+        setShowAdminSidebar(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showAdminSidebar]);
 
   const handleLogout = () => {
     logout();
@@ -99,12 +114,16 @@ const Navbar = ({ onAvatarClick }) => {
                   position: 'relative'
                 }}
                 onClick={() => {
-                  if ((isMember || isCoach) && onAvatarClick) {
+                  if (isAdmin) {
+                    setShowAdminSidebar(!showAdminSidebar);
+                  } else if ((isMember || isCoach) && onAvatarClick) {
                     onAvatarClick();
                   }
                 }}
                 onKeyDown={e => {
-                  if ((isMember || isCoach) && (e.key === 'Enter' || e.key === ' ')) {
+                  if (isAdmin && (e.key === 'Enter' || e.key === ' ')) {
+                    setShowAdminSidebar(!showAdminSidebar);
+                  } else if ((isMember || isCoach) && (e.key === 'Enter' || e.key === ' ')) {
                     onAvatarClick && onAvatarClick();
                   }
                 }}
@@ -118,7 +137,191 @@ const Navbar = ({ onAvatarClick }) => {
                 />
               </button>
 
-              {/* Không render dropdown-menu nữa */}
+              {/* Admin Sidebar Overlay */}
+              {isAdmin && showAdminSidebar && (
+                <>
+                  {/* Overlay */}
+                  <div 
+                    className="admin-sidebar-overlay"
+                    style={{
+                      position: 'fixed',
+                      top: 0,
+                      left: 0,
+                      width: '100vw',
+                      height: '100vh',
+                      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                      zIndex: 9998,
+                    }}
+                    onClick={() => setShowAdminSidebar(false)}
+                  />
+                  
+                  {/* Admin Sidebar */}
+                  <div 
+                    className="admin-sidebar"
+                    style={{
+                      position: 'fixed',
+                      top: 0,
+                      left: 0,
+                      width: '280px',
+                      height: '100vh',
+                      backgroundColor: '#2c3e50',
+                      color: 'white',
+                      zIndex: 9999,
+                      boxShadow: '2px 0 10px rgba(0,0,0,0.3)',
+                      overflowY: 'auto'
+                    }}
+                  >
+                    {/* Header */}
+                    <div style={{
+                      padding: '2rem 1.5rem',
+                      borderBottom: '1px solid #34495e',
+                      textAlign: 'center'
+                    }}>
+                      <i className="bi bi-shield-lock" style={{ fontSize: '2rem', marginBottom: '1rem', display: 'block' }}></i>
+                      <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Admin Dashboard</h3>
+                    </div>
+
+                    {/* Navigation */}
+                    <nav style={{ padding: '1rem 0' }}>
+                      <Link 
+                        to="/admin/users" 
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '1rem 1.5rem',
+                          color: 'white',
+                          textDecoration: 'none',
+                          transition: 'background-color 0.2s',
+                          borderLeft: location.pathname === '/admin/users' ? '4px solid #3498db' : '4px solid transparent'
+                        }}
+                        onClick={() => setShowAdminSidebar(false)}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#34495e'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      >
+                        <i className="bi bi-people" style={{ marginRight: '1rem', fontSize: '1.1rem' }}></i>
+                        <span>Quản lý tài khoản</span>
+                      </Link>
+
+                      <Link 
+                        to="/admin/packages" 
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '1rem 1.5rem',
+                          color: 'white',
+                          textDecoration: 'none',
+                          transition: 'background-color 0.2s',
+                          borderLeft: location.pathname === '/admin/packages' ? '4px solid #3498db' : '4px solid transparent'
+                        }}
+                        onClick={() => setShowAdminSidebar(false)}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#34495e'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      >
+                        <i className="bi bi-box" style={{ marginRight: '1rem', fontSize: '1.1rem' }}></i>
+                        <span>Quản lý gói thành viên</span>
+                      </Link>
+
+                      <Link 
+                        to="/admin/posts" 
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '1rem 1.5rem',
+                          color: 'white',
+                          textDecoration: 'none',
+                          transition: 'background-color 0.2s',
+                          borderLeft: location.pathname === '/admin/posts' ? '4px solid #3498db' : '4px solid transparent'
+                        }}
+                        onClick={() => setShowAdminSidebar(false)}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#34495e'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      >
+                        <i className="bi bi-file-text" style={{ marginRight: '1rem', fontSize: '1.1rem' }}></i>
+                        <span>Duyệt bài viết</span>
+                      </Link>
+
+                      <Link 
+                        to="/admin/statistics" 
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '1rem 1.5rem',
+                          color: 'white',
+                          textDecoration: 'none',
+                          transition: 'background-color 0.2s',
+                          borderLeft: location.pathname === '/admin/statistics' ? '4px solid #3498db' : '4px solid transparent'
+                        }}
+                        onClick={() => setShowAdminSidebar(false)}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#34495e'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      >
+                        <i className="bi bi-bar-chart-line" style={{ marginRight: '1rem', fontSize: '1.1rem' }}></i>
+                        <span>Thống kê hệ thống</span>
+                      </Link>
+
+                      <Link 
+                        to="/admin/feedback" 
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '1rem 1.5rem',
+                          color: 'white',
+                          textDecoration: 'none',
+                          transition: 'background-color 0.2s',
+                          borderLeft: location.pathname === '/admin/feedback' ? '4px solid #ffc107' : '4px solid transparent',
+                          background: location.pathname === '/admin/feedback' ? 'rgba(255, 193, 7, 0.08)' : 'transparent'
+                        }}
+                        onClick={() => setShowAdminSidebar(false)}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#34495e'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = location.pathname === '/admin/feedback' ? 'rgba(255, 193, 7, 0.08)' : 'transparent'}
+                      >
+                        <i className="bi bi-star" style={{ marginRight: '1rem', fontSize: '1.1rem', color: '#ffc107' }}></i>
+                        <span style={{ color: '#ffc107', fontWeight: 500 }}>Đánh giá của khách hàng</span>
+                      </Link>
+
+                      <div style={{ borderTop: '1px solid #34495e', margin: '1rem 0' }}></div>
+
+                      <button 
+                        onClick={() => {
+                          handleLogout();
+                          setShowAdminSidebar(false);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          width: '100%',
+                          padding: '1rem 1.5rem',
+                          color: '#e74c3c',
+                          background: 'none',
+                          border: 'none',
+                          textAlign: 'left',
+                          transition: 'background-color 0.2s',
+                          cursor: 'pointer'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#34495e'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      >
+                        <i className="bi bi-box-arrow-right" style={{ marginRight: '1rem', fontSize: '1.1rem' }}></i>
+                        <span>Đăng xuất</span>
+                      </button>
+                    </nav>
+
+                    {/* Footer */}
+                    <div style={{
+                      padding: '1rem 1.5rem',
+                      borderTop: '1px solid #34495e',
+                      textAlign: 'center',
+                      position: 'absolute',
+                      bottom: 0,
+                      width: '100%',
+                      boxSizing: 'border-box'
+                    }}>
+                      <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>Smoking Support System</div>
+                      <small style={{ color: '#95a5a6' }}>Admin Panel v1.0</small>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           ) : (
             <div className="auth-buttons">

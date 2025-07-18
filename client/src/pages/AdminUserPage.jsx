@@ -4,6 +4,7 @@ import { getUsers, getUserDetail, updateUser, deleteUser } from "../services/adm
 import Chart from 'chart.js/auto';
 import '../style/AdminUserPage.scss';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 
 const AdminUserPage = () => {
   const [users, setUsers] = useState([]);
@@ -791,6 +792,11 @@ const AdminUserPage = () => {
             </div>
           )}
         </div>
+      </div>
+      <div className="mb-3">
+        <Link to="/admin/feedback" className="btn btn-outline-primary">
+          Đánh giá của khách hàng
+        </Link>
       </div>
     </div>
   );

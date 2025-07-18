@@ -165,7 +165,7 @@ exports.getProfile = async (req, res) => {
 
     // Lấy thông tin hút thuốc
     const smokingResult = await sql.query`
-      SELECT cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, QuitReason, cigaretteType, customCigaretteType
+      SELECT CigarettesPerDay, CostPerPack, SmokingFrequency, HealthStatus, QuitReason, CigaretteType, CustomCigaretteType
       FROM SmokingProfiles WHERE UserId = ${userId}
     `;
     const dbSmoking = smokingResult.recordset[0];
@@ -211,13 +211,13 @@ exports.getProfile = async (req, res) => {
 
 
     const smokingStatus = dbSmoking ? {
-      cigarettesPerDay: dbSmoking.cigarettesPerDay || 0,
-      costPerPack: dbSmoking.costPerPack || 0,
-      smokingFrequency: dbSmoking.smokingFrequency || '',
-      healthStatus: dbSmoking.healthStatus || '',
+      cigarettesPerDay: dbSmoking.CigarettesPerDay || 0,
+      costPerPack: dbSmoking.CostPerPack || 0,
+      smokingFrequency: dbSmoking.SmokingFrequency || '',
+      healthStatus: dbSmoking.HealthStatus || '',
       quitReason: dbSmoking.QuitReason || '',
-      cigaretteType: dbSmoking.cigaretteType || '',
-      customCigaretteType: dbSmoking.customCigaretteType || '',
+      cigaretteType: dbSmoking.CigaretteType || '',
+      customCigaretteType: dbSmoking.CustomCigaretteType || '',
       dailyLog // This is fine as it's merged later
     } : {
       cigarettesPerDay: 0,
@@ -387,6 +387,9 @@ exports.requestCoach = async (req, res) => {
 exports.updateSmokingStatus = async (req, res) => {
   try {
     const userId = req.user.id;
+    console.log(`[updateSmokingStatus] Request body:`, req.body); // DEBUG: Log entire request body
+    console.log(`[updateSmokingStatus] User ID from token:`, userId); // DEBUG: Log user ID
+    
     // Destructure and ensure strings are not null/undefined from req.body directly
     const {
       cigarettesPerDay = 0, // Default for numbers
@@ -413,31 +416,36 @@ exports.updateSmokingStatus = async (req, res) => {
       cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, customCigaretteType, quitReason
     }); // DEBUG: Log the final processed values
 
+    console.log(`[updateSmokingStatus] Processed values for DB:`, {
+      dbCigaretteType, dbCustomCigaretteType
+    });
+
     // Kiểm tra xem đã có bản ghi SmokingProfiles cho người dùng này chưa
     const existingProfile = await sql.query`
       SELECT * FROM SmokingProfiles WHERE UserId = ${userId}
     `;
+    console.log(`[updateSmokingStatus] Existing profile found:`, existingProfile.recordset.length > 0);
     if (existingProfile.recordset.length > 0) {
       // Cập nhật bản ghi hiện có
-      await sql.query`
+      console.log(`[updateSmokingStatus] Updating existing profile for userId ${userId}`);
+      const updateResult = await sql.query`
         UPDATE SmokingProfiles
         SET
-          cigarettesPerDay = ${cigarettesPerDay},
-          costPerPack = ${costPerPack},
-          smokingFrequency = ${smokingFrequency},
-          healthStatus = ${healthStatus},
-          cigaretteType = ${dbCigaretteType},
+          CigarettesPerDay = ${cigarettesPerDay},
+          CostPerPack = ${costPerPack},
+          SmokingFrequency = ${smokingFrequency},
+          HealthStatus = ${healthStatus},
+          CigaretteType = ${dbCigaretteType},
           CustomCigaretteType = ${dbCustomCigaretteType},
-          cigaretteType = ${cigaretteType},
-          customCigaretteType = ${customCigaretteType},
           QuitReason = ${quitReason}
         WHERE UserId = ${userId}
       `;
+      console.log(`[updateSmokingStatus] Update result:`, updateResult);
     } else {
       // Tạo bản ghi mới nếu chưa tồn tại
-      await sql.query`
-        INSERT INTO SmokingProfiles (UserId, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, CustomCigaretteType, QuitReason)
-        INSERT INTO SmokingProfiles (UserId, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, customCigaretteType, QuitReason)
+      console.log(`[updateSmokingStatus] Creating new profile for userId ${userId}`);
+      const insertResult = await sql.query`
+        INSERT INTO SmokingProfiles (UserId, CigarettesPerDay, CostPerPack, SmokingFrequency, HealthStatus, CigaretteType, CustomCigaretteType, QuitReason)
         VALUES (
           ${userId},
           ${cigarettesPerDay},
@@ -446,16 +454,17 @@ exports.updateSmokingStatus = async (req, res) => {
           ${healthStatus},
           ${dbCigaretteType},
           ${dbCustomCigaretteType},
-          ${cigaretteType},
-          ${customCigaretteType},
           ${quitReason}
         )
       `;
+      console.log(`[updateSmokingStatus] Insert result:`, insertResult);
     }
 
+    console.log(`[updateSmokingStatus] Successfully updated smoking status for userId ${userId}`);
     res.status(200).json({ message: 'Tình trạng hút thuốc đã được cập nhật thành công' });
   } catch (error) {
     console.error('[updateSmokingStatus] Update smoking status error:', error); // DEBUG
+    console.error('[updateSmokingStatus] Error stack:', error.stack); // DEBUG: Log full stack trace
     res.status(500).json({ message: 'Failed to update smoking status', error: error.message });
   }
 };

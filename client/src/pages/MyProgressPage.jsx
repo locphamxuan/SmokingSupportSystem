@@ -320,18 +320,35 @@ const MyProgressPage = () => {
   }, []);
 
   const handleUpdateSmokingStatus = async (field, value) => {
+    let updatedSmokingStatus;
+    
+    if (field === 'all') {
+      // Cập nhật tất cả thông tin cùng lúc
+      updatedSmokingStatus = { ...userData.smokingStatus, ...value };
+    } else {
+      // Cập nhật từng trường riêng lẻ
+      updatedSmokingStatus = { ...userData.smokingStatus, [field]: value };
+    }
+    
+    console.log('[handleUpdateSmokingStatus] Field:', field);
+    console.log('[handleUpdateSmokingStatus] Value:', value);
+    console.log('[handleUpdateSmokingStatus] Updated smoking status:', updatedSmokingStatus);
+    
     // Cập nhật trạng thái cục bộ trước
-    const updatedSmokingStatus = { ...userData.smokingStatus, [field]: value };
     setUserData(prev => ({ ...prev, smokingStatus: updatedSmokingStatus }));
 
     try {
       const token = localStorage.getItem('token');
+      console.log('[handleUpdateSmokingStatus] Sending request with data:', updatedSmokingStatus);
       // Gửi toàn bộ đối tượng đã cập nhật
-      await axios.put('http://localhost:5000/api/auth/smoking-status', updatedSmokingStatus, {
+      const response = await axios.put('http://localhost:5000/api/auth/smoking-status', updatedSmokingStatus, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      console.log('[handleUpdateSmokingStatus] Response:', response.data);
       setSuccess('Cập nhật thành công!');
     } catch (error) {
+      console.error('[handleUpdateSmokingStatus] Error:', error);
+      console.error('[handleUpdateSmokingStatus] Error response:', error.response?.data);
       setError(error.response?.data?.message || 'Cập nhật thất bại.');
     }
   };
@@ -946,6 +963,28 @@ const MyProgressPage = () => {
                         value={userData.smokingStatus.quitReason}
                         onChange={(e) => handleUpdateSmokingStatus('quitReason', e.target.value)}
                       ></textarea>
+                    </div>
+                    <div className="d-flex justify-content-end">
+                      <button 
+                        type="button" 
+                        className="btn btn-success"
+                        onClick={() => {
+                          // Lưu tất cả thông tin cai thuốc
+                          const smokingStatus = {
+                            cigarettesPerDay: userData.smokingStatus.cigarettesPerDay,
+                            costPerPack: userData.smokingStatus.costPerPack,
+                            smokingFrequency: userData.smokingStatus.smokingFrequency,
+                            healthStatus: userData.smokingStatus.healthStatus,
+                            cigaretteType: userData.smokingStatus.cigaretteType,
+                            customCigaretteType: userData.smokingStatus.customCigaretteType,
+                            quitReason: userData.smokingStatus.quitReason
+                          };
+                          handleUpdateSmokingStatus('all', smokingStatus);
+                        }}
+                      >
+                        <i className="bi bi-check-circle me-2"></i>
+                        Cập nhật thông tin
+                      </button>
                     </div>
                   </div>
                 </div>

@@ -34,8 +34,16 @@ const AdminStatisticsPage = () => {
   if (error) return <div className="alert alert-danger text-center mt-4">{error}</div>;
   if (!stats) return null;
 
-  // Format tiền
-  const formatMoney = v => v?.toLocaleString('vi-VN') + ' VNĐ';
+  // Format tiền theo định dạng Việt Nam
+  const formatMoney = (value) => {
+    if (!value || value === 0) return '0 VNĐ';
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
+  };
 
   // Dữ liệu biểu đồ ngày
   const dailyLabels = stats.dailyStats.map(d => d.date);
@@ -102,7 +110,19 @@ const AdminStatisticsPage = () => {
                   responsive: true,
                   plugins: {
                     legend: { position: 'top' },
-                    title: { display: true, text: 'Thống kê theo ngày' }
+                    title: { display: true, text: 'Thống kê theo ngày' },
+                    tooltip: {
+                      callbacks: {
+                        label: function(context) {
+                          const label = context.dataset.label || '';
+                          const value = context.parsed.y;
+                          if (label.includes('Tiền tiết kiệm')) {
+                            return `${label}: ${formatMoney(value)}`;
+                          }
+                          return `${label}: ${value}`;
+                        }
+                      }
+                    }
                   },
                   scales: {
                     y: { beginAtZero: true, title: { display: true, text: 'Ngày không hút' } },
@@ -110,7 +130,12 @@ const AdminStatisticsPage = () => {
                       beginAtZero: true,
                       position: 'right',
                       title: { display: true, text: 'Tiền tiết kiệm (VNĐ)' },
-                      grid: { drawOnChartArea: false }
+                      grid: { drawOnChartArea: false },
+                      ticks: {
+                        callback: function(value) {
+                          return formatMoney(value);
+                        }
+                      }
                     }
                   }
                 }}
@@ -150,7 +175,19 @@ const AdminStatisticsPage = () => {
                   responsive: true,
                   plugins: {
                     legend: { position: 'top' },
-                    title: { display: true, text: 'Thống kê theo tháng' }
+                    title: { display: true, text: 'Thống kê theo tháng' },
+                    tooltip: {
+                      callbacks: {
+                        label: function(context) {
+                          const label = context.dataset.label || '';
+                          const value = context.parsed.y;
+                          if (label.includes('Tiền tiết kiệm')) {
+                            return `${label}: ${formatMoney(value)}`;
+                          }
+                          return `${label}: ${value}`;
+                        }
+                      }
+                    }
                   },
                   scales: {
                     y: { beginAtZero: true, title: { display: true, text: 'Ngày không hút' } },
@@ -158,7 +195,12 @@ const AdminStatisticsPage = () => {
                       beginAtZero: true,
                       position: 'right',
                       title: { display: true, text: 'Tiền tiết kiệm (VNĐ)' },
-                      grid: { drawOnChartArea: false }
+                      grid: { drawOnChartArea: false },
+                      ticks: {
+                        callback: function(value) {
+                          return formatMoney(value);
+                        }
+                      }
                     }
                   }
                 }}
