@@ -11,15 +11,19 @@ import {
   Row,
   Col,
   Badge,
-  Table
+  Table,
 } from "react-bootstrap";
-import { createPost, getUserPosts, getUserBadges } from '../services/authService';
-import { 
-  getStatusDisplay, 
-  getStatusBadgeVariant, 
-  getStatusIcon 
-} from '../utils/statusUtils';
-import '../style/CreatePostPage.scss';
+import {
+  createPost,
+  getUserPosts,
+  getUserBadges,
+} from "../services/authService";
+import {
+  getStatusDisplay,
+  getStatusBadgeVariant,
+  getStatusIcon,
+} from "../utils/statusUtils";
+import "../style/CreatePostPage.scss";
 
 const CreatePostPage = () => {
   const [title, setTitle] = useState("");
@@ -46,7 +50,7 @@ const CreatePostPage = () => {
       const posts = await getUserPosts();
       setUserPosts(posts);
     } catch (err) {
-      console.error('Error fetching user posts:', err);
+      console.error("Error fetching user posts:", err);
     }
     setLoadingPosts(false);
   };
@@ -57,16 +61,16 @@ const CreatePostPage = () => {
       const response = await getUserBadges();
       setUserBadges(response.badges || []);
     } catch (err) {
-      console.error('Error fetching user badges:', err);
+      console.error("Error fetching user badges:", err);
     }
     setLoadingBadges(false);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!title.trim() || !content.trim()) {
-      setError('Vui lòng điền đầy đủ tiêu đề và nội dung');
+      setError("Vui lòng điền đầy đủ tiêu đề và nội dung");
       return;
     }
 
@@ -75,37 +79,36 @@ const CreatePostPage = () => {
     setSuccess("");
 
     try {
-      const postData = { 
-        title: title.trim(), 
-        content: content.trim()
+      const postData = {
+        title: title.trim(),
+        content: content.trim(),
       };
-      
+
       // Thêm badgeId nếu được chọn
       if (selectedBadgeId) {
         postData.badgeId = parseInt(selectedBadgeId);
       }
-      
-      console.log('Debug - Sending post data:', postData);
-      console.log('Debug - Selected badge ID:', selectedBadgeId);
-      
+
+      console.log("Debug - Sending post data:", postData);
+      console.log("Debug - Selected badge ID:", selectedBadgeId);
+
       const response = await createPost(postData);
-      console.log('Debug - Response from server:', response);
-      setSuccess(response.message || 'Bài đăng đã được gửi thành công!');
+      console.log("Debug - Response from server:", response);
+      setSuccess(response.message || "Bài đăng đã được gửi thành công!");
       setTitle("");
       setContent("");
       setSelectedBadgeId("");
-      
+
       // Refresh user posts to show the new post
       await fetchUserPosts();
-      
+
       // Auto hide success message after 5 seconds
       setTimeout(() => {
-        setSuccess('');
+        setSuccess("");
       }, 5000);
-      
     } catch (err) {
-      console.error('Error creating post:', err);
-      setError(err.response?.data?.message || 'Có lỗi xảy ra khi tạo bài đăng');
+      console.error("Error creating post:", err);
+      setError(err.response?.data?.message || "Có lỗi xảy ra khi tạo bài đăng");
     }
 
     setLoading(false);
@@ -115,7 +118,7 @@ const CreatePostPage = () => {
     const variant = getStatusBadgeVariant(status);
     const displayText = getStatusDisplay(status);
     const icon = getStatusIcon(status);
-    
+
     return (
       <Badge bg={variant}>
         <i className={`${icon} me-1`}></i>
@@ -124,8 +127,10 @@ const CreatePostPage = () => {
     );
   };
 
-  const pendingPosts = userPosts.filter(post => post.Status === 'pending');
-  const publishedPosts = userPosts.filter(post => post.Status === 'published');
+  const pendingPosts = userPosts.filter((post) => post.Status === "pending");
+  const publishedPosts = userPosts.filter(
+    (post) => post.Status === "published",
+  );
 
   return (
     <Container className="create-post-page">
@@ -137,18 +142,28 @@ const CreatePostPage = () => {
                 <i className="fas fa-pen-alt me-2"></i>
                 Tạo bài viết mới
               </h4>
-              <p className="text-muted mb-0">Chia sẻ câu chuyện và kinh nghiệm của bạn với cộng đồng</p>
+              <p className="text-muted mb-0">
+                Chia sẻ câu chuyện và kinh nghiệm của bạn với cộng đồng
+              </p>
             </Card.Header>
             <Card.Body>
               {error && (
-                <BAlert variant="danger" onClose={() => setError('')} dismissible>
+                <BAlert
+                  variant="danger"
+                  onClose={() => setError("")}
+                  dismissible
+                >
                   <i className="fas fa-exclamation-triangle me-2"></i>
                   {error}
                 </BAlert>
               )}
-              
+
               {success && (
-                <BAlert variant="success" onClose={() => setSuccess('')} dismissible>
+                <BAlert
+                  variant="success"
+                  onClose={() => setSuccess("")}
+                  dismissible
+                >
                   <i className="fas fa-check-circle me-2"></i>
                   {success}
                 </BAlert>
@@ -203,8 +218,8 @@ const CreatePostPage = () => {
                     </div>
                   ) : userBadges.length > 0 ? (
                     <>
-                      <Form.Select 
-                        value={selectedBadgeId} 
+                      <Form.Select
+                        value={selectedBadgeId}
                         onChange={(e) => setSelectedBadgeId(e.target.value)}
                       >
                         <option value="">Không chia sẻ huy hiệu</option>
@@ -215,13 +230,15 @@ const CreatePostPage = () => {
                         ))}
                       </Form.Select>
                       <Form.Text className="text-muted">
-                        Bạn có thể chia sẻ một trong những huy hiệu đã đạt được để thể hiện thành tích của mình
+                        Bạn có thể chia sẻ một trong những huy hiệu đã đạt được
+                        để thể hiện thành tích của mình
                       </Form.Text>
                     </>
                   ) : (
                     <div className="text-muted small">
                       <i className="fas fa-info-circle me-1"></i>
-                      Bạn chưa có huy hiệu nào. Hãy tiếp tục cai thuốc để nhận huy hiệu đầu tiên!
+                      Bạn chưa có huy hiệu nào. Hãy tiếp tục cai thuốc để nhận
+                      huy hiệu đầu tiên!
                     </div>
                   )}
                 </Form.Group>
@@ -229,12 +246,12 @@ const CreatePostPage = () => {
                 <div className="d-flex justify-content-between align-items-center">
                   <Button
                     variant="outline-secondary"
-                    onClick={() => navigate('/community')}
+                    onClick={() => navigate("/community")}
                   >
                     <i className="fas fa-arrow-left me-2"></i>
                     Quay lại
                   </Button>
-                  
+
                   <Button
                     type="submit"
                     variant="primary"
@@ -263,7 +280,7 @@ const CreatePostPage = () => {
             </Card.Body>
           </Card>
         </Col>
-        
+
         <Col lg={4}>
           <Card className="my-posts-card">
             <Card.Header>
@@ -282,7 +299,9 @@ const CreatePostPage = () => {
                 <div className="text-center py-3">
                   <i className="fas fa-inbox fa-2x text-muted mb-2"></i>
                   <p className="text-muted mb-0">Bạn chưa có bài viết nào</p>
-                  <small className="text-muted">Hãy tạo bài viết đầu tiên!</small>
+                  <small className="text-muted">
+                    Hãy tạo bài viết đầu tiên!
+                  </small>
                 </div>
               ) : (
                 <>
@@ -292,7 +311,9 @@ const CreatePostPage = () => {
                       <span className="stat-label">Chờ duyệt</span>
                     </div>
                     <div className="stat-item">
-                      <span className="stat-number">{publishedPosts.length}</span>
+                      <span className="stat-number">
+                        {publishedPosts.length}
+                      </span>
                       <span className="stat-label">Đã duyệt</span>
                     </div>
                   </div>
@@ -305,29 +326,43 @@ const CreatePostPage = () => {
                           {getStatusBadge(post.Status)}
                         </div>
                         <p className="post-preview">
-                          {post.Content.length > 100 
-                            ? `${post.Content.substring(0, 100)}...` 
-                            : post.Content
-                          }
+                          {post.Content.length > 100
+                            ? `${post.Content.substring(0, 100)}...`
+                            : post.Content}
                         </p>
                         <small className="post-date">
                           <i className="fas fa-calendar-alt me-1"></i>
                           {(() => {
                             // Parse trực tiếp từ string để tránh vấn đề timezone
                             const dateString = post.CreatedAt;
-                            if (dateString.includes('T') || dateString.includes(' ')) {
-                              const [datePart, timePart] = dateString.split(/[T ]/);
-                              const [year, month, day] = datePart.split('-');
-                              const [hours, minutes] = timePart ? timePart.split(':') : ['00', '00'];
+                            if (
+                              dateString.includes("T") ||
+                              dateString.includes(" ")
+                            ) {
+                              const [datePart, timePart] =
+                                dateString.split(/[T ]/);
+                              const [year, month, day] = datePart.split("-");
+                              const [hours, minutes] = timePart
+                                ? timePart.split(":")
+                                : ["00", "00"];
                               return `${day}/${month}/${year} ${hours}:${minutes}`;
                             }
                             // Fallback nếu format khác
                             const date = new Date(post.CreatedAt);
-                            const day = String(date.getDate()).padStart(2, '0');
-                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const day = String(date.getDate()).padStart(2, "0");
+                            const month = String(date.getMonth() + 1).padStart(
+                              2,
+                              "0",
+                            );
                             const year = date.getFullYear();
-                            const hours = String(date.getHours()).padStart(2, '0');
-                            const minutes = String(date.getMinutes()).padStart(2, '0');
+                            const hours = String(date.getHours()).padStart(
+                              2,
+                              "0",
+                            );
+                            const minutes = String(date.getMinutes()).padStart(
+                              2,
+                              "0",
+                            );
                             return `${day}/${month}/${year} ${hours}:${minutes}`;
                           })()}
                         </small>
@@ -357,7 +392,7 @@ const CreatePostPage = () => {
                   </p>
                 </div>
               </div>
-              
+
               <div className="info-item">
                 <i className="fas fa-check-circle text-success me-2"></i>
                 <div>
@@ -367,11 +402,12 @@ const CreatePostPage = () => {
                   </p>
                 </div>
               </div>
-              
+
               <BAlert variant="info" className="mt-3 mb-0">
                 <small>
                   <i className="fas fa-lightbulb me-1"></i>
-                  <strong>Mẹo:</strong> Bài viết có nội dung tích cực, hữu ích sẽ được duyệt nhanh hơn!
+                  <strong>Mẹo:</strong> Bài viết có nội dung tích cực, hữu ích
+                  sẽ được duyệt nhanh hơn!
                 </small>
               </BAlert>
             </Card.Body>
@@ -382,4 +418,4 @@ const CreatePostPage = () => {
   );
 };
 
-export default CreatePostPage; 
+export default CreatePostPage;

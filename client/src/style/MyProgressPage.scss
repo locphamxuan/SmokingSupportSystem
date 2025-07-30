@@ -1,5 +1,5 @@
 // Variables
-$primary-color: #28a745;
+$primary-color: #6aaa6d;
 $secondary-color: #6c757d;
 $light-bg: #f8f9fa;
 $border-color: #dee2e6;
@@ -12,7 +12,7 @@ $white: #ffffff;
   background-color: $light-bg;
   padding-top: 130px; // Increased top padding to prevent navbar overlap
   padding-bottom: 2rem;
-  
+
   .my-progress-container {
     max-width: 1200px;
     margin: 0 auto;
@@ -55,7 +55,7 @@ $white: #ffffff;
     font-size: 1.2rem;
     color: inherit;
     opacity: 0.7;
-    
+
     &:hover {
       opacity: 1;
     }
@@ -96,7 +96,8 @@ $white: #ffffff;
 }
 
 // Form styles
-.form-control, .form-select {
+.form-control,
+.form-select {
   border: 2px solid $border-color;
   border-radius: 8px;
   padding: 0.75rem;
@@ -127,13 +128,21 @@ $white: #ffffff;
   font-size: 0.9rem;
 
   &-success {
-    background: linear-gradient(135deg, $primary-color, darken($primary-color, 8%));
+    background: linear-gradient(
+      135deg,
+      $primary-color,
+      darken($primary-color, 8%)
+    );
     border-color: $primary-color;
     color: $white;
     box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
 
     &:hover {
-      background: linear-gradient(135deg, darken($primary-color, 8%), darken($primary-color, 15%));
+      background: linear-gradient(
+        135deg,
+        darken($primary-color, 8%),
+        darken($primary-color, 15%)
+      );
       transform: translateY(-2px);
       box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
     }
@@ -167,7 +176,11 @@ $white: #ffffff;
   overflow: hidden;
 
   .progress-bar {
-    background: linear-gradient(90deg, $primary-color, lighten($primary-color, 10%));
+    background: linear-gradient(
+      90deg,
+      $primary-color,
+      lighten($primary-color, 10%)
+    );
     border-radius: 6px;
     transition: width 0.6s ease;
   }
@@ -254,7 +267,7 @@ $white: #ffffff;
 @media (max-width: 768px) {
   .my-progress-wrapper {
     padding-top: 110px; // Increased top padding for mobile
-    
+
     .my-progress-container {
       padding: 0 0.5rem;
     }
@@ -267,7 +280,7 @@ $white: #ffffff;
   .btn {
     width: 100%;
     margin-bottom: 0.75rem;
-    
+
     &:last-child {
       margin-bottom: 0;
     }
@@ -280,7 +293,7 @@ $white: #ffffff;
   .footer {
     margin-top: 2rem;
     padding: 2rem 0 1rem;
-    
+
     .social-icons {
       gap: 1.5rem;
     }
@@ -291,18 +304,18 @@ $white: #ffffff;
   .my-progress-wrapper {
     padding-top: 100px; // Increased for small mobile
   }
-  
+
   .card {
     .card-header {
       padding: 1rem;
       font-size: 1rem;
     }
-    
+
     .card-body {
       padding: 1rem;
     }
   }
-  
+
   .btn {
     padding: 0.6rem 1rem;
     font-size: 0.85rem;
@@ -326,7 +339,10 @@ $white: #ffffff;
 }
 
 // Hover effects
-.card, .btn, .form-control, .form-select {
+.card,
+.btn,
+.form-control,
+.form-select {
   &:hover {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
@@ -346,4 +362,60 @@ $white: #ffffff;
 
 .alert {
   animation: fadeIn 0.3s ease-in-out;
-} 
+}
+
+// Modal xác nhận hủy kế hoạch
+.confirm-delete-modal .modal-content {
+  border-radius: 16px;
+  border: 2px solid #dc3545;
+  box-shadow: 0 8px 32px rgba(220, 53, 69, 0.15);
+  animation: fadeIn 0.4s;
+}
+.confirm-delete-modal .modal-header {
+  background: #fff0f1;
+  border-bottom: none;
+  border-radius: 16px 16px 0 0;
+}
+.confirm-delete-modal .modal-title {
+  color: #dc3545;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.confirm-delete-modal .modal-body {
+  color: #dc3545;
+  font-size: 1.1rem;
+  text-align: center;
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
+}
+.confirm-delete-modal .modal-footer {
+  border-top: none;
+  justify-content: center;
+  padding-bottom: 2rem;
+}
+.confirm-delete-modal .btn-danger {
+  background: linear-gradient(135deg, #dc3545, #b52a37);
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  padding: 0.75rem 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.15);
+  transition:
+    background 0.2s,
+    box-shadow 0.2s;
+}
+.confirm-delete-modal .btn-danger:hover {
+  background: linear-gradient(135deg, #b52a37, #dc3545);
+  box-shadow: 0 4px 16px rgba(220, 53, 69, 0.25);
+}
+.confirm-delete-modal .btn-secondary {
+  border-radius: 8px;
+  padding: 0.75rem 2rem;
+}
+.confirm-delete-modal .modal-title .bi-exclamation-triangle {
+  font-size: 1.5rem;
+  color: #dc3545;
+  margin-right: 0.5rem;
+}

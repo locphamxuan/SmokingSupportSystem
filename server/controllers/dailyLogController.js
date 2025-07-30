@@ -1,4 +1,5 @@
 const { sql } = require('../db');
+const { checkAndAwardBadges } = require('../utils/badgeManager');
 
 // Test endpoint to check database connection
 exports.testConnection = async (req, res) => {
@@ -149,25 +150,11 @@ exports.addDailyLog = async (req, res) => {
       console.log('[addDailyLog] Inserted new log with ID:', logId);
     }
 
-    // Check for badge achievements based on smoking progress
-    const newBadges = [];
-    let currentStreak = 0;
+    // Check for badge achievements based on smoking progress using enhanced badge system
+    const badgeResult = await checkAndAwardBadges(userId);
+    const { newBadges, currentStreak } = badgeResult;
+    
     try {
-      // Get consecutive days without smoking (streak calculation)
-      const recentLogs = await sql.query`
-        SELECT Cigarettes, LogDate FROM SmokingDailyLog 
-        WHERE UserId = ${userId} 
-        ORDER BY LogDate DESC
-      `;
-      console.log('[DEBUG] recentLogs:', recentLogs.recordset);
-      for (const log of recentLogs.recordset) {
-        if (Number(log.Cigarettes) === 0) {
-          currentStreak++;
-        } else {
-          break;
-        }
-      }
-      console.log('[DEBUG] currentStreak:', currentStreak);
       // Award badges based on streak
       const streakChecks = [
         { days: 60, badgeId: 7 },

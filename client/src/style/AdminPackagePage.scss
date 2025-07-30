@@ -13,7 +13,7 @@
   form {
     background: #fff;
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     padding: 24px 16px 8px 16px;
     margin-bottom: 32px;
     .form-label {
@@ -37,8 +37,9 @@
     background: #fff;
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    th, td {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    th,
+    td {
       vertical-align: middle;
       font-size: 15px;
       white-space: pre-line;
@@ -86,4 +87,4 @@
       opacity: 0.92;
     }
   }
-} 
+}

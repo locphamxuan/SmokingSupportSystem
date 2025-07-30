@@ -8,6 +8,7 @@ const messageRoutes = require('./routes/messageRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const userRoutes = require('./routes/userRoutes');
 require('dotenv').config();
+const { sendDailyNotifications, sendWeeklyNotifications } = require('./utils/notificationScheduler');
 const { connectDB } = require('./db');
 const coachRoutes = require('./routes/coachRoutes');
 const bookingController = require('./controllers/bookingController');
@@ -17,6 +18,7 @@ const swaggerDocument = YAML.load('./swagger.yaml');
 const jwt = require('jsonwebtoken');
 const { sql } = require('./db');
 const messageController = require('./controllers/messageController');
+const checkVipStatus = require('./middlewares/checkVipStatus');
 
 const app = express();
 const server = http.createServer(app);
@@ -27,9 +29,15 @@ const io = socketIo(server, {
   }
 });
 
+// Initialize notifications
+sendDailyNotifications();
+sendWeeklyNotifications();
+
 // Middleware
 app.use(cors());
 app.use(express.json());
+// Thêm middleware kiểm tra VIP status
+app.use(checkVipStatus);
 
 // Connect to database
 connectDB();
@@ -111,4 +119,4 @@ io.on('connection', (socket) => {
 
 server.listen(5000, () => {
   console.log('Server is running on port 5000');
-}); 
+});

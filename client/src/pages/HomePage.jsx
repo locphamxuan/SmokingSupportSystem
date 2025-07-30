@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from '../contexts/AuthContext.jsx';
+import { useAuth } from "../contexts/AuthContext.jsx";
 import "../style/HomePage.scss";
 import solutionsRightImage from "../assets/images/anh3.jpg";
 import stepsLeftImage from "../assets/images/anh4.jpg";
@@ -20,7 +20,7 @@ const HomePage = () => {
   const { user, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(true);
 
-  console.log('HomePage render:', { user, isAuthenticated });
+  console.log("HomePage render:", { user, isAuthenticated });
 
   const slides = [
     {
@@ -33,7 +33,8 @@ const HomePage = () => {
     {
       id: 2,
       title: "Bắt đầu cuộc sống mới không thuốc lá",
-      subtitle: "Chúng tôi sẽ đồng hành cùng bạn trên con đường cai nghiện thành công.",
+      subtitle:
+        "Chúng tôi sẽ đồng hành cùng bạn trên con đường cai nghiện thành công.",
       image: backgroundhomepage,
     },
   ];
@@ -75,7 +76,7 @@ const HomePage = () => {
   }, []);
 
   const handleNavigation = (path) => {
-    console.log('HomePage navigation to:', path);
+    console.log("HomePage navigation to:", path);
     navigate(path);
   };
 
@@ -95,9 +96,7 @@ const HomePage = () => {
         {slides.map((slide, index) => (
           <div
             key={slide.id}
-            className={`hero-slide ${
-              index === currentSlide ? "active" : ""
-            }`}
+            className={`hero-slide ${index === currentSlide ? "active" : ""}`}
           >
             <div className="hero-left-content">
               <div className="container">

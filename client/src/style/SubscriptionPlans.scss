@@ -1,5 +1,5 @@
 // Variables
-$primary-color: #4CAF50;
+$primary-color: #4caf50;
 $secondary-color: #f39c12;
 $text-color: #333;
 $light-text: #666;
@@ -8,10 +8,18 @@ $background-light: #f8f9fa;
 $white: #ffffff;
 $success-color: #28a745;
 $warning-color: #ffc107;
-$premium-gradient: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+$premium-gradient: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
 $free-gradient: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-$premium-button-gradient: linear-gradient(45deg, $primary-color 0%, darken($primary-color, 10%) 100%);
-$premium-button-hover-gradient: linear-gradient(45deg, darken($primary-color, 10%) 0%, darken($primary-color, 20%) 100%);
+$premium-button-gradient: linear-gradient(
+  45deg,
+  $primary-color 0%,
+  darken($primary-color, 10%) 100%
+);
+$premium-button-hover-gradient: linear-gradient(
+  45deg,
+  darken($primary-color, 10%) 0%,
+  darken($primary-color, 20%) 100%
+);
 
 // Mixins
 @mixin flex-center {
@@ -43,7 +51,9 @@ $premium-button-hover-gradient: linear-gradient(45deg, darken($primary-color, 10
   padding: 2rem;
   height: 100%;
 
-  h4, h3, p {
+  h4,
+  h3,
+  p {
     color: $white;
   }
 
@@ -59,7 +69,9 @@ $premium-button-hover-gradient: linear-gradient(45deg, darken($primary-color, 10
   padding: 2rem;
   height: 100%;
 
-  h4, h3, p {
+  h4,
+  h3,
+  p {
     color: $text-color;
   }
 
@@ -79,7 +91,10 @@ $premium-button-hover-gradient: linear-gradient(45deg, darken($primary-color, 10
     padding: 5rem 0;
   }
 
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     color: $text-color;
     margin-bottom: 1rem;
   }
@@ -114,7 +129,7 @@ $premium-button-hover-gradient: linear-gradient(45deg, darken($primary-color, 10
       padding: 3rem 2rem;
       border-radius: 20px;
       @include card-shadow;
-      background: linear-gradient(135deg, #8BC34A 0%, #689F38 100%);
+      background: linear-gradient(135deg, #8bc34a 0%, #689f38 100%);
 
       .fa-award {
         color: $white;
@@ -147,12 +162,12 @@ $premium-button-hover-gradient: linear-gradient(45deg, darken($primary-color, 10
 
       .btn {
         @include button-base;
-        background-color: #689F38;
-        border-color: #689F38;
+        background-color: #689f38;
+        border-color: #689f38;
         color: $white;
         &:hover {
-          background-color: darken(#689F38, 10%) !important;
-          border-color: darken(#689F38, 10%) !important;
+          background-color: darken(#689f38, 10%) !important;
+          border-color: darken(#689f38, 10%) !important;
           transform: scale(1.05);
         }
       }
@@ -174,13 +189,15 @@ $premium-button-hover-gradient: linear-gradient(45deg, darken($primary-color, 10
 
     // Premium Plan Card
     .col-12.col-md-6.col-lg-5:last-child .card {
-      background: linear-gradient(135deg, #A5D6A7 0%, #81C784 100%);
+      background: linear-gradient(135deg, #a5d6a7 0%, #81c784 100%);
       border: 2px solid $primary-color;
       @include card-shadow;
       padding: 2rem;
       height: 100%;
 
-      h4, h3, p {
+      h4,
+      h3,
+      p {
         color: $text-color;
       }
 
@@ -280,4 +297,4 @@ $premium-button-hover-gradient: linear-gradient(45deg, darken($primary-color, 10
       }
     }
   }
-} 
+}

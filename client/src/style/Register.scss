@@ -1,5 +1,5 @@
 // Import FontAwesome for icons (make sure it's included in your project)
-@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
+@import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css");
 
 .modern-auth-wrapper {
   background: linear-gradient(135deg, #28a745 0%, #20c997 50%, #17a2b8 100%);
@@ -8,7 +8,7 @@
   justify-content: center;
   align-items: center;
   padding: 20px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .auth-form-container {
@@ -23,7 +23,7 @@
   overflow: hidden;
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
@@ -94,7 +94,7 @@
     letter-spacing: 0.5px;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-family: 'Arial', sans-serif;
+    font-family: "Arial", sans-serif;
 
     &:hover {
       color: #fff;
@@ -107,7 +107,7 @@
       box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
 
       &::after {
-        content: '';
+        content: "";
         position: absolute;
         bottom: -8px;
         left: 50%;
@@ -162,7 +162,7 @@
       color: #e2e8f0;
       font-size: 13px; // Slightly smaller font
       font-weight: 500;
-      font-family: 'Arial', sans-serif;
+      font-family: "Arial", sans-serif;
       letter-spacing: 0.5px;
       transition: all 0.3s ease;
 
@@ -170,7 +170,7 @@
         color: #718096;
         font-size: 11px; // Smaller placeholder
         letter-spacing: 1px;
-        font-family: 'Arial', sans-serif;
+        font-family: "Arial", sans-serif;
       }
 
       &:focus {
@@ -203,7 +203,7 @@
     color: white;
     font-size: 14px;
     font-weight: 600;
-    font-family: 'Arial', sans-serif;
+    font-family: "Arial", sans-serif;
     letter-spacing: 0.5px;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -212,13 +212,18 @@
     margin-top: 10px;
 
     &::before {
-      content: '';
+      content: "";
       position: absolute;
       top: 0;
       left: -100%;
       width: 100%;
       height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+      );
       transition: left 0.5s;
     }
 
@@ -262,7 +267,7 @@
     margin-top: 25px;
     color: #718096;
     font-size: 13px;
-    font-family: 'Arial', sans-serif;
+    font-family: "Arial", sans-serif;
 
     span {
       color: #718096;
@@ -283,9 +288,21 @@
   }
 }
 
+// Thêm style cho form-check-label
+.form-check {
+  .form-check-label {
+    color: #ffffff; // Thêm màu trắng cho text
+    font-size: 14px;
+  }
+}
+
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 // Responsive design
@@ -307,7 +324,7 @@
   .user-avatar .avatar-circle {
     width: 60px;
     height: 60px;
-    
+
     i {
       font-size: 25px;
     }
@@ -321,7 +338,7 @@
   .register-form {
     .form-group {
       margin-bottom: 15px;
-      
+
       .form-input {
         padding: 12px;
         font-size: 12px;
@@ -352,5 +369,3 @@
     font-size: 11px;
   }
 }
-
-

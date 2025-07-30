@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from "react";
 
 // Tạo Context
 const AuthContext = createContext();
@@ -7,7 +7,7 @@ const AuthContext = createContext();
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
@@ -22,22 +22,25 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initializeAuth = () => {
       try {
-        const storedToken = localStorage.getItem('token');
-        const storedUser = localStorage.getItem('user');
-        
-        console.log('Initializing auth with:', { storedToken: !!storedToken, storedUser });
-        
-        if (storedToken && storedUser && storedUser !== 'undefined') {
+        const storedToken = localStorage.getItem("token");
+        const storedUser = localStorage.getItem("user");
+
+        console.log("Initializing auth with:", {
+          storedToken: !!storedToken,
+          storedUser,
+        });
+
+        if (storedToken && storedUser && storedUser !== "undefined") {
           const parsedUser = JSON.parse(storedUser);
-          console.log('Parsed user:', parsedUser);
+          console.log("Parsed user:", parsedUser);
           setToken(storedToken);
           setUser(parsedUser);
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error("Error initializing auth:", error);
         // Xóa dữ liệu lỗi
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
       } finally {
         setLoading(false);
       }
@@ -49,21 +52,21 @@ export const AuthProvider = ({ children }) => {
   // Hàm login
   const login = (userData, userToken) => {
     try {
-      console.log('Login called with:', { userData, userToken: !!userToken });
-      localStorage.setItem('token', userToken);
-      localStorage.setItem('user', JSON.stringify(userData));
+      console.log("Login called with:", { userData, userToken: !!userToken });
+      localStorage.setItem("token", userToken);
+      localStorage.setItem("user", JSON.stringify(userData));
       setToken(userToken);
       setUser(userData);
     } catch (error) {
-      console.error('Error during login:', error);
+      console.error("Error during login:", error);
     }
   };
 
   // Hàm logout
   const logout = () => {
-    console.log('Logout called');
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    console.log("Logout called");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
     setToken(null);
     setUser(null);
   };
@@ -71,18 +74,23 @@ export const AuthProvider = ({ children }) => {
   // Hàm cập nhật thông tin user
   const updateUser = (updatedUser) => {
     try {
-      console.log('Update user called with:', updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      console.log("Update user called with:", updatedUser);
+      localStorage.setItem("user", JSON.stringify(updatedUser));
       setUser(updatedUser);
     } catch (error) {
-      console.error('Error updating user:', error);
+      console.error("Error updating user:", error);
     }
   };
 
   // Kiểm tra xem user có đăng nhập không
   const isAuthenticated = !!token && !!user;
-  
-  console.log('Auth state:', { isAuthenticated, user: !!user, token: !!token, loading });
+
+  console.log("Auth state:", {
+    isAuthenticated,
+    user: !!user,
+    token: !!token,
+    loading,
+  });
 
   // Kiểm tra role
   const hasRole = (roles) => {
@@ -101,12 +109,8 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     updateUser,
-    hasRole
+    hasRole,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
-}; 
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};

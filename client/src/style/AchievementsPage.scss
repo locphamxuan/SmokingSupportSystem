@@ -48,7 +48,7 @@
 
       &.locked {
         opacity: 0.7;
-        
+
         .badge-image {
           filter: grayscale(100%);
         }
@@ -148,11 +148,11 @@
   .badge {
     font-size: 1rem;
     padding: 0.5rem 1rem;
-    
+
     &.badge-primary {
       background: #0d6efd;
     }
-    
+
     &.badge-success {
       background: #198754;
     }
@@ -192,7 +192,7 @@
     color: white;
     text-align: center;
     margin-bottom: 2rem;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
 
   .badges-grid {
@@ -204,20 +204,20 @@
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
-    
+
     &::-webkit-scrollbar {
       height: 8px;
     }
-    
+
     &::-webkit-scrollbar-track {
       background: #f1f1f1;
       border-radius: 4px;
     }
-    
+
     &::-webkit-scrollbar-thumb {
       background: #888;
       border-radius: 4px;
-      
+
       &:hover {
         background: #555;
       }
@@ -237,8 +237,8 @@
   overflow: hidden;
 
   &.earned {
-    background: linear-gradient(135deg, #FFD700 0%, #FFA000 100%);
-    border: 3px solid #FFD700;
+    background: linear-gradient(135deg, #ffd700 0%, #ffa000 100%);
+    border: 3px solid #ffd700;
     box-shadow: 0 12px 25px rgba(255, 215, 0, 0.4);
     color: white;
 
@@ -251,12 +251,12 @@
   &.locked {
     background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
     border: 2px solid #e2e8f0;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
     color: #475569;
 
     &:hover {
       transform: translateY(-5px);
-      box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
     }
 
     .lock-overlay {
@@ -266,7 +266,7 @@
       transform: translate(-50%, -50%);
       width: 90px;
       height: 90px;
-      background-color: rgba(0,0,0,0.7);
+      background-color: rgba(0, 0, 0, 0.7);
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -316,7 +316,7 @@
 
   .award-date {
     font-size: 0.75rem;
-    color: rgba(255,255,255,0.9);
+    color: rgba(255, 255, 255, 0.9);
     font-weight: 500;
   }
 }
@@ -327,15 +327,15 @@
   display: inline-block;
   margin: 4px;
   background: transparent;
-  
+
   img {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     background: transparent;
-    
+
     &.badge-animated {
       animation: pulse 2s infinite;
     }
-    
+
     &:hover {
       filter: brightness(1.1) drop-shadow(0 0 20px rgba(255, 215, 0, 0.8)) !important;
     }
@@ -355,7 +355,8 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -364,7 +365,8 @@
 }
 
 @keyframes sparkle {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0;
     transform: scale(0);
   }
@@ -381,4 +383,4 @@
   100% {
     transform: translateX(100%) translateY(100%) rotate(45deg);
   }
-} 
+}

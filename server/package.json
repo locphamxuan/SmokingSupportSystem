@@ -4,24 +4,30 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "dev": "nodemon app.js"
+    "dev": "nodemon app.js",
+    "test": "jest"
   },
   "dependencies": {
-    "axios": "^1.9.0",
+    "axios": "^1.11.0",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^4.21.2",
     "express-rate-limit": "^7.5.0",
+    "googleapis": "^154.1.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.0",
     "mssql": "^11.0.1",
     "node-cron": "^4.1.1",
+    "node-schedule": "^2.1.1",
+    "nodemailer": "^7.0.5",
     "react-script": "^2.0.5",
     "socket.io": "^4.8.1",
     "swagger-ui-express": "^5.0.1",
     "yamljs": "^0.3.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "jest": "^30.0.5",
+    "nodemon": "^3.1.10",
+    "supertest": "^7.1.4"
   }
 }

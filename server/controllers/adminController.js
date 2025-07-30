@@ -433,75 +433,71 @@ const adminController = {
 
     getStatistics: async (req, res) => {
         try {
-            // Tổng số người dùng, coach, member, guest (giữ nguyên)
-            const totalUsers = await sql.query`SELECT COUNT(*) as count FROM Users`;
-            const totalCoaches = await sql.query`SELECT COUNT(*) as count FROM Users WHERE Role = 'coach'`;
-            const totalMembers = await sql.query`SELECT COUNT(*) as count FROM Users WHERE IsMemberVip = 1`;
-            const totalGuests = await sql.query`SELECT COUNT(*) as count FROM Users WHERE Role = 'guest'`;
-
-            // Tổng số ngày không hút thuốc (Cigarettes = 0)
-            const smokeFreeDaysResult = await sql.query`
-                SELECT COUNT(*) as count FROM SmokingDailyLog WHERE Cigarettes = 0
+            // 1. User Statistics
+            const userStats = await sql.query`
+                SELECT 
+                    (SELECT COUNT(*) FROM Users) as totalUsers,
+                    (SELECT COUNT(*) FROM Users WHERE Role = 'coach' AND IsCoachApproved = 1) as activeCoaches,
+                    (SELECT COUNT(*) FROM Users WHERE IsMemberVip = 1) as vipMembers
             `;
-            const totalSmokeFreeDays = smokeFreeDaysResult.recordset[0].count || 0;
 
-            // Tổng số tiền tiết kiệm (SavedMoney)
-            const moneySavedResult = await sql.query`
-                SELECT SUM(SavedMoney) as total FROM SmokingDailyLog
+            // 2. Booking Revenue Statistics 
+            const bookingStats = await sql.query`
+                SELECT 
+                    COUNT(*) as totalBookings,
+                    SUM(CASE WHEN b.Status = N'đã thanh toán' THEN 1 ELSE 0 END) as completedBookings,
+                    ISNULL(SUM(CASE WHEN b.Status = N'đã thanh toán' THEN b.Price ELSE 0 END), 0) +
+                    ISNULL(SUM(CASE WHEN bc.Status = N'đã thanh toán' THEN bc.Price ELSE 0 END), 0) as totalRevenue
+                FROM Booking b
+                LEFT JOIN Booking_Coach bc ON 1=1
             `;
-            const totalMoneySaved = moneySavedResult.recordset[0].total || 0;
 
-            // Tổng số tiền đã nhận được (chỉ các thanh toán thành công)
-            // BookingPayment: Amount, Status = 'thành công'
-            const receivedResult = await sql.query`
-                SELECT SUM(Amount) as total FROM BookingPayment WHERE Status = N'thành công'
+            // 3. Membership Revenue Statistics
+            const membershipStats = await sql.query`
+                SELECT 
+                    COUNT(DISTINCT u.Id) as totalVipMembers,
+                    ISNULL(SUM(mp.Price), 0) as totalRevenue
+                FROM Users u
+                JOIN MembershipPackages mp ON u.IsMemberVip = 1
             `;
-            const totalReceived = receivedResult.recordset[0].total || 0;
 
-            // Thống kê theo ngày (7 ngày gần nhất)
-            const dailyStatsResult = await sql.query`
-                SELECT TOP 7 LogDate as date,
-                    SUM(CASE WHEN Cigarettes = 0 THEN 1 ELSE 0 END) as smokeFreeDays,
-                    SUM(SavedMoney) as moneySaved
-                FROM SmokingDailyLog
-                GROUP BY LogDate
-                ORDER BY LogDate DESC
+            // 4. Content Statistics
+            const contentStats = await sql.query`
+                SELECT 
+                    (SELECT COUNT(*) FROM Posts WHERE Status = N'published') as posts,
+                    (SELECT COUNT(*) FROM Comments) as comments
             `;
-            const dailyStats = dailyStatsResult.recordset.map(row => ({
-                date: row.date,
-                smokeFreeDays: row.smokeFreeDays,
-                moneySaved: row.moneySaved || 0
-            })).reverse(); // Đảo ngược để ngày cũ lên trước
 
-            // Thống kê theo tháng (6 tháng gần nhất)
-            const monthlyStatsResult = await sql.query`
-                SELECT FORMAT(LogDate, 'yyyy-MM') as month,
-                    SUM(CASE WHEN Cigarettes = 0 THEN 1 ELSE 0 END) as smokeFreeDays,
-                    SUM(SavedMoney) as moneySaved
-                FROM SmokingDailyLog
-                GROUP BY FORMAT(LogDate, 'yyyy-MM')
-                ORDER BY month DESC
-            `;
-            const monthlyStats = monthlyStatsResult.recordset.map(row => ({
-                month: row.month,
-                smokeFreeDays: row.smokeFreeDays,
-                moneySaved: row.moneySaved || 0
-            })).reverse();
+            // Format response
+            const statistics = {
+                userStats: {
+                    totalUsers: userStats.recordset[0]?.totalUsers || 0,
+                    activeCoaches: userStats.recordset[0]?.activeCoaches || 0,
+                    vipMembers: userStats.recordset[0]?.vipMembers || 0
+                },
+                bookingStats: {
+                    totalBookings: bookingStats.recordset[0]?.totalBookings || 0,
+                    completedBookings: bookingStats.recordset[0]?.completedBookings || 0,
+                    totalRevenue: bookingStats.recordset[0]?.totalRevenue || 0
+                },
+                membershipStats: {
+                    totalVipMembers: membershipStats.recordset[0]?.totalVipMembers || 0,
+                    totalRevenue: membershipStats.recordset[0]?.totalRevenue || 0
+                },
+                contentStats: {
+                    posts: contentStats.recordset[0]?.posts || 0,
+                    comments: contentStats.recordset[0]?.comments || 0
+                }
+            };
 
-            res.json({
-                totalUsers: totalUsers.recordset[0].count,
-                totalCoaches: totalCoaches.recordset[0].count,
-                totalMembers: totalMembers.recordset[0].count,
-                totalGuests: totalGuests.recordset[0].count,
-                totalSmokeFreeDays,
-                totalMoneySaved,
-                totalReceived,
-                dailyStats,
-                monthlyStats
-            });
+            return res.status(200).json(statistics);
+
         } catch (error) {
-            console.error('Statistics error:', error);
-            res.status(500).json({ message: 'Error getting statistics', error: error.message });
+            console.error('Statistics Error:', error);
+            return res.status(500).json({
+                message: 'Lỗi khi lấy thống kê',
+                error: error.message
+            });
         }
     },
 

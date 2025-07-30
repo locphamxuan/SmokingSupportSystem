@@ -356,6 +356,66 @@ components:
         updatedAt:
           type: string
           format: date-time
+    
+    SuggestedQuitPlanStage:
+      type: object
+      properties:
+        id:
+          type: integer
+        suggestedPlanId:
+          type: integer
+        stageName:
+          type: string
+        objective:
+          type: string
+        stageOrder:
+          type: integer
+        initialCigarettes:
+          type: integer
+        targetCigarettes:
+          type: integer
+        description:
+          type: string
+    
+    UserQuitPlanStage:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: "Auto-generated unique identifier for the user's quit plan stage"
+        quitPlanId:
+          type: integer
+          description: "Reference to the associated quit plan"
+        stageName:
+          type: string
+          description: "Name of the stage (copied from suggested plan stage)"
+        objective:
+          type: string
+          description: "Objective of the stage (copied from suggested plan stage)"
+        initialCigarettes:
+          type: integer
+          description: "Initial cigarettes count for this stage"
+        targetCigarettes:
+          type: integer
+          description: "Target cigarettes count for this stage"
+        status:
+          type: string
+          enum: ["In Progress", "Not Started", "Completed"]
+          description: "Stage status - first stage starts as 'In Progress', others as 'Not Started'"
+        startDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: "Date when stage was started (auto-set when status changes to 'In Progress')"
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: "Date when stage was completed (auto-set when status changes to 'Completed')"
+        createdAt:
+          type: string
+          format: date-time
+          description: "Timestamp when stage was automatically created"
 
   securitySchemes:
     BearerAuth:
@@ -1317,7 +1377,19 @@ paths:
     post:
       tags:
         - Quit Plans
-      summary: Lưu kế hoạch cai thuốc mẫu mà người dùng đã chọn
+      summary: |
+        Lưu kế hoạch cai thuốc mẫu mà người dùng đã chọn với tự động tạo stages
+        
+        **Automatic Stage Creation Behavior:**
+        
+        1. Tạo bản ghi UserSuggestedQuitPlans với thông tin plan
+        2. Tự động tạo một QuitPlan record để làm container cho các stages
+        3. Fetch tất cả stages từ SuggestedQuitPlanStages theo suggestedPlanId
+        4. Tự động tạo UserQuitPlanStages cho mỗi stage từ suggested plan:
+           - Stage đầu tiên (StageOrder = 1) có status = "In Progress"
+           - Các stage còn lại có status = "Not Started"
+           - Copy thông tin từ SuggestedQuitPlanStages (StageName, Objective, InitialCigarettes, TargetCigarettes)
+        5. Thực hiện tất cả operations trong transaction để đảm bảo data integrity
       security:
         - BearerAuth: []
       requestBody:
@@ -1333,15 +1405,21 @@ paths:
               properties:
                 suggestedPlanId:
                   type: integer
+                  description: "ID của suggested plan template"
                 startDate:
                   type: string
                   format: date
+                  description: "Ngày bắt đầu thực hiện kế hoạch"
                 targetDate:
                   type: string
                   format: date
+                  description: "Ngày mục tiêu hoàn thành kế hoạch"
       responses:
         '200':
-          description: Lưu kế hoạch mẫu thành công
+          description: |
+            Lưu kế hoạch mẫu thành công - Tự động tạo stages
+            
+            Response bao gồm thông tin về kế hoạch đã tạo và danh sách stages được tự động sinh
           content:
             application/json:
               schema:
@@ -1349,12 +1427,27 @@ paths:
                 properties:
                   message:
                     type: string
+                    example: "Lưu kế hoạch mẫu thành công!"
+                  userSuggestedQuitPlanId:
+                    type: integer
+                    description: "ID của UserSuggestedQuitPlan vừa tạo"
+                  quitPlanId:
+                    type: integer
+                    description: "ID của QuitPlan container được tự động tạo"
+                  stages:
+                    type: array
+                    description: "Danh sách các stages được tự động tạo từ suggested plan"
+                    items:
+                      $ref: '#/components/schemas/UserQuitPlanStage'
         '400':
           description: Dữ liệu không hợp lệ
         '401':
           description: Unauthorized
         '500':
-          description: Server error
+          description: |
+            Server error - Transaction rollback được thực hiện tự động nếu có lỗi
+            
+            Nếu có lỗi trong quá trình tạo stages, toàn bộ transaction sẽ được rollback
 
   /admin/packages:
     get:

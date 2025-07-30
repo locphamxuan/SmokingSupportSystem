@@ -5,13 +5,13 @@
 
   .page-header {
     margin-bottom: 24px;
-    
+
     h2 {
       font-weight: 700;
       color: #1976d2;
       margin-bottom: 8px;
     }
-    
+
     p {
       font-size: 16px;
       margin-bottom: 0;
@@ -22,17 +22,17 @@
   .stats-card {
     border: none;
     border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     transition: transform 0.2s ease;
-    
+
     &:hover {
       transform: translateY(-2px);
     }
-    
+
     .stats-content {
       display: flex;
       align-items: center;
-      
+
       .stats-icon {
         width: 60px;
         height: 60px;
@@ -41,13 +41,13 @@
         align-items: center;
         justify-content: center;
         margin-right: 16px;
-        
+
         i {
           font-size: 24px;
           color: white;
         }
       }
-      
+
       .stats-info {
         h3 {
           font-size: 28px;
@@ -55,7 +55,7 @@
           margin-bottom: 4px;
           color: #333;
         }
-        
+
         p {
           font-size: 14px;
           color: #666;
@@ -64,15 +64,15 @@
         }
       }
     }
-    
+
     &.pending .stats-icon {
       background: linear-gradient(135deg, #ff9800, #f57c00);
     }
-    
+
     &.published .stats-icon {
       background: linear-gradient(135deg, #4caf50, #388e3c);
     }
-    
+
     &.total .stats-icon {
       background: linear-gradient(135deg, #2196f3, #1976d2);
     }
@@ -82,8 +82,8 @@
   .card {
     border: none;
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
     .card-body {
       padding: 24px;
     }
@@ -94,26 +94,26 @@
     background: white;
     border-radius: 8px;
     overflow: hidden;
-    
+
     th {
       background: #f8f9fa;
       font-weight: 600;
       color: #333;
       border-bottom: 2px solid #dee2e6;
       padding: 16px 12px;
-      
+
       &.badge-column {
         text-align: center !important;
         vertical-align: middle !important;
       }
     }
-    
+
     td {
       padding: 16px 12px;
       vertical-align: middle;
       border-bottom: 1px solid #f0f0f0;
     }
-    
+
     tbody tr:hover {
       background-color: #f8f9fa;
     }
@@ -137,7 +137,7 @@
 
   .date-display {
     text-align: center;
-    
+
     small {
       font-size: 11px;
       color: #999;
@@ -161,14 +161,14 @@
     justify-content: center;
     gap: 6px;
     min-height: 80px;
-    
+
     img {
       display: block;
       margin: 0 auto;
       border-radius: 50%;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
-    
+
     .badge-name {
       font-size: 11px;
       font-weight: 600;
@@ -180,7 +180,7 @@
       word-break: break-word;
       max-width: 120px;
     }
-    
+
     .no-badge {
       font-size: 11px;
       color: #999;
@@ -193,21 +193,26 @@
   // Badge achievement alert
   .alert-success {
     box-shadow: 0 4px 12px rgba(40, 167, 69, 0.15);
-    
+
     .fas.fa-medal {
       animation: sparkle 2s infinite;
     }
   }
 
   @keyframes sparkle {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.1);
+    }
   }
 
   .action-buttons {
     display: flex;
     gap: 4px;
-    
+
     .btn {
       width: 32px;
       height: 32px;
@@ -216,7 +221,7 @@
       align-items: center;
       justify-content: center;
       border-radius: 6px;
-      
+
       i {
         font-size: 12px;
       }
@@ -235,13 +240,13 @@
   .modal-content {
     border: none;
     border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   }
 
   .modal-header {
     border-bottom: 1px solid #f0f0f0;
     padding: 20px 24px;
-    
+
     .modal-title {
       font-weight: 600;
       color: #333;
@@ -273,26 +278,26 @@
     border: 1px solid #e9ecef;
     border-radius: 8px;
     padding: 12px;
-    
+
     .comment-item {
       padding: 8px 0;
       border-bottom: 1px solid #f0f0f0;
-      
+
       &:last-child {
         border-bottom: none;
       }
-      
+
       strong {
         color: #1976d2;
         font-size: 14px;
       }
-      
+
       p {
         margin: 4px 0 0 0;
         font-size: 14px;
         line-height: 1.4;
       }
-      
+
       small {
         font-size: 12px;
       }
@@ -305,7 +310,7 @@
     border: 1px solid #ddd;
     padding: 8px 12px;
     font-size: 14px;
-    
+
     &:focus {
       border-color: #1976d2;
       box-shadow: 0 0 0 0.2rem rgba(25, 118, 210, 0.25);
@@ -323,11 +328,11 @@
     border-radius: 8px;
     font-weight: 500;
     padding: 8px 16px;
-    
+
     &.btn-outline-secondary {
       border-color: #ddd;
       color: #666;
-      
+
       &:hover {
         background: #f8f9fa;
         border-color: #ccc;
@@ -338,17 +343,17 @@
   // Responsive
   @media (max-width: 768px) {
     padding: 16px;
-    
+
     .stats-card .stats-content {
       flex-direction: column;
       text-align: center;
-      
+
       .stats-icon {
         margin-right: 0;
         margin-bottom: 12px;
       }
     }
-    
+
     .post-title {
       max-width: 150px;
     }
@@ -357,10 +362,10 @@
       max-width: 200px;
       font-size: 12px;
     }
-    
+
     .action-buttons {
       flex-direction: column;
       gap: 2px;
     }
   }
-} 
+}

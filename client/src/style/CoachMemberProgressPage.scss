@@ -4,7 +4,7 @@ html {
 }
 
 body {
-  font-family: 'Roboto', sans-serif;
+  font-family: "Roboto", sans-serif;
   line-height: 1.6;
   color: #333;
   -webkit-font-smoothing: antialiased;
@@ -23,7 +23,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: 'Montserrat', sans-serif;
+  font-family: "Montserrat", sans-serif;
   margin-bottom: 0.5em;
   line-height: 1.2;
 }
@@ -44,7 +44,7 @@ h2 {
 h3 {
   font-size: 2rem;
   font-weight: 600;
-  color: #4CAF50;
+  color: #4caf50;
   margin-bottom: 30px;
 }
 
@@ -110,7 +110,7 @@ p {
 }
 
 .card-header {
-  background-color: #4CAF50; /* Green header */
+  background-color: #4caf50; /* Green header */
   color: white;
   font-weight: 700;
   padding: 15px 20px;
@@ -158,9 +158,9 @@ p {
 }
 
 .btn-primary {
-  background-color: #4CAF50; /* Green color from homepage */
+  background-color: #4caf50; /* Green color from homepage */
   color: white;
-  border: 1px solid #4CAF50;
+  border: 1px solid #4caf50;
 
   &:hover {
     background-color: #45a049;
@@ -223,4 +223,4 @@ p {
     font-size: 0.9rem;
     color: #777;
   }
-} 
+}

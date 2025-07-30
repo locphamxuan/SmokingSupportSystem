@@ -1,18 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   getAdminPackages,
   createAdminPackage,
   updateAdminPackage,
-  deleteAdminPackage
-} from '../services/adminService';
-import '../style/AdminPackagePage.scss';
+  deleteAdminPackage,
+} from "../services/adminService";
+import "../style/AdminPackagePage.scss";
 
 const initialForm = {
-  name: '',
-  description: '',
-  price: '',
-  durationInDays: '',
-  features: ''
+  name: "",
+  description: "",
+  price: "",
+  durationInDays: "",
+  features: "",
 };
 
 const AdminPackagePage = () => {
@@ -20,7 +20,7 @@ const AdminPackagePage = () => {
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const fetchPackages = async () => {
     setLoading(true);
@@ -28,7 +28,7 @@ const AdminPackagePage = () => {
       const data = await getAdminPackages();
       setPackages(data);
     } catch (err) {
-      setError('Không thể tải danh sách gói');
+      setError("Không thể tải danh sách gói");
     }
     setLoading(false);
   };
@@ -41,58 +41,83 @@ const AdminPackagePage = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  // Sửa lại handleSubmit
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
     try {
-      const featuresArr = form.features
-        ? form.features.split('\n').map(f => f.trim()).filter(f => f)
-        : [];
-      if (editingId) {
-        await updateAdminPackage(editingId, {
-          ...form,
-          price: Number(form.price),
-          durationInDays: Number(form.durationInDays),
-          features: featuresArr
-        });
+      let packageData = {
+        ...form,
+        price: Number(form.price || 0),
+      };
+
+      // Xử lý đặc biệt cho gói thường
+      if (form.name === "Gói Thường" || packageData.name === "Gói Thường") {
+        packageData = {
+          ...packageData,
+          durationInDays: -1,
+          price: 0,
+          features: [
+            "Truy cập blog chia sẻ cộng đồng",
+            "Tự tạo kế hoạch cai thuốc cho riêng mình",
+            "Trao thành tích khi đạt mốc",
+          ],
+        };
       } else {
-        await createAdminPackage({
-          ...form,
-          price: Number(form.price),
-          durationInDays: Number(form.durationInDays),
-          features: featuresArr
-        });
+        // Xử lý cho các gói khác
+        packageData.features = packageData.features
+          ? typeof packageData.features === "string"
+            ? packageData.features.split("\n")
+            : packageData.features
+          : [];
+        packageData.durationInDays = Number(packageData.durationInDays);
       }
+
+      setLoading(true);
+      setError("");
+
+      if (editingId) {
+        await updateAdminPackage(editingId, packageData);
+      } else {
+        await createAdminPackage(packageData);
+      }
+
       setForm(initialForm);
       setEditingId(null);
       fetchPackages();
     } catch (err) {
-      setError('Lỗi khi lưu gói');
+      console.error("Error saving package:", err);
+      setError("Lỗi khi lưu gói: " + (err.message || "Không xác định"));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
+  // Sửa lại handleEdit
   const handleEdit = (pkg) => {
+    // Chuyển đổi features từ mảng sang chuỗi
+    const featuresString = Array.isArray(pkg.features)
+      ? pkg.features.join("\n")
+      : pkg.features || "";
+
     setForm({
       name: pkg.name,
       description: pkg.description,
-      price: pkg.price,
-      durationInDays: pkg.durationInDays,
-      features: pkg.features ? pkg.features.join('\n') : ''
+      price: pkg.name === "Gói Thường" ? 0 : pkg.price,
+      durationInDays: pkg.name === "Gói Thường" ? -1 : pkg.durationInDays,
+      features: featuresString,
     });
     setEditingId(pkg.id);
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Bạn có chắc muốn xóa gói này?')) return;
+    if (!window.confirm("Bạn có chắc muốn xóa gói này?")) return;
     setLoading(true);
-    setError('');
+    setError("");
     try {
       await deleteAdminPackage(id);
       fetchPackages();
     } catch (err) {
-      setError('Lỗi khi xóa gói');
+      setError("Lỗi khi xóa gói");
     }
     setLoading(false);
   };
@@ -143,33 +168,49 @@ const AdminPackagePage = () => {
           </div>
           <div className="col-md-2">
             <label className="form-label">Số ngày</label>
-            <input
-              type="number"
+            <select
               className="form-control"
               name="durationInDays"
               value={form.durationInDays}
               onChange={handleChange}
               required
-              min="1"
-            />
+            >
+              <option value="">-- Chọn số ngày --</option>
+              <option value={-1}>Không giới hạn</option>
+              <option value={30}>30 ngày</option>
+            </select>
           </div>
           <div className="col-md-2">
             <label className="form-label">Tính năng</label>
             <textarea
               className="form-control"
               name="features"
-              value={form.features}
+              value={
+                form.features
+                  ? Array.isArray(form.features)
+                    ? form.features.join("\n")
+                    : form.features
+                  : ""
+              }
               onChange={handleChange}
               rows={4}
               placeholder="Nhập mỗi đặc điểm 1 dòng"
             />
           </div>
           <div className="col-md-12 mt-2">
-            <button type="submit" className="btn btn-primary me-2" disabled={loading}>
-              {editingId ? 'Cập nhật' : 'Thêm mới'}
+            <button
+              type="submit"
+              className="btn btn-primary me-2"
+              disabled={loading}
+            >
+              {editingId ? "Cập nhật" : "Thêm mới"}
             </button>
             {editingId && (
-              <button type="button" className="btn btn-secondary" onClick={handleCancel}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleCancel}
+              >
                 Hủy
               </button>
             )}
@@ -195,15 +236,21 @@ const AdminPackagePage = () => {
               <td>{pkg.name}</td>
               <td>{pkg.description}</td>
               <td>{pkg.price.toLocaleString()}</td>
-              <td>{pkg.durationInDays}</td>
+              <td>
+                {pkg.name === "Gói Thường" || pkg.durationInDays === -1
+                  ? "Không giới hạn"
+                  : pkg.durationInDays}
+              </td>
               <td>
                 <ul className="mb-0 ps-3">
                   {(Array.isArray(pkg.features)
                     ? pkg.features
-                    : String(pkg.features || '').split(/\r?\n|\\n/)
-                  ).filter(f => f.trim()).map((f, i) => (
-                    <li key={i}>{f}</li>
-                  ))}
+                    : String(pkg.features || "").split(/\r?\n|\\n/)
+                  )
+                    .filter((f) => f.trim())
+                    .map((f, i) => (
+                      <li key={i}>{f}</li>
+                    ))}
                 </ul>
               </td>
               <td>
@@ -230,4 +277,4 @@ const AdminPackagePage = () => {
   );
 };
 
-export default AdminPackagePage; 
+export default AdminPackagePage;

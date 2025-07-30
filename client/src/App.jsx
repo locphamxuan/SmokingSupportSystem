@@ -1,48 +1,63 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, Link } from 'react-router-dom';
-import { ThemeProvider, createTheme, CircularProgress, Box } from '@mui/material';
+import React, { useState } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+  Link,
+} from "react-router-dom";
+import {
+  ThemeProvider,
+  createTheme,
+  CircularProgress,
+  Box,
+} from "@mui/material";
 
 // Import AuthContext
-import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
+import { AuthProvider, useAuth } from "./contexts/AuthContext.jsx";
 
 // Import layouts
-import MainLayout from './layouts/MainLayout.jsx';
-import AdminLayout from './layouts/AdminLayout.jsx';
+import MainLayout from "./layouts/MainLayout.jsx";
+import AdminLayout from "./layouts/AdminLayout.jsx";
 
 // Import components and pages
-import Navbar from './components/Navbar.jsx'; 
-import HomePage from './pages/HomePage.jsx';
-import CommunityPage from './pages/CommunityPage.jsx'; 
-import LeaderboardPage from './pages/LeaderboardPage.jsx'; 
-import AdminUserPage from './pages/AdminUserPage.jsx';
-import AdminPostsPage from './pages/AdminPostsPage.jsx';
-import LoginPage from './pages/LoginPage.jsx';
-import Register from './pages/Register.jsx'; 
-import ProfilePage from './pages/ProfilePage.jsx';
-import MyProgressPage from './pages/MyProgressPage.jsx'; 
-import CoachDashboardPage from './pages/CoachDashboardPage.jsx'; 
-import CoachMemberProgressPage from './pages/CoachMemberProgressPage.jsx'; 
-import ChatCoachPage from './pages/ChatCoachPage.jsx'; 
-import SubscriptionPlans from './pages/SubscriptionPlans.jsx';
-import AchievementsPage from './pages/AchievementsPage.jsx'; 
-import CoachChatPage from './pages/CoachChatPage.jsx';
-import AboutPage from './pages/AboutPage.jsx';
-import BookingPage from './pages/BookingPage.jsx';
-import CreatePostPage from './pages/CreatePostPage.jsx';
-import AdminPackagePage from './pages/AdminPackagePage.jsx';
-import NotificationsPage from './pages/NotificationsPage';
-import PaymentPage from './pages/PaymentPage.jsx';
-import AdminStatisticsPage from './pages/AdminStatisticsPage.jsx';
-import ChatCoachListPage from './pages/ChatCoachListPage.jsx';
-import CoachChatListPage from './pages/CoachChatListPage.jsx';
+import Navbar from "./components/Navbar.jsx";
+import StatCard from "./components/StatCard.jsx"; // Add this import
+import HomePage from "./pages/HomePage.jsx";
+import CommunityPage from "./pages/CommunityPage.jsx";
+import LeaderboardPage from "./pages/LeaderboardPage.jsx";
+import AdminUserPage from "./pages/AdminUserPage.jsx";
+import AdminPostsPage from "./pages/AdminPostsPage.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import Register from "./pages/Register.jsx";
+import ProfilePage from "./pages/ProfilePage.jsx";
+import MyProgressPage from "./pages/MyProgressPage.jsx";
+import CoachDashboardPage from "./pages/CoachDashboardPage.jsx";
+import CoachMemberProgressPage from "./pages/CoachMemberProgressPage.jsx";
+import ChatCoachPage from "./pages/ChatCoachPage.jsx";
+import SubscriptionPlans from "./pages/SubscriptionPlans.jsx";
+import AchievementsPage from "./pages/AchievementsPage.jsx";
+import CoachChatPage from "./pages/CoachChatPage.jsx";
+import AboutPage from "./pages/AboutPage.jsx";
+import BookingPage from "./pages/BookingPage.jsx";
+import CreatePostPage from "./pages/CreatePostPage.jsx";
+import AdminPackagePage from "./pages/AdminPackagePage.jsx";
+import NotificationsPage from "./pages/NotificationsPage";
+import PaymentPage from "./pages/PaymentPage.jsx";
+import AdminStatisticsPage from "./pages/AdminStatisticsPage.jsx";
+import ChatCoachListPage from "./pages/ChatCoachListPage.jsx";
+import CoachChatListPage from "./pages/CoachChatListPage.jsx";
+import CreatePlanPage from "./pages/CreatePlanPage.jsx";
+
 
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#1976d2',
+      main: "#1976d2",
     },
     secondary: {
-      main: '#dc004e',
+      main: "#dc004e",
     },
   },
 });
@@ -53,13 +68,18 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="50vh"
+      >
         <CircularProgress />
       </Box>
     );
   }
 
-  if (!isAuthenticated) { 
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
@@ -75,39 +95,41 @@ function SidebarUser({ show, onClose, user }) {
     <div>
       {/* Overlay */}
       <div
-        className={`sidebar-user-overlay${show ? ' show' : ''}`}
+        className={`sidebar-user-overlay${show ? " show" : ""}`}
         style={{
-          position: 'fixed',
+          position: "fixed",
           top: 0,
           left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: show ? 'rgba(0,0,0,0.3)' : 'transparent',
+          width: "100vw",
+          height: "100vh",
+          background: show ? "rgba(0,0,0,0.3)" : "transparent",
           zIndex: 99998,
-          display: show ? 'block' : 'none',
+          display: show ? "block" : "none",
         }}
         onClick={onClose}
       />
       {/* Sidebar */}
       <nav
-        className={`sidebar-user bg-dark text-white d-flex flex-column p-3${show ? ' show' : ''}`}
+        className={`sidebar-user bg-dark text-white d-flex flex-column p-3${show ? " show" : ""}`}
         style={{
-          position: 'fixed',
+          position: "fixed",
           top: 0,
-          left: show ? 0 : '-260px',
+          left: show ? 0 : "-260px",
           width: 260,
-          height: '100vh',
+          height: "100vh",
           zIndex: 99999,
-          transition: 'left 0.3s',
-          boxShadow: show ? '2px 0 8px rgba(0,0,0,0.2)' : 'none',
-          display: 'block',
+          transition: "left 0.3s",
+          boxShadow: show ? "2px 0 8px rgba(0,0,0,0.2)" : "none",
+          display: "block",
         }}
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="d-flex justify-content-between align-items-center mb-4">
           <div className="sidebar-header text-center">
             <i className="bi bi-person-circle fs-1 mb-2"></i>
-            <div className="fw-bold">Xin chào, {user?.username || 'Người dùng'}</div>
+            <div className="fw-bold">
+              Xin chào, {user?.username || "Người dùng"}
+            </div>
           </div>
           <button className="btn btn-sm btn-light ms-2" onClick={onClose}>
             <i className="bi bi-x-lg"></i>
@@ -140,10 +162,13 @@ function SidebarUser({ show, onClose, user }) {
             </Link>
           </li>
           <li className="nav-item mt-4">
-            <button className="btn btn-outline-light w-100" onClick={() => {
-              localStorage.clear();
-              window.location.href = '/login';
-            }}>
+            <button
+              className="btn btn-outline-light w-100"
+              onClick={() => {
+                localStorage.clear();
+                window.location.href = "/login";
+              }}
+            >
               <i className="bi bi-box-arrow-right me-2"></i>Đăng xuất
             </button>
           </li>
@@ -155,7 +180,10 @@ function SidebarUser({ show, onClose, user }) {
 
 function UserLayout() {
   return (
-    <div className="d-flex" style={{ minHeight: '100vh', background: '#f8f9fa' }}>
+    <div
+      className="d-flex"
+      style={{ minHeight: "100vh", background: "#f8f9fa" }}
+    >
       <SidebarUser show={false} onClose={() => {}} user={null} />
       <div className="flex-grow-1">
         <Outlet />
@@ -170,7 +198,12 @@ const AppRoutes = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+      >
         <CircularProgress />
       </Box>
     );
@@ -179,8 +212,14 @@ const AppRoutes = () => {
   return (
     <Routes>
       {/* Public routes */}
-      <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} />
-      <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
+      <Route
+        path="/login"
+        element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />}
+      />
+      <Route
+        path="/register"
+        element={!isAuthenticated ? <Register /> : <Navigate to="/" />}
+      />
 
       {/* Admin routes */}
       <Route path="/admin" element={<AdminLayout />}>
@@ -188,11 +227,14 @@ const AppRoutes = () => {
         <Route path="users" element={<AdminUserPage />} />
         <Route path="posts" element={<AdminPostsPage />} />
         <Route path="packages" element={<AdminPackagePage />} />
-        <Route path="statistics" element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <AdminStatisticsPage />
-          </ProtectedRoute>
-        } />
+        <Route
+          path="statistics"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminStatisticsPage />
+            </ProtectedRoute>
+          }
+        />
       </Route>
 
       {/* Main routes */}
@@ -204,60 +246,57 @@ const AppRoutes = () => {
         <Route path="/payment" element={<PaymentPage />} />
 
         {/* Protected routes */}
-        <Route 
-          path="/profile" 
+        <Route
+          path="/profile"
           element={
-            <ProtectedRoute allowedRoles={['member', 'memberVip', 'coach', 'admin']}>
+            <ProtectedRoute
+              allowedRoles={["member", "memberVip", "coach", "admin"]}
+            >
               <ProfilePage />
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/* Member routes */}
-        <Route 
-          path="/my-progress" 
+        <Route
+          path="/my-progress"
           element={
-            <ProtectedRoute allowedRoles={['member', 'memberVip']}> 
+            <ProtectedRoute allowedRoles={["member", "memberVip"]}>
               <MyProgressPage />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/chat-coach/:coachId" 
+        <Route
+          path="/chat-coach/:coachId"
           element={
-            <ProtectedRoute allowedRoles={['member', 'memberVip']}>
+            <ProtectedRoute allowedRoles={["member", "memberVip"]}>
               <ChatCoachPage />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/chat-coach" 
+        <Route
+          path="/chat-coach"
           element={
-            <ProtectedRoute allowedRoles={['member', 'memberVip']}>
+            <ProtectedRoute allowedRoles={["member", "memberVip"]}>
               <ChatCoachListPage />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/subscribe" 
+        <Route path="/subscribe" element={<SubscriptionPlans />} />
+        <Route
+          path="/achievements"
           element={
-            <ProtectedRoute allowedRoles={['member', 'memberVip']}> 
-              <SubscriptionPlans />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/achievements" 
-          element={
-            <ProtectedRoute allowedRoles={['member', 'memberVip', 'coach', 'admin']}> 
+            <ProtectedRoute
+              allowedRoles={["member", "memberVip", "coach", "admin"]}
+            >
               <AchievementsPage />
             </ProtectedRoute>
-          } 
+          }
         />
         <Route
           path="/booking"
           element={
-            <ProtectedRoute allowedRoles={['member', 'memberVip']}>
+            <ProtectedRoute allowedRoles={["member", "memberVip"]}>
               <BookingPage />
             </ProtectedRoute>
           }
@@ -265,57 +304,65 @@ const AppRoutes = () => {
         <Route
           path="/create-post"
           element={
-            <ProtectedRoute allowedRoles={['memberVip']}>
+            <ProtectedRoute allowedRoles={["memberVip"]}>
               <CreatePostPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/create-plan"
+          element={
+            <ProtectedRoute allowedRoles={["member", "memberVip"]}>
+              <CreatePlanPage />
             </ProtectedRoute>
           }
         />
 
         {/* Coach routes */}
-        <Route 
-          path="/coach/dashboard" 
+        <Route
+          path="/coach/dashboard"
           element={
-            <ProtectedRoute allowedRoles={['coach']}>
+            <ProtectedRoute allowedRoles={["coach"]}>
               <CoachDashboardPage />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/coach/chat/:memberId" 
+        <Route
+          path="/coach/chat/:memberId"
           element={
-            <ProtectedRoute allowedRoles={['coach']}>
+            <ProtectedRoute allowedRoles={["coach"]}>
               <CoachChatPage />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/coach/member/:memberId/progress" 
+        <Route
+          path="/coach/member/:memberId/progress"
           element={
-            <ProtectedRoute allowedRoles={['coach']}>
+            <ProtectedRoute allowedRoles={["coach"]}>
               <CoachMemberProgressPage />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/coach/chat-list" 
+        <Route
+          path="/coach/chat-list"
           element={
-            <ProtectedRoute allowedRoles={['coach']}>
+            <ProtectedRoute allowedRoles={["coach"]}>
               <CoachChatListPage />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/coach/member-progress" 
+        <Route
+          path="/coach/member-progress"
           element={
-            <ProtectedRoute allowedRoles={['coach']}>
+            <ProtectedRoute allowedRoles={["coach"]}>
               <CoachMemberProgressPage />
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/* Other routes */}
         <Route path="/notifications" element={<NotificationsPage />} />
-        
+
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
@@ -341,7 +388,13 @@ function AppContent() {
   return (
     <>
       <Navbar onAvatarClick={() => setShowSidebar(true)} />
-      {isAuthenticated && <SidebarUser show={showSidebar} onClose={() => setShowSidebar(false)} user={user} />}
+      {isAuthenticated && (
+        <SidebarUser
+          show={showSidebar}
+          onClose={() => setShowSidebar(false)}
+          user={user}
+        />
+      )}
       <AppRoutes />
     </>
   );

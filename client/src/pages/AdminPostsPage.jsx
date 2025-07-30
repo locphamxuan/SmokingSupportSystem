@@ -1,52 +1,52 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   getAllPosts,
   updatePostStatus,
   deletePost,
-  getPostDetail
-} from '../services/adminService';
-import { 
-  Container, 
-  Row, 
-  Col, 
-  Card, 
-  Table, 
-  Button, 
-  Badge, 
-  Modal, 
+  getPostDetail,
+} from "../services/adminService";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Table,
+  Button,
+  Badge,
+  Modal,
   Alert,
   Spinner,
-  Form
-} from 'react-bootstrap';
-import { 
-  getStatusDisplay, 
-  getStatusValue, 
-  getStatusBadgeVariant, 
-  getStatusIcon 
-} from '../utils/statusUtils';
-import BadgeComponent from '../components/Badge';
-import '../style/AdminPostsPage.scss';
+  Form,
+} from "react-bootstrap";
+import {
+  getStatusDisplay,
+  getStatusValue,
+  getStatusBadgeVariant,
+  getStatusIcon,
+} from "../utils/statusUtils";
+import BadgeComponent from "../components/Badge";
+import "../style/AdminPostsPage.scss";
 
 const AdminPostsPage = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [selectedPost, setSelectedPost] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [postToDelete, setPostToDelete] = useState(null);
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const fetchPosts = async () => {
     setLoading(true);
-    setError('');
+    setError("");
     try {
       const data = await getAllPosts();
       setPosts(data);
     } catch (err) {
-      console.error('Error fetching posts:', err);
-      setError('Không thể tải danh sách bài viết');
+      console.error("Error fetching posts:", err);
+      setError("Không thể tải danh sách bài viết");
     }
     setLoading(false);
   };
@@ -56,46 +56,48 @@ const AdminPostsPage = () => {
   }, []);
 
   const handleStatusChange = async (postId, newStatus) => {
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
     try {
       // Convert display status to database value
       const dbStatus = getStatusValue(newStatus) || newStatus;
       await updatePostStatus(postId, dbStatus);
-      setSuccess(`Đã ${newStatus === 'published' ? 'duyệt' : 'chuyển về chờ duyệt'} bài viết thành công!`);
+      setSuccess(
+        `Đã ${newStatus === "published" ? "duyệt" : "chuyển về chờ duyệt"} bài viết thành công!`,
+      );
       fetchPosts(); // Refresh the list
     } catch (err) {
-      console.error('Error updating post status:', err);
-      setError('Lỗi khi cập nhật trạng thái bài viết');
+      console.error("Error updating post status:", err);
+      setError("Lỗi khi cập nhật trạng thái bài viết");
     }
   };
 
   const handleViewDetail = async (postId) => {
-    setError('');
+    setError("");
     try {
       const postDetail = await getPostDetail(postId);
       setSelectedPost(postDetail);
       setShowDetailModal(true);
     } catch (err) {
-      console.error('Error fetching post detail:', err);
-      setError('Không thể tải chi tiết bài viết');
+      console.error("Error fetching post detail:", err);
+      setError("Không thể tải chi tiết bài viết");
     }
   };
 
   const handleDeletePost = async () => {
     if (!postToDelete) return;
-    
-    setError('');
-    setSuccess('');
+
+    setError("");
+    setSuccess("");
     try {
       await deletePost(postToDelete.Id);
-      setSuccess('Đã xóa bài viết thành công!');
+      setSuccess("Đã xóa bài viết thành công!");
       setShowDeleteModal(false);
       setPostToDelete(null);
       fetchPosts(); // Refresh the list
     } catch (err) {
-      console.error('Error deleting post:', err);
-      setError('Lỗi khi xóa bài viết');
+      console.error("Error deleting post:", err);
+      setError("Lỗi khi xóa bài viết");
     }
   };
 
@@ -103,7 +105,7 @@ const AdminPostsPage = () => {
     const variant = getStatusBadgeVariant(status);
     const displayText = getStatusDisplay(status);
     const icon = getStatusIcon(status);
-    
+
     return (
       <Badge bg={variant}>
         <i className={`${icon} me-1`}></i>
@@ -112,13 +114,13 @@ const AdminPostsPage = () => {
     );
   };
 
-  const filteredPosts = posts.filter(post => {
-    if (statusFilter === 'all') return true;
+  const filteredPosts = posts.filter((post) => {
+    if (statusFilter === "all") return true;
     return post.Status === statusFilter;
   });
 
-  const pendingCount = posts.filter(p => p.Status === 'pending').length;
-  const publishedCount = posts.filter(p => p.Status === 'published').length;
+  const pendingCount = posts.filter((p) => p.Status === "pending").length;
+  const publishedCount = posts.filter((p) => p.Status === "published").length;
 
   return (
     <Container fluid className="admin-posts-page">
@@ -129,7 +131,9 @@ const AdminPostsPage = () => {
               <i className="fas fa-newspaper me-2"></i>
               Quản lý bài viết
             </h2>
-            <p className="text-muted">Duyệt và quản lý các bài viết từ cộng đồng</p>
+            <p className="text-muted">
+              Duyệt và quản lý các bài viết từ cộng đồng
+            </p>
           </div>
 
           {/* Statistics Cards */}
@@ -183,12 +187,12 @@ const AdminPostsPage = () => {
 
           {/* Alerts */}
           {error && (
-            <Alert variant="danger" onClose={() => setError('')} dismissible>
+            <Alert variant="danger" onClose={() => setError("")} dismissible>
               {error}
             </Alert>
           )}
           {success && (
-            <Alert variant="success" onClose={() => setSuccess('')} dismissible>
+            <Alert variant="success" onClose={() => setSuccess("")} dismissible>
               {success}
             </Alert>
           )}
@@ -203,16 +207,24 @@ const AdminPostsPage = () => {
                     <Form.Select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      style={{ width: 'auto', display: 'inline-block' }}
+                      style={{ width: "auto", display: "inline-block" }}
                     >
                       <option value="all">Tất cả ({posts.length})</option>
-                      <option value="pending">Chờ duyệt ({pendingCount})</option>
-                      <option value="published">Đã duyệt ({publishedCount})</option>
+                      <option value="pending">
+                        Chờ duyệt ({pendingCount})
+                      </option>
+                      <option value="published">
+                        Đã duyệt ({publishedCount})
+                      </option>
                     </Form.Select>
                   </Form.Group>
                 </Col>
                 <Col md={6} className="text-end">
-                  <Button variant="outline-secondary" onClick={fetchPosts} disabled={loading}>
+                  <Button
+                    variant="outline-secondary"
+                    onClick={fetchPosts}
+                    disabled={loading}
+                  >
                     <i className="fas fa-sync-alt me-2"></i>
                     Làm mới
                   </Button>
@@ -258,24 +270,21 @@ const AdminPostsPage = () => {
                         <tr key={post.Id}>
                           <td>{index + 1}</td>
                           <td>
-                            <div className="post-title">
-                              {post.Title}
-                            </div>
+                            <div className="post-title">{post.Title}</div>
                           </td>
                           <td>
                             <div className="post-content-preview">
-                              {post.Content.length > 150 
-                                ? `${post.Content.substring(0, 150)}...` 
-                                : post.Content
-                              }
+                              {post.Content.length > 150
+                                ? `${post.Content.substring(0, 150)}...`
+                                : post.Content}
                             </div>
                           </td>
                           <td className="badge-column">
                             {post.BadgeId && post.BadgeName ? (
                               <div className="badge-display">
-                                <BadgeComponent 
-                                  badgeType={post.BadgeType} 
-                                  name={post.BadgeName} 
+                                <BadgeComponent
+                                  badgeType={post.BadgeType}
+                                  name={post.BadgeName}
                                   description={post.BadgeDescription}
                                   size={48}
                                   showAnimation={true}
@@ -286,7 +295,10 @@ const AdminPostsPage = () => {
                               </div>
                             ) : (
                               <div className="badge-display">
-                                <i className="fas fa-minus-circle text-muted" style={{fontSize: '20px'}}></i>
+                                <i
+                                  className="fas fa-minus-circle text-muted"
+                                  style={{ fontSize: "20px" }}
+                                ></i>
                                 <span className="no-badge">Không có</span>
                               </div>
                             )}
@@ -298,15 +310,24 @@ const AdminPostsPage = () => {
                               {(() => {
                                 // Parse trực tiếp từ string để tránh vấn đề timezone
                                 const dateString = post.CreatedAt;
-                                if (dateString.includes('T') || dateString.includes(' ')) {
+                                if (
+                                  dateString.includes("T") ||
+                                  dateString.includes(" ")
+                                ) {
                                   const [datePart] = dateString.split(/[T ]/);
-                                  const [year, month, day] = datePart.split('-');
+                                  const [year, month, day] =
+                                    datePart.split("-");
                                   return `${day}/${month}/${year}`;
                                 }
                                 // Fallback nếu format khác
                                 const date = new Date(post.CreatedAt);
-                                const day = String(date.getDate()).padStart(2, '0');
-                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const day = String(date.getDate()).padStart(
+                                  2,
+                                  "0",
+                                );
+                                const month = String(
+                                  date.getMonth() + 1,
+                                ).padStart(2, "0");
                                 const year = date.getFullYear();
                                 return `${day}/${month}/${year}`;
                               })()}
@@ -314,17 +335,26 @@ const AdminPostsPage = () => {
                                 {(() => {
                                   // Parse giờ phút từ string
                                   const dateString = post.CreatedAt;
-                                  if (dateString.includes('T') || dateString.includes(' ')) {
-                                    const timePart = dateString.split(/[T ]/)[1];
+                                  if (
+                                    dateString.includes("T") ||
+                                    dateString.includes(" ")
+                                  ) {
+                                    const timePart =
+                                      dateString.split(/[T ]/)[1];
                                     if (timePart) {
-                                      const [hours, minutes] = timePart.split(':');
+                                      const [hours, minutes] =
+                                        timePart.split(":");
                                       return `${hours}:${minutes}`;
                                     }
                                   }
                                   // Fallback nếu format khác
                                   const date = new Date(post.CreatedAt);
-                                  const hours = String(date.getHours()).padStart(2, '0');
-                                  const minutes = String(date.getMinutes()).padStart(2, '0');
+                                  const hours = String(
+                                    date.getHours(),
+                                  ).padStart(2, "0");
+                                  const minutes = String(
+                                    date.getMinutes(),
+                                  ).padStart(2, "0");
                                   return `${hours}:${minutes}`;
                                 })()}
                               </small>
@@ -340,12 +370,14 @@ const AdminPostsPage = () => {
                               >
                                 <i className="fas fa-eye"></i>
                               </Button>
-                              
-                              {post.Status === 'pending' ? (
+
+                              {post.Status === "pending" ? (
                                 <Button
                                   variant="success"
                                   size="sm"
-                                  onClick={() => handleStatusChange(post.Id, 'published')}
+                                  onClick={() =>
+                                    handleStatusChange(post.Id, "published")
+                                  }
                                   className="me-1"
                                 >
                                   <i className="fas fa-check"></i>
@@ -354,13 +386,15 @@ const AdminPostsPage = () => {
                                 <Button
                                   variant="warning"
                                   size="sm"
-                                  onClick={() => handleStatusChange(post.Id, 'pending')}
+                                  onClick={() =>
+                                    handleStatusChange(post.Id, "pending")
+                                  }
                                   className="me-1"
                                 >
                                   <i className="fas fa-undo"></i>
                                 </Button>
                               )}
-                              
+
                               <Button
                                 variant="danger"
                                 size="sm"
@@ -385,7 +419,11 @@ const AdminPostsPage = () => {
       </Row>
 
       {/* Post Detail Modal */}
-      <Modal show={showDetailModal} onHide={() => setShowDetailModal(false)} size="lg">
+      <Modal
+        show={showDetailModal}
+        onHide={() => setShowDetailModal(false)}
+        size="lg"
+      >
         <Modal.Header closeButton>
           <Modal.Title>Chi tiết bài viết</Modal.Title>
         </Modal.Header>
@@ -397,79 +435,100 @@ const AdminPostsPage = () => {
                   <h5 className="mb-0">{selectedPost.Title}</h5>
                   {selectedPost.BadgeId && selectedPost.BadgeName && (
                     <div className="text-center">
-                      <BadgeComponent 
-                        badgeType={selectedPost.BadgeType} 
-                        name={selectedPost.BadgeName} 
+                      <BadgeComponent
+                        badgeType={selectedPost.BadgeType}
+                        name={selectedPost.BadgeName}
                         description={selectedPost.BadgeDescription}
                         size={64}
                         showAnimation={true}
                       />
                       <div className="mt-2">
                         <small className="text-success fw-bold">
-                          <i className="fas fa-medal me-1" style={{color: '#ffd700'}}></i>
+                          <i
+                            className="fas fa-medal me-1"
+                            style={{ color: "#ffd700" }}
+                          ></i>
                           {selectedPost.BadgeName}
                         </small>
                       </div>
                     </div>
                   )}
                 </div>
-                
+
                 {selectedPost.BadgeId && selectedPost.BadgeName && (
-                  <div className="alert alert-success mb-3" style={{
-                    background: 'linear-gradient(135deg, #d4f8d4, #f0fff0)',
-                    border: '2px solid #28a745',
-                    borderRadius: '10px'
-                  }}>
+                  <div
+                    className="alert alert-success mb-3"
+                    style={{
+                      background: "linear-gradient(135deg, #d4f8d4, #f0fff0)",
+                      border: "2px solid #28a745",
+                      borderRadius: "10px",
+                    }}
+                  >
                     <div className="d-flex align-items-center">
-                      <i className="fas fa-medal me-2" style={{
-                        color: '#ffd700', 
-                        fontSize: '18px',
-                        textShadow: '1px 1px 2px rgba(0,0,0,0.3)'
-                      }}></i>
+                      <i
+                        className="fas fa-medal me-2"
+                        style={{
+                          color: "#ffd700",
+                          fontSize: "18px",
+                          textShadow: "1px 1px 2px rgba(0,0,0,0.3)",
+                        }}
+                      ></i>
                       <div>
-                        <strong className="text-success">🏆 Khách hàng đã chia sẻ thành tích:</strong>
+                        <strong className="text-success">
+                          🏆 Khách hàng đã chia sẻ thành tích:
+                        </strong>
                         <br />
-                                                 <span className="fw-bold" style={{color: '#155724'}}>
-                           &ldquo;{selectedPost.BadgeName}&rdquo; - {selectedPost.BadgeDescription}
-                         </span>
+                        <span className="fw-bold" style={{ color: "#155724" }}>
+                          &ldquo;{selectedPost.BadgeName}&rdquo; -{" "}
+                          {selectedPost.BadgeDescription}
+                        </span>
                       </div>
                     </div>
                   </div>
                 )}
-                
+
                 <p className="text-muted">
-                  Tác giả: <strong>{selectedPost.Author}</strong> | 
-                  Ngày tạo: <strong>
+                  Tác giả: <strong>{selectedPost.Author}</strong> | Ngày tạo:{" "}
+                  <strong>
                     {(() => {
                       // Parse trực tiếp từ string để tránh vấn đề timezone
                       const dateString = selectedPost.CreatedAt;
-                      if (dateString.includes('T') || dateString.includes(' ')) {
+                      if (
+                        dateString.includes("T") ||
+                        dateString.includes(" ")
+                      ) {
                         const [datePart, timePart] = dateString.split(/[T ]/);
-                        const [year, month, day] = datePart.split('-');
-                        const [hours, minutes] = timePart ? timePart.split(':') : ['00', '00'];
+                        const [year, month, day] = datePart.split("-");
+                        const [hours, minutes] = timePart
+                          ? timePart.split(":")
+                          : ["00", "00"];
                         return `${day}/${month}/${year} ${hours}:${minutes}`;
                       }
                       // Fallback nếu format khác
                       const date = new Date(selectedPost.CreatedAt);
-                      const day = String(date.getDate()).padStart(2, '0');
-                      const month = String(date.getMonth() + 1).padStart(2, '0');
+                      const day = String(date.getDate()).padStart(2, "0");
+                      const month = String(date.getMonth() + 1).padStart(
+                        2,
+                        "0",
+                      );
                       const year = date.getFullYear();
-                      const hours = String(date.getHours()).padStart(2, '0');
-                      const minutes = String(date.getMinutes()).padStart(2, '0');
+                      const hours = String(date.getHours()).padStart(2, "0");
+                      const minutes = String(date.getMinutes()).padStart(
+                        2,
+                        "0",
+                      );
                       return `${day}/${month}/${year} ${hours}:${minutes}`;
                     })()}
-                  </strong> | 
-                  Trạng thái: {getStatusBadge(selectedPost.Status)}
+                  </strong>{" "}
+                  | Trạng thái: {getStatusBadge(selectedPost.Status)}
                 </p>
               </div>
-              
+
               <div className="mb-4">
                 <h6>Nội dung:</h6>
-                <div className="post-content">
-                  {selectedPost.Content}
-                </div>
+                <div className="post-content">{selectedPost.Content}</div>
               </div>
-              
+
               {selectedPost.Comments && selectedPost.Comments.length > 0 && (
                 <div>
                   <h6>Bình luận ({selectedPost.Comments.length}):</h6>
@@ -481,19 +540,34 @@ const AdminPostsPage = () => {
                           {(() => {
                             // Parse trực tiếp từ string để tránh vấn đề timezone
                             const dateString = comment.CreatedAt;
-                            if (dateString.includes('T') || dateString.includes(' ')) {
-                              const [datePart, timePart] = dateString.split(/[T ]/);
-                              const [year, month, day] = datePart.split('-');
-                              const [hours, minutes] = timePart ? timePart.split(':') : ['00', '00'];
+                            if (
+                              dateString.includes("T") ||
+                              dateString.includes(" ")
+                            ) {
+                              const [datePart, timePart] =
+                                dateString.split(/[T ]/);
+                              const [year, month, day] = datePart.split("-");
+                              const [hours, minutes] = timePart
+                                ? timePart.split(":")
+                                : ["00", "00"];
                               return `${day}/${month}/${year} ${hours}:${minutes}`;
                             }
                             // Fallback nếu format khác
                             const date = new Date(comment.CreatedAt);
-                            const day = String(date.getDate()).padStart(2, '0');
-                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const day = String(date.getDate()).padStart(2, "0");
+                            const month = String(date.getMonth() + 1).padStart(
+                              2,
+                              "0",
+                            );
                             const year = date.getFullYear();
-                            const hours = String(date.getHours()).padStart(2, '0');
-                            const minutes = String(date.getMinutes()).padStart(2, '0');
+                            const hours = String(date.getHours()).padStart(
+                              2,
+                              "0",
+                            );
+                            const minutes = String(date.getMinutes()).padStart(
+                              2,
+                              "0",
+                            );
                             return `${day}/${month}/${year} ${hours}:${minutes}`;
                           })()}
                         </small>
@@ -509,11 +583,11 @@ const AdminPostsPage = () => {
         <Modal.Footer>
           {selectedPost && (
             <>
-              {selectedPost.Status === 'pending' ? (
+              {selectedPost.Status === "pending" ? (
                 <Button
                   variant="success"
                   onClick={() => {
-                    handleStatusChange(selectedPost.Id, 'published');
+                    handleStatusChange(selectedPost.Id, "published");
                     setShowDetailModal(false);
                   }}
                 >
@@ -524,7 +598,7 @@ const AdminPostsPage = () => {
                 <Button
                   variant="warning"
                   onClick={() => {
-                    handleStatusChange(selectedPost.Id, 'pending');
+                    handleStatusChange(selectedPost.Id, "pending");
                     setShowDetailModal(false);
                   }}
                 >
@@ -550,7 +624,8 @@ const AdminPostsPage = () => {
             <div>
               <p>Bạn có chắc chắn muốn xóa bài viết này không?</p>
               <div className="alert alert-warning">
-                <strong>Tiêu đề:</strong> {postToDelete.Title}<br/>
+                <strong>Tiêu đề:</strong> {postToDelete.Title}
+                <br />
                 <strong>Tác giả:</strong> {postToDelete.Author}
               </div>
               <p className="text-danger">
@@ -574,4 +649,4 @@ const AdminPostsPage = () => {
   );
 };
 
-export default AdminPostsPage; 
+export default AdminPostsPage;

@@ -1,8 +1,127 @@
-CREATE DATABASE SmokingSupportPlatform;
+﻿CREATE DATABASE SmokingSupportPlatform;
 GO
 
 USE SmokingSupportPlatform;
 GO
+ALTER LOGIN sa WITH PASSWORD = '12345';
+-- Thêm cột Price vào bảng Booking
+ALTER TABLE Booking
+ADD Price DECIMAL(10,2);
+
+-- Thêm cột Price vào bảng Booking_Coach  
+ALTER TABLE Booking_Coach  
+ADD Price DECIMAL(10,2);
+
+
+
+-- Thêm cột thời gian VIP
+ALTER TABLE Users 
+ADD VipStartDate DATETIME,
+    VipEndDate DATETIME;
+GO
+
+-- Cập nhật dữ liệu cho người dùng VIP hiện tại
+UPDATE Users
+SET VipStartDate = GETDATE(),
+    VipEndDate = DATEADD(DAY, 30, GETDATE())
+WHERE IsMemberVip = 1 
+  AND VipStartDate IS NULL;
+
+
+
+-- Cập nhật giá mặc định cho các booking cũ (nếu cần)
+UPDATE Booking 
+SET Price = 0 
+WHERE Price IS NULL;
+
+UPDATE Booking_Coach
+SET Price = 0
+WHERE Price IS NULL;
+
+
+IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'sp_CheckVipStatus')
+    DROP PROCEDURE sp_CheckVipStatus
+GO
+
+UPDATE MembershipPackages
+SET DurationInDays = -1 -- Sử dụng -1 để biểu thị không giới hạn
+WHERE Name = N'Gói Thường' OR Id = 1;
+
+UPDATE MembershipPackages
+SET Description = N'Truy cập blog chia sẻ cộng đòng',N'Tạo kế hoạch cai thuốc cho riêng mình',=
+    DurationInDays = -1
+WHERE Name = N'Gói Thường' OR Id = 1;
+
+CREATE PROCEDURE sp_CheckVipStatus
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Tạo bảng tạm để lưu user hết hạn VIP
+    DECLARE @ExpiredUsers TABLE (
+        UserId INT
+    );
+
+    -- Lưu danh sách user hết hạn vào bảng tạm
+    INSERT INTO @ExpiredUsers (UserId)
+    SELECT Id 
+    FROM Users 
+    WHERE IsMemberVip = 1 
+    AND VipEndDate < GETDATE();
+
+    -- Tạo thông báo cho những user hết hạn trước khi update status
+    INSERT INTO Notifications (
+        UserId,
+        Message,
+        Type,
+        CreatedAt,
+        IsRead
+    )
+    SELECT 
+        UserId,
+        N'Gói VIP của bạn đã hết hạn. Bạn đã được chuyển về gói thường.',
+        'vip_expired',
+        GETDATE(),
+        0
+    FROM @ExpiredUsers;
+
+    -- Cập nhật trạng thái VIP về normal
+    UPDATE Users 
+    SET IsMemberVip = 0,
+        VipStartDate = NULL,
+        VipEndDate = NULL
+    WHERE Id IN (SELECT UserId FROM @ExpiredUsers);
+
+    -- Thông báo cho user sắp hết hạn
+    INSERT INTO Notifications (
+        UserId,
+        Message,
+        Type,
+        CreatedAt,
+        IsRead
+    )
+    SELECT 
+        Id,
+        N'Gói VIP của bạn sẽ hết hạn trong ' + 
+        CAST(DATEDIFF(DAY, GETDATE(), VipEndDate) AS NVARCHAR(10)) + 
+        N' ngày. Vui lòng gia hạn để tiếp tục sử dụng.',
+        'vip_expiring_soon',
+        GETDATE(),
+        0
+    FROM Users 
+    WHERE IsMemberVip = 1 
+    AND VipEndDate BETWEEN GETDATE() AND DATEADD(DAY, 3, GETDATE())
+    AND Id NOT IN (
+        SELECT UserId 
+        FROM Notifications 
+        WHERE Type = 'vip_expiring_soon' 
+        AND CreatedAt > DATEADD(DAY, -1, GETDATE())
+    );
+
+    -- Trả về số lượng user bị hết hạn
+    SELECT COUNT(*) as ExpiredCount FROM @ExpiredUsers;
+END
+
 
 -- USERS
 CREATE TABLE Users (
@@ -15,13 +134,24 @@ CREATE TABLE Users (
     Role NVARCHAR(50) NOT NULL CHECK (Role IN ('member', 'memberVip', 'coach', 'admin')),
     IsMemberVip BIT NOT NULL DEFAULT 0,
     CoachId INT NULL,
+    IsEmailVerified BIT NOT NULL DEFAULT 0,
     CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
     FOREIGN KEY (CoachId) REFERENCES Users(Id)
 );
 GO
 
-ALTER TABLE SmokingDailyLog
-ADD CoachSuggestedPlanId INT NULL;
+-- OTP VERIFICATION
+CREATE TABLE OTPVerification (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Email NVARCHAR(255) NOT NULL,
+    OTP NVARCHAR(6) NOT NULL,
+    ExpiresAt DATETIME NOT NULL,
+    IsUsed BIT NOT NULL DEFAULT 0,
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE()
+);
+GO
+
+
 
 
 
@@ -110,8 +240,61 @@ CREATE TABLE QuitPlans (
     CreatedAt DATETIME DEFAULT GETDATE(),
     InitialCigarettes INT,
     DailyReduction INT,
+    CurrentStageId INT,
+    Status NVARCHAR(50) DEFAULT 'In Progress' CHECK (Status IN ('In Progress', 'Completed', 'Paused', 'Cancelled')),
+    QuitReason NVARCHAR(500),
+    CompletionDate DATETIME,
     FOREIGN KEY (UserId) REFERENCES Users(Id),
     FOREIGN KEY (CoachId) REFERENCES Users(Id)
+);
+GO
+
+-- QUIT PLAN STAGES
+CREATE TABLE QuitPlanStages (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    StageName NVARCHAR(100) NOT NULL,
+    StageOrder INT NOT NULL,
+    Objective NVARCHAR(255) NOT NULL,
+    Description NVARCHAR(MAX)
+);
+GO
+
+-- USER QUIT PLAN STAGES
+CREATE TABLE UserQuitPlanStages (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    QuitPlanId INT NOT NULL,
+    StageId INT NULL, -- Nullable to support custom stages
+    StartDate DATETIME,
+    EndDate DATETIME,
+    Status NVARCHAR(50) DEFAULT 'not_started',
+    StageName NVARCHAR(255),
+    Objective NVARCHAR(500),
+    InitialCigarettes INT,
+    TargetCigarettes INT,
+    FOREIGN KEY (QuitPlanId) REFERENCES QuitPlans(Id),
+    FOREIGN KEY (StageId) REFERENCES QuitPlanStages(Id)
+);
+GO
+
+-- STAGE ACTIVITIES
+CREATE TABLE StageActivities (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    StageId INT NOT NULL,
+    ActivityName NVARCHAR(255) NOT NULL,
+    ActivityType NVARCHAR(50) NOT NULL, -- e.g., 'assessment', 'checklist', 'journal'
+    FOREIGN KEY (StageId) REFERENCES QuitPlanStages(Id)
+);
+GO
+
+-- USER STAGE ACTIVITIES
+CREATE TABLE UserStageActivities (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    UserQuitPlanStageId INT NOT NULL,
+    ActivityId INT NOT NULL,
+    IsCompleted BIT DEFAULT 0,
+    CompletionDate DATETIME,
+    FOREIGN KEY (UserQuitPlanStageId) REFERENCES UserQuitPlanStages(Id),
+    FOREIGN KEY (ActivityId) REFERENCES StageActivities(Id)
 );
 GO
 
@@ -122,6 +305,21 @@ CREATE TABLE SuggestedQuitPlans (
     Description NVARCHAR(MAX),
     PlanDetail NVARCHAR(MAX),
     CreatedAt DATETIME DEFAULT GETDATE()
+);
+GO
+
+-- SUGGESTED QUIT PLAN STAGES
+CREATE TABLE SuggestedQuitPlanStages (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    SuggestedPlanId INT NOT NULL,
+    StageOrder INT NOT NULL,
+    StageName NVARCHAR(255) NOT NULL,
+    Objective NVARCHAR(500),
+    Description NVARCHAR(MAX),
+    InitialCigarettes INT,
+    TargetCigarettes INT,
+    DurationInDays INT,
+    FOREIGN KEY (SuggestedPlanId) REFERENCES SuggestedQuitPlans(Id)
 );
 GO
 
@@ -192,7 +390,9 @@ CREATE TABLE SmokingDailyLog (
     FOREIGN KEY (SuggestedPlanId) REFERENCES SuggestedQuitPlans(Id)
 );
 GO
-
+ALTER TABLE SmokingDailyLog
+ADD CoachSuggestedPlanId INT NULL;
+GO
 -- POSTS
 CREATE TABLE Posts (
     Id INT IDENTITY(1,1) PRIMARY KEY,
@@ -286,6 +486,68 @@ CREATE TABLE CoachSuggestedQuitPlans (
     FOREIGN KEY (CoachId) REFERENCES Users(Id),
     FOREIGN KEY (UserId) REFERENCES Users(Id)
 );
+GO
+
+-- Insert sample data for QuitPlanStages
+INSERT INTO QuitPlanStages (StageName, StageOrder, Objective, Description) VALUES
+(N'Pre-Contemplation/Assessment', 1, N'Assess current smoking habits and readiness to quit', N'Days -14 to -7'),
+(N'Contemplation/Preparation', 2, N'Build motivation and prepare for quit day', N'Days -7 to 0'),
+(N'Action/Quit Day', 3, N'Execute the quit plan and manage immediate cessation', N'Day 0'),
+(N'Early Maintenance', 4, N'Maintain abstinence and manage acute withdrawal', N'Days 1-30'),
+(N'Extended Maintenance', 5, N'Strengthen quit commitment and prevent relapse', N'Days 31-90'),
+(N'Long-term Maintenance', 6, N'Sustain long-term abstinence and lifestyle change', N'Days 91-365+');
+GO
+
+-- Insert sample data for StageActivities
+-- Stage 1: Pre-Contemplation/Assessment
+INSERT INTO StageActivities (StageId, ActivityName, ActivityType) VALUES
+(1, N'Complete comprehensive smoking history assessment', 'assessment'),
+(1, N'Record current smoking patterns (number of cigarettes, frequency, cost)', 'assessment'),
+(1, N'Identify personal smoking triggers and situations', 'assessment'),
+(1, N'Assess previous quit attempts and outcomes', 'assessment'),
+(1, N'Complete readiness-to-change questionnaire', 'assessment');
+
+-- Stage 2: Contemplation/Preparation
+INSERT INTO StageActivities (StageId, ActivityName, ActivityType) VALUES
+(2, N'Define and document personal reasons for quitting', 'journal'),
+(2, N'Set specific quit date within 2-week window', 'checklist'),
+(2, N'Choose cessation methods and support tools', 'checklist'),
+(2, N'Prepare environment (remove smoking triggers)', 'checklist'),
+(2, N'Develop coping strategies for withdrawal symptoms', 'journal'),
+(2, N'Create support network activation plan', 'checklist');
+
+-- Stage 3: Action/Quit Day
+INSERT INTO StageActivities (StageId, ActivityName, ActivityType) VALUES
+(3, N'Activate quit day protocol', 'checklist'),
+(3, N'Implement immediate coping strategies', 'journal'),
+(3, N'Begin withdrawal symptom management', 'journal'),
+(3, N'Execute environmental changes', 'checklist'),
+(3, N'Activate support network', 'checklist');
+
+-- Stage 4: Early Maintenance
+INSERT INTO StageActivities (StageId, ActivityName, ActivityType) VALUES
+(4, N'Daily check-ins and progress logging', 'journal'),
+(4, N'Craving intensity and frequency tracking', 'journal'),
+(4, N'Health improvement monitoring', 'assessment'),
+(4, N'Financial savings calculation', 'assessment'),
+(4, N'Trigger situation management', 'journal'),
+(4, N'Support system utilization', 'checklist');
+
+-- Stage 5: Extended Maintenance
+INSERT INTO StageActivities (StageId, ActivityName, ActivityType) VALUES
+(5, N'Weekly comprehensive progress reviews', 'journal'),
+(5, N'Advanced coping skills development', 'journal'),
+(5, N'Lifestyle habit integration', 'journal'),
+(5, N'Social support system reinforcement', 'checklist'),
+(5, N'Relapse prevention planning', 'journal');
+
+-- Stage 6: Long-term Maintenance
+INSERT INTO StageActivities (StageId, ActivityName, ActivityType) VALUES
+(6, N'Monthly milestone celebrations and reviews', 'journal'),
+(6, N'Long-term health benefit tracking', 'assessment'),
+(6, N'Continuous lifestyle optimization', 'journal'),
+(6, N'Peer support and mentoring opportunities', 'checklist'),
+(6, N'Relapse recovery planning (if needed)', 'journal');
 GO
 
 -- Insert sample data
@@ -401,4 +663,87 @@ INSERT INTO CoachSuggestedQuitPlans (CoachId, UserId, Title, Description, PlanDe
 N'Tháng 1: Giảm 2 điếu/ngày mỗi tuần.
 Tháng 2: Ổn định ở 10 điếu/ngày.
 Tháng 3: Ngưng hoàn toàn, tập trung thể thao và thiền.', NULL, NULL);
+GO
+
+INSERT INTO SuggestedQuitPlanStages (SuggestedPlanId, StageOrder, StageName, Objective, Description, InitialCigarettes, TargetCigarettes, DurationInDays)
+VALUES
+-- Plan 1: 30-Day Plan (Light to Moderate Smokers)
+(1, 1, N'Tuần 1: Khởi động', N'Giảm 25% lượng thuốc', N'Ghi nhật ký hút thuốc, xác định lý do cai thuốc, chuẩn bị tinh thần. Giảm từ 20 xuống 15 điếu/ngày.', 20, 15, 7),
+(1, 2, N'Tuần 2: Tăng tốc', N'Giảm thêm 33%', N'Chỉ hút sau bữa ăn hoặc khi thực sự cần thiết. Tăng hoạt động thể chất. Giảm từ 15 xuống 10 điếu/ngày.', 15, 10, 7),
+(1, 3, N'Tuần 3: Về đích', N'Giảm 50% cuối cùng', N'Chuẩn bị cho ngày "D". Sử dụng kẹo nicotine nếu cần. Giảm từ 10 xuống 5 điếu/ngày.', 10, 5, 7),
+(1, 4, N'Tuần 4: Cai hoàn toàn', N'Ngừng hút hoàn toàn', N'Ngày "D" - ngừng hút hoàn toàn. Thay đổi thói quen, tránh trigger, tập thiền và thở sâu.', 5, 0, 9);
+
+INSERT INTO SuggestedQuitPlanStages (SuggestedPlanId, StageOrder, StageName, Objective, Description, InitialCigarettes, TargetCigarettes, DurationInDays)
+VALUES
+-- Plan 2: 60-Day Plan (Moderate to Heavy Smokers)
+(2, 1, N'Giai đoạn 1: Chuẩn bị (Ngày 1-15)', N'Giảm 20% lượng thuốc', N'Xác định triggers, giảm 1-2 điếu mỗi 2 ngày. Tìm kiếm sự hỗ trợ từ bạn bè, gia đình. Giảm từ 30 xuống 24 điếu/ngày.', 30, 24, 15),
+(2, 2, N'Giai đoạn 2: Giảm dần (Ngày 16-30)', N'Giảm xuống còn một nửa', N'Tăng cường vận động, uống nhiều nước. Giữ tay và miệng bận rộn. Giảm từ 24 xuống 15 điếu/ngày.', 24, 15, 15),
+(2, 3, N'Giai đoạn 3: Cai hoàn toàn (Ngày 31-45)', N'Ngừng hút thuốc', N'Ngày "D" - ngưng hẳn. Xử lý stress bằng thiền, viết nhật ký. Tránh xa các tình huống có nguy cơ cao.', 15, 0, 15),
+(2, 4, N'Giai đoạn 4: Ổn định (Ngày 46-60)', N'Duy trì không hút thuốc', N'Tái lập thói quen mới, tập trung phát triển bản thân, kết nối xã hội không thuốc lá.', 0, 0, 15);
+
+INSERT INTO SuggestedQuitPlanStages (SuggestedPlanId, StageOrder, StageName, Objective, Description, InitialCigarettes, TargetCigarettes, DurationInDays)
+VALUES
+-- Plan 3: 90-Day Plan (Long-term/Heavy Smokers)
+(3, 1, N'Tháng 1: Giảm dần', N'Giảm 40% trong tháng đầu', N'Ghi chép hành vi hút thuốc chi tiết, lên lịch bỏ thuốc cụ thể. Giảm 10-20% mỗi tuần. Giảm từ 40 xuống 24 điếu/ngày.', 40, 24, 30),
+(3, 2, N'Tháng 2: Cai hoàn toàn', N'Ngừng hút hoàn toàn', N'Ngưng hút hoàn toàn, sử dụng các công cụ hỗ trợ (nicotine gum, patch). Ghi nhật ký cảm xúc và cơn thèm.', 24, 0, 30),
+(3, 3, N'Tháng 3: Củng cố và duy trì', N'Sống không thuốc lá', N'Củng cố thành quả, xử lý trigger tiềm ẩn. Tham gia nhóm hỗ trợ hoặc làm việc với huấn luyện viên.', 0, 0, 30);
+
+GO
+
+
+USE SmokingSupportPlatform;
+GO
+
+-- Xóa job cũ nếu tồn tại
+IF EXISTS (SELECT job_id FROM msdb.dbo.sysjobs_view WHERE name = N'Check VIP Status')
+EXEC msdb.dbo.sp_delete_job @job_name=N'Check VIP Status', @delete_unused_schedule=1
+GO
+
+BEGIN TRANSACTION
+DECLARE @ReturnCode INT
+SELECT @ReturnCode = 0
+
+EXEC @ReturnCode = msdb.dbo.sp_add_job @job_name=N'Check VIP Status', 
+        @enabled=1, 
+        @notify_level_eventlog=0, 
+        @notify_level_email=0, 
+        @notify_level_netsend=0, 
+        @notify_level_page=0, 
+        @delete_level=0, 
+        @description=N'Kiểm tra và cập nhật trạng thái VIP của người dùng', 
+        @category_name=N'[Uncategorized (Local)]', 
+        @owner_login_name=N'sa'
+
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_name=N'Check VIP Status', 
+        @step_name=N'Run Check VIP', 
+        @step_id=1, 
+        @cmdexec_success_code=0, 
+        @on_success_action=1, 
+        @on_success_step_id=0, 
+        @on_fail_action=2, 
+        @on_fail_step_id=0, 
+        @retry_attempts=0, 
+        @retry_interval=0, 
+        @os_run_priority=0,
+        @subsystem=N'TSQL', 
+        @command=N'EXEC sp_CheckAndUpdateVipStatus', 
+        @database_name=N'SmokingSupportPlatform'
+
+EXEC @ReturnCode = msdb.dbo.sp_add_jobschedule @job_name=N'Check VIP Status', 
+        @name=N'Daily Check', 
+        @enabled=1, 
+        @freq_type=4, 
+        @freq_interval=1, 
+        @freq_subday_type=1, 
+        @freq_subday_interval=0, 
+        @freq_relative_interval=0, 
+        @freq_recurrence_factor=0, 
+        @active_start_date=20250731, 
+        @active_end_date=99991231, 
+        @active_start_time=0, 
+        @active_end_time=235959
+
+EXEC @ReturnCode = msdb.dbo.sp_add_jobserver @job_name=N'Check VIP Status'
+
+COMMIT TRANSACTION
 GO

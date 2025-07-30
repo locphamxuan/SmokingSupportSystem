@@ -4,7 +4,11 @@ require('dotenv').config();
 const config = {
   user: process.env.DB_USER || 'sa',
   password: process.env.DB_PASSWORD || '12345',
-  server: process.env.DB_SERVER || 'localhost', // hoặc tên instance SQL Server
+   options: {
+        trustServerCertificate: true,
+        enableArithAbort: true
+    },
+  server: process.env.DB_SERVER || 'localhost', 
   database: process.env.DB_NAME || 'SmokingSupportPlatform',
   options: {
     encrypt: false, // true nếu dùng Azure
@@ -17,9 +21,9 @@ const config = {
 const connectDB = async () => {
   try {
     await sql.connect(config);
-    console.log('✅ Connected to SQL Server successfully');
+    console.log(' Connected to SQL Server successfully');
   } catch (error) {
-    console.error('❌ SQL Server connection error:', error);
+    console.error('SQL Server connection error:', error);
     process.exit(1);
   }
 };

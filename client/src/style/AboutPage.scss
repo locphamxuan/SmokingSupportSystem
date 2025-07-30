@@ -6,14 +6,14 @@
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 2rem;
-    
   }
 
   section {
     padding: 6rem 0; // Adjusted general section padding
   }
 
-  h1, h2 {
+  h1,
+  h2 {
     text-align: center;
     margin-bottom: 1rem; // Adjusted margin for main headings
     color: #333;
@@ -51,11 +51,11 @@
   }
 
   .knowledge-is-power {
-    color: #4CAF50;
+    color: #4caf50;
     font-size: 1.1rem; // Increased font size
     font-weight: 500;
     margin-bottom: 1rem; // Increased margin-bottom
-    text-align: left; 
+    text-align: left;
   }
 
   .title {
@@ -67,7 +67,7 @@
     word-break: break-word;
     text-align: left;
   }
-  
+
   .subtitle {
     color: #333;
     font-size: 1.1rem;
@@ -75,12 +75,11 @@
     max-width: 550px;
     margin: 0;
     text-align: left;
-  
+
     @media (max-width: 768px) {
       font-size: 1rem;
     }
   }
-  
 }
 
 // Section Subtitle common style
@@ -112,7 +111,7 @@
   }
 
   .section-subtitle {
-    color: #4CAF50;
+    color: #4caf50;
     font-size: 1rem;
     font-weight: 600;
     text-align: left;
@@ -148,7 +147,7 @@
     width: fit-content;
     margin-top: 3rem;
     padding: 1rem 3rem;
-    background-color: #4CAF50;
+    background-color: #4caf50;
     color: white;
     text-decoration: none;
     border-radius: 8px;
@@ -158,7 +157,7 @@
     box-shadow: 0 4px 8px rgba(76, 175, 80, 0.2);
 
     &:hover {
-      background-color: #43A047;
+      background-color: #43a047;
       transform: translateY(-2px);
       box-shadow: 0 6px 12px rgba(76, 175, 80, 0.3);
     }
@@ -280,13 +279,17 @@
       transition: none;
 
       &:not(:last-child)::after {
-        content: '';
+        content: "";
         position: absolute;
         left: 24px; // Align with center of icon
         top: 50px; // Start below the icon
         bottom: -2.5rem; // Extend to next icon
         width: 2px;
-        background-image: linear-gradient(to bottom, #ccc 33%, rgba(255,255,255,0) 0%);
+        background-image: linear-gradient(
+          to bottom,
+          #ccc 33%,
+          rgba(255, 255, 255, 0) 0%
+        );
         background-position: left top;
         background-size: 2px 15px; // Dotted effect
         background-repeat: repeat-y;
@@ -301,7 +304,7 @@
         flex-shrink: 0; // Prevent icon from shrinking
         width: 50px;
         height: 50px;
-        background-color: #4CAF50; // Green background for icon
+        background-color: #4caf50; // Green background for icon
         border-radius: 50%; // Circular shape
         display: flex;
         justify-content: center;
@@ -381,7 +384,7 @@
       flex-shrink: 0; // Prevent icon from shrinking
       width: 40px;
       height: 40px;
-      background-color: #4CAF50; // Green background for icon
+      background-color: #4caf50; // Green background for icon
       border-radius: 50%; // Circular shape
       display: flex;
       justify-content: center;
@@ -426,7 +429,7 @@
     .contact-btn {
       display: inline-block;
       padding: 1rem 3rem; // Adjusted padding to match other buttons
-      background-color: #4CAF50; // Green color from reference
+      background-color: #4caf50; // Green color from reference
       color: white;
       text-decoration: none;
       border-radius: 8px;
@@ -436,7 +439,7 @@
       box-shadow: 0 4px 8px rgba(76, 175, 80, 0.2); // Adjusted shadow color
 
       &:hover {
-        background-color: #43A047; // Darker green on hover
+        background-color: #43a047; // Darker green on hover
         transform: translateY(-2px);
         box-shadow: 0 6px 12px rgba(76, 175, 80, 0.3);
       }
@@ -557,7 +560,10 @@
       border-radius: 50px; /* Pill-shaped button */
       font-weight: 600;
       font-size: 1rem;
-      transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+      transition:
+        background-color 0.3s ease,
+        transform 0.3s ease,
+        box-shadow 0.3s ease;
       box-shadow: 0 4px 10px rgba(46, 125, 50, 0.3);
 
       i {
@@ -615,7 +621,7 @@
       }
 
       &:hover {
-        color: #4CAF50; // Green color on hover
+        color: #4caf50; // Green color on hover
 
         i {
           transform: translateX(5px);
@@ -730,7 +736,10 @@
       grid-template-columns: 1fr;
     }
 
-    .effect-card, .benefit-card, .step-card, .faq-item {
+    .effect-card,
+    .benefit-card,
+    .step-card,
+    .faq-item {
       margin: 0 1rem;
     }
 
@@ -774,4 +783,4 @@
     color: #555; // Slightly lighter grey for copyright text
     font-size: 0.9rem; // Smaller font size
   }
-} 
+}

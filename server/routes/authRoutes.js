@@ -12,7 +12,13 @@ const membershipController = require('../controllers/membershipController');
 // Test database connection
 router.get('/test-db', dailyLogController.testConnection);
 
-// Các tuyến đường công khai (không yêu cầu xác thực)
+// OTP routes (public)
+const otpController = require('../controllers/otpController');
+router.post('/send-otp', otpController.sendOTP);
+router.post('/verify-otp', otpController.verifyOTP);
+router.get('/check-email-verification', otpController.checkEmailVerification);
+
+// Authentication routes (public)
 router.post('/login', authController.login);
 router.post('/register', authController.register);
 
@@ -26,6 +32,7 @@ router.post('/request-coach', authenticateToken, authController.requestCoach);
 // Các tuyến đường được bảo vệ cho nhật ký hàng ngày và kế hoạch cai thuốc
 router.post('/quit-plan', authenticateToken, authController.createOrUpdateQuitPlan);
 router.get('/quit-plan', authenticateToken, authController.getQuitPlan);
+router.delete('/quit-plan', authenticateToken, authController.deleteQuitPlan);
 router.put('/daily-log', authenticateToken, authController.addProgress);
 router.post('/progress', authenticateToken, authController.addProgress);
 router.get('/coaches', authenticateToken, authController.getAllCoaches);
@@ -73,9 +80,20 @@ router.get('/custom-quit-plan', authenticateToken, authController.getCustomQuitP
 // Badge routes để lấy huy hiệu theo user ID (đã có route /badges cho user hiện tại)
 
 router.get('/public-notifications', notificationController.getPublicNotifications);
+// Notification statistics
+router.get('/notifications/stats', authenticateToken, notificationController.getNotificationStats);
 
 router.get('/coach-suggested-plans', authenticateToken, authController.getCoachSuggestedPlans);
 router.post('/accept-coach-plan', authenticateToken, authController.acceptCoachPlan);
 router.post('/reject-coach-plan', authenticateToken, authController.rejectCoachPlan);
 
+// New staged quit plan routes
+router.get('/quit-plan-stages', authController.getQuitPlanStages);
+router.get('/stage-activities/:stageId', authController.getStageActivities);
+router.get('/user-quit-plan', authenticateToken, authController.getUserQuitPlan);
+router.put('/stage-activity', authenticateToken, authController.updateUserStageActivity);
+router.put('/stage-progression', authenticateToken, authController.updateStageProgression);
+router.post('/complete-stage', authenticateToken, authController.completeStage);
+router.post('/user-quit-plan/:planId/complete', authenticateToken, authController.completeUserQuitPlan);
+router.get('/check-phone/:phoneNumber', authController.checkPhoneNumber);
 module.exports = router;

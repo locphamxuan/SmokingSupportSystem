@@ -1,13 +1,13 @@
-import React from 'react';
-import { Outlet, Navigate, Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import './AdminLayout.scss';
-import Navbar from '../components/Navbar';
-import Sidebar from '../components/Sidebar';
+import React from "react";
+import { Outlet, Navigate, Link } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import "./AdminLayout.scss";
+import Navbar from "../components/Navbar";
+import Sidebar from "../components/Sidebar";
 
 const AdminLayout = () => {
   const { user } = useAuth();
-  const isAdmin = user && user.role === 'admin';
+  const isAdmin = user && user.role === "admin";
 
   if (!isAdmin) {
     return <Navigate to="/" replace />;
@@ -27,4 +27,4 @@ const AdminLayout = () => {
   );
 };
 
-export default AdminLayout; 
+export default AdminLayout;

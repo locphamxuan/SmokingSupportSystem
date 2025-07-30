@@ -3,12 +3,12 @@
   border-radius: 1.25rem;
   overflow: hidden;
   margin-bottom: 2rem;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   transition: box-shadow 0.2s;
   background: #fff;
   padding: 0;
   &:hover {
-    box-shadow: 0 6px 24px rgba(0,0,0,0.13);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.13);
   }
   .section-label {
     font-weight: 700;
@@ -86,12 +86,16 @@
       font-size: 0.98em;
       padding: 0.4em 1em;
     }
-    .col-md-3, .col-md-4, .col-md-5 {
+    .col-md-3,
+    .col-md-4,
+    .col-md-5 {
       border-right: none !important;
       border-bottom: 1px solid #e0e0e0;
       margin-bottom: 1em;
     }
-    .col-md-4:last-child, .col-md-5:last-child, .col-md-3:last-child {
+    .col-md-4:last-child,
+    .col-md-5:last-child,
+    .col-md-3:last-child {
       border-bottom: none !important;
     }
   }
@@ -131,4 +135,4 @@
       font-size: 1em;
     }
   }
-} 
+}

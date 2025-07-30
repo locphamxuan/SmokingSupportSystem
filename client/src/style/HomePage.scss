@@ -51,7 +51,8 @@ $warning-color: #ffc107;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   line-height: 1.6;
   color: $text-color;
 }
@@ -70,7 +71,10 @@ body {
     padding: 5rem 0;
   }
 
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     color: #333;
     margin-bottom: 1rem;
   }
@@ -317,7 +321,7 @@ body {
         color: $light-text;
         font-size: 14px;
         cursor: pointer;
-        
+
         &:hover {
           color: $primary-color;
         }
@@ -327,7 +331,7 @@ body {
         @include button-base;
         background-color: $primary-color;
         color: $white;
-        
+
         &:hover {
           background-color: darken($primary-color, 10%);
         }
@@ -397,7 +401,7 @@ body {
           color: $white;
           font-size: 16px;
           padding: 12px 24px;
-          
+
           &:hover {
             background-color: darken($secondary-color, 10%);
             transform: translateY(-2px);
@@ -481,7 +485,7 @@ body {
             padding: 12px;
             border-radius: 8px;
             background: $background-light;
-            
+
             strong {
               color: $primary-color;
               margin-right: 8px;
@@ -491,10 +495,10 @@ body {
       }
 
       // Cộng đồng người dùng & Tư vấn section
-      &.community-block, 
+      &.community-block,
       &.coaching-block {
         text-align: center;
-        
+
         .section-title {
           color: $primary-color;
           margin-bottom: 16px;
@@ -538,7 +542,7 @@ body {
             background: $background-light;
             border-radius: 8px;
             font-size: 16px;
-            
+
             &:hover {
               transform: translateY(-2px);
               box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -558,7 +562,7 @@ body {
           color: $white;
           width: 100%;
           margin-top: 16px;
-          
+
           &:hover {
             background-color: darken($secondary-color, 10%);
           }
@@ -1187,7 +1191,6 @@ body {
             clip-path: none;
             border-radius: 0;
             display: block;
-
           }
         }
       }
@@ -1209,7 +1212,8 @@ body {
           padding-right: 0;
           text-align: center;
 
-          h2, h3 {
+          h2,
+          h3 {
             text-align: center;
             color: green;
           }
@@ -1387,7 +1391,7 @@ body {
 
   .hero-left-content {
     flex: 1.2;
-    background-color: #F8F4F1;
+    background-color: #f8f4f1;
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -1407,7 +1411,7 @@ body {
 
     .hero-logo {
       margin-bottom: 2rem;
-      
+
       img {
         max-width: 150px;
         height: auto;
@@ -1415,7 +1419,7 @@ body {
     }
 
     h1 {
-      color: #0B1221;
+      color: #0b1221;
       font-size: 3.2rem;
       font-weight: 700;
       line-height: 1.05;
@@ -1447,7 +1451,7 @@ body {
 
         i {
           font-size: 1.2rem;
-          color: #4CAF50;
+          color: #4caf50;
         }
       }
     }
@@ -1924,7 +1928,7 @@ body {
             }
 
             &::before {
-              content: '→';
+              content: "→";
               margin-right: 8px;
               font-size: 14px;
               color: #6aaa6d;

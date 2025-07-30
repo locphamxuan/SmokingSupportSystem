@@ -1,37 +1,120 @@
 .admin-statistics-page {
-  .stat-card {
-    border-radius: 1rem;
-    border: none;
-    background: #f8f9fa;
-    transition: box-shadow 0.2s;
-    &:hover {
-      box-shadow: 0 4px 24px rgba(40,167,69,0.08);
-    }
-    .stat-label {
-      font-size: 1.1rem;
-      color: #888;
+  padding: 2rem;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+
+  .header-section {
+    margin-bottom: 2rem;
+    text-align: center;
+
+    h1 {
+      color: #2c3e50;
       margin-bottom: 0.5rem;
+      font-weight: 600;
     }
-    .stat-value {
-      font-size: 2.2rem;
-      font-weight: 700;
+
+    .last-updated {
+      color: #6c757d;
+      font-size: 0.9rem;
     }
   }
-  .card-header {
-    font-size: 1.1rem;
-    letter-spacing: 0.5px;
+
+  .loading-container,
+  .error-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+    text-align: center;
   }
-  .card {
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: white;
     border-radius: 1rem;
-    overflow: hidden;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    &.wide {
+      grid-column: 1 / -1;
+    }
+
+    h3 {
+      color: #2c3e50;
+      font-size: 1.25rem;
+      margin-bottom: 1.5rem;
+      font-weight: 600;
+    }
   }
-  .card-body {
-    background: #fff;
-    border-radius: 0 0 1rem 1rem;
+
+  .financial-stats {
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 0;
+      border-bottom: 1px solid #e9ecef;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .label {
+        color: #6c757d;
+        font-size: 0.9rem;
+      }
+
+      .value {
+        color: #2c3e50;
+        font-weight: 600;
+        font-size: 1.1rem;
+      }
+    }
   }
+
+  .loading-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 60vh;
+    font-size: 1.2rem;
+    color: #6c757d;
+  }
+
+  .error-message {
+    text-align: center;
+    color: #dc3545;
+    padding: 2rem;
+    font-size: 1.1rem;
+  }
+
   @media (max-width: 768px) {
+    padding: 1rem;
+
+    .stats-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
     .stat-card {
       margin-bottom: 1rem;
+
+      &.wide {
+        grid-column: auto;
+      }
     }
   }
-} 
+}

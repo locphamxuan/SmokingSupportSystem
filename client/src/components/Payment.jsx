@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -12,78 +12,83 @@ import {
   Select,
   MenuItem,
   Typography,
-  Grid
-} from '@mui/material';
-import qrImage from '../assets/images/mãQRTPBank.jpg';
+  Grid,
+} from "@mui/material";
+import qrImage from "../assets/images/mãQRTPBank.jpg";
 
 const Payment = ({ open, onClose, onSuccess }) => {
   const [paymentInfo, setPaymentInfo] = useState({
-    cardNumber: '',
-    cardHolder: '',
-    expiryDate: '',
-    cvv: '',
-    paymentMethod: 'credit',
-    phoneNumber: '',
-    bankCode: ''
+    cardNumber: "",
+    cardHolder: "",
+    expiryDate: "",
+    cvv: "",
+    paymentMethod: "credit",
+    phoneNumber: "",
+    bankCode: "",
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handlePaymentInfoChange = (e) => {
     const { name, value } = e.target;
-    setPaymentInfo(prev => ({
+    setPaymentInfo((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const validate = () => {
-    if (paymentInfo.paymentMethod === 'credit') {
-      if (!/^[0-9]{16}$/.test(paymentInfo.cardNumber.replace(/\s/g, ''))) {
-        setError('Số thẻ phải có 16 chữ số');
+    if (paymentInfo.paymentMethod === "credit") {
+      if (!/^[0-9]{16}$/.test(paymentInfo.cardNumber.replace(/\s/g, ""))) {
+        setError("Số thẻ phải có 16 chữ số");
         return false;
       }
       if (!paymentInfo.cardHolder.trim()) {
-        setError('Vui lòng nhập tên chủ thẻ');
+        setError("Vui lòng nhập tên chủ thẻ");
         return false;
       }
       if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(paymentInfo.expiryDate)) {
-        setError('Ngày hết hạn không hợp lệ (MM/YY)');
+        setError("Ngày hết hạn không hợp lệ (MM/YY)");
         return false;
       }
       if (!/^[0-9]{3,4}$/.test(paymentInfo.cvv)) {
-        setError('CVV không hợp lệ');
+        setError("CVV không hợp lệ");
         return false;
       }
-    } else if (paymentInfo.paymentMethod === 'momo') {
-      if (!paymentInfo.phoneNumber || !/^[0-9]{10}$/.test(paymentInfo.phoneNumber)) {
-        setError('Vui lòng nhập số điện thoại MoMo hợp lệ');
+    } else if (paymentInfo.paymentMethod === "momo") {
+      if (
+        !paymentInfo.phoneNumber ||
+        !/^[0-9]{10}$/.test(paymentInfo.phoneNumber)
+      ) {
+        setError("Vui lòng nhập số điện thoại MoMo hợp lệ");
         return false;
       }
-    } else if (paymentInfo.paymentMethod === 'vnpay') {
+    } else if (paymentInfo.paymentMethod === "vnpay") {
       if (!paymentInfo.bankCode) {
-        setError('Vui lòng chọn ngân hàng');
+        setError("Vui lòng chọn ngân hàng");
         return false;
       }
     }
-    setError('');
+    setError("");
     return true;
   };
 
   const handlePaymentSubmit = async () => {
     if (!validate()) return;
-    
+
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       onSuccess();
       onClose();
     } catch (error) {
-      console.error('Payment error:', error);
-      setError('Có lỗi xảy ra trong quá trình thanh toán. Vui lòng thử lại sau.');
+      console.error("Payment error:", error);
+      setError(
+        "Có lỗi xảy ra trong quá trình thanh toán. Vui lòng thử lại sau.",
+      );
     } finally {
       setLoading(false);
     }
@@ -91,7 +96,7 @@ const Payment = ({ open, onClose, onSuccess }) => {
 
   const renderPaymentMethodFields = () => {
     switch (paymentInfo.paymentMethod) {
-      case 'credit':
+      case "credit":
         return (
           <>
             <TextField
@@ -104,8 +109,8 @@ const Payment = ({ open, onClose, onSuccess }) => {
               placeholder="XXXX XXXX XXXX XXXX"
               autoFocus
               inputProps={{ maxLength: 19 }}
-              error={!!error && error.includes('Số thẻ')}
-              helperText={error && error.includes('Số thẻ') ? error : ''}
+              error={!!error && error.includes("Số thẻ")}
+              helperText={error && error.includes("Số thẻ") ? error : ""}
             />
             <TextField
               fullWidth
@@ -114,8 +119,8 @@ const Payment = ({ open, onClose, onSuccess }) => {
               value={paymentInfo.cardHolder}
               onChange={handlePaymentInfoChange}
               sx={{ mb: 2 }}
-              error={!!error && error.includes('tên chủ thẻ')}
-              helperText={error && error.includes('tên chủ thẻ') ? error : ''}
+              error={!!error && error.includes("tên chủ thẻ")}
+              helperText={error && error.includes("tên chủ thẻ") ? error : ""}
             />
             <Grid container spacing={2}>
               <Grid item xs={6}>
@@ -126,8 +131,10 @@ const Payment = ({ open, onClose, onSuccess }) => {
                   value={paymentInfo.expiryDate}
                   onChange={handlePaymentInfoChange}
                   placeholder="MM/YY"
-                  error={!!error && error.includes('Ngày hết hạn')}
-                  helperText={error && error.includes('Ngày hết hạn') ? error : ''}
+                  error={!!error && error.includes("Ngày hết hạn")}
+                  helperText={
+                    error && error.includes("Ngày hết hạn") ? error : ""
+                  }
                 />
               </Grid>
               <Grid item xs={6}>
@@ -139,60 +146,69 @@ const Payment = ({ open, onClose, onSuccess }) => {
                   onChange={handlePaymentInfoChange}
                   type="password"
                   inputProps={{ maxLength: 4 }}
-                  error={!!error && error.includes('CVV')}
-                  helperText={error && error.includes('CVV') ? error : ''}
+                  error={!!error && error.includes("CVV")}
+                  helperText={error && error.includes("CVV") ? error : ""}
                 />
               </Grid>
             </Grid>
           </>
         );
-      case 'momo':
+      case "momo":
         return (
           <TextField
             fullWidth
             label="Số điện thoại MoMo"
             name="phoneNumber"
-            value={paymentInfo.phoneNumber || ''}
+            value={paymentInfo.phoneNumber || ""}
             onChange={handlePaymentInfoChange}
             sx={{ mt: 2 }}
-            error={!!error && error.includes('MoMo')}
-            helperText={error && error.includes('MoMo') ? error : ''}
+            error={!!error && error.includes("MoMo")}
+            helperText={error && error.includes("MoMo") ? error : ""}
           />
         );
-      case 'vnpay':
+      case "vnpay":
         return (
           <FormControl fullWidth sx={{ mt: 2 }}>
             <InputLabel>Chọn ngân hàng</InputLabel>
             <Select
               name="bankCode"
-              value={paymentInfo.bankCode || ''}
+              value={paymentInfo.bankCode || ""}
               onChange={handlePaymentInfoChange}
               label="Chọn ngân hàng"
-              error={!!error && error.includes('ngân hàng')}
+              error={!!error && error.includes("ngân hàng")}
             >
               <MenuItem value="VCB">Vietcombank</MenuItem>
               <MenuItem value="TCB">Techcombank</MenuItem>
               <MenuItem value="MB">MB Bank</MenuItem>
               <MenuItem value="ACB">ACB</MenuItem>
             </Select>
-            {error && error.includes('ngân hàng') && (
-              <Typography color="error" variant="caption">{error}</Typography>
+            {error && error.includes("ngân hàng") && (
+              <Typography color="error" variant="caption">
+                {error}
+              </Typography>
             )}
           </FormControl>
         );
-      case 'vietqr':
+      case "vietqr":
         return (
-          <Box sx={{ mt: 2, textAlign: 'center' }}>
+          <Box sx={{ mt: 2, textAlign: "center" }}>
             <Typography variant="subtitle1" sx={{ mb: 1 }}>
               Quét mã QR bên dưới để chuyển khoản
             </Typography>
             <img
               src={qrImage}
               alt="VietQR"
-              style={{ width: 240, height: 240, borderRadius: 8, background: '#fff', margin: '0 auto' }}
+              style={{
+                width: 240,
+                height: 240,
+                borderRadius: 8,
+                background: "#fff",
+                margin: "0 auto",
+              }}
             />
             <Typography variant="body2" sx={{ mt: 2 }}>
-              Sau khi chuyển khoản thành công, vui lòng bấm nút xác nhận bên dưới.
+              Sau khi chuyển khoản thành công, vui lòng bấm nút xác nhận bên
+              dưới.
             </Typography>
           </Box>
         );
@@ -202,8 +218,8 @@ const Payment = ({ open, onClose, onSuccess }) => {
   };
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={() => !loading && onClose()}
       maxWidth="sm"
       fullWidth
@@ -228,34 +244,39 @@ const Payment = ({ open, onClose, onSuccess }) => {
 
           {renderPaymentMethodFields()}
 
-          {error && !error.includes('Số thẻ') && !error.includes('tên chủ thẻ') && 
-           !error.includes('Ngày hết hạn') && !error.includes('CVV') && 
-           !error.includes('MoMo') && !error.includes('ngân hàng') && (
-            <Typography color="error" sx={{ mt: 2 }}>
-              {error}
-            </Typography>
-          )}
+          {error &&
+            !error.includes("Số thẻ") &&
+            !error.includes("tên chủ thẻ") &&
+            !error.includes("Ngày hết hạn") &&
+            !error.includes("CVV") &&
+            !error.includes("MoMo") &&
+            !error.includes("ngân hàng") && (
+              <Typography color="error" sx={{ mt: 2 }}>
+                {error}
+              </Typography>
+            )}
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button 
-          onClick={onClose} 
-          disabled={loading}
-        >
+        <Button onClick={onClose} disabled={loading}>
           Hủy
         </Button>
-        <Button 
-          onClick={handlePaymentSubmit} 
-          variant="contained" 
+        <Button
+          onClick={handlePaymentSubmit}
+          variant="contained"
           disabled={loading}
         >
-          {paymentInfo.paymentMethod === 'vietqr'
-            ? (loading ? 'Đang xác nhận...' : 'Tôi đã chuyển khoản')
-            : (loading ? 'Đang xử lý...' : 'Thanh toán 199.000đ')}
+          {paymentInfo.paymentMethod === "vietqr"
+            ? loading
+              ? "Đang xác nhận..."
+              : "Tôi đã chuyển khoản"
+            : loading
+              ? "Đang xử lý..."
+              : "Thanh toán 199.000đ"}
         </Button>
       </DialogActions>
     </Dialog>
   );
 };
 
-export default Payment; 
+export default Payment;

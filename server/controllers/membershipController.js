@@ -81,4 +81,78 @@ exports.deleteMembershipPackage = async (req, res) => {
     console.error('Delete membership package error:', error);
     res.status(500).json({ message: 'Failed to delete membership package', error: error.message });
   }
-}; 
+};
+
+const purchaseVIP = async (req, res) => {
+    const transaction = await sql.transaction();
+    
+    try {
+        const { userId, packageId } = req.body;
+
+        // Kiểm tra user
+        const userCheck = await new sql.Request(transaction).query`
+            SELECT IsMemberVip, VipEndDate
+            FROM Users
+            WHERE Id = ${userId}
+        `;
+
+        if (userCheck.recordset.length === 0) {
+            throw new Error('User không tồn tại');
+        }
+
+        const user = userCheck.recordset[0];
+        let startDate = new Date();
+        
+        // Nếu đang là VIP và còn hạn, gia hạn thêm 30 ngày từ ngày hết hạn cũ
+        if (user.IsMemberVip && user.VipEndDate > new Date()) {
+            startDate = new Date(user.VipEndDate);
+        }
+
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 30);
+
+        // Cập nhật trạng thái VIP
+        await new sql.Request(transaction).query`
+            UPDATE Users 
+            SET IsMemberVip = 1,
+                VipStartDate = ${startDate},
+                VipEndDate = ${endDate}
+            WHERE Id = ${userId}
+        `;
+
+        // Thêm thông báo
+        await new sql.Request(transaction).query`
+            INSERT INTO Notifications (
+                UserId,
+                Message,
+                Type,
+                CreatedAt,
+                IsRead
+            )
+            VALUES (
+                ${userId},
+                ${user.IsMemberVip ? 'Gia hạn gói VIP thành công' : 'Kích hoạt gói VIP thành công'},
+                'vip_activated',
+                ${new Date()},
+                0
+            )
+        `;
+
+        await transaction.commit();
+
+        res.json({
+            success: true,
+            message: user.IsMemberVip ? 'Gia hạn VIP thành công' : 'Kích hoạt VIP thành công',
+            expiryDate: endDate
+        });
+
+    } catch (error) {
+        await transaction.rollback();
+        console.error('Purchase VIP error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Có lỗi xảy ra',
+            error: error.message
+        });
+    }
+};

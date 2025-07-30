@@ -10,33 +10,49 @@ exports.register = async (req, res) => {
     if (!username || !email || !password || !phoneNumber || !address) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
-    // Kiểm tra email hoặc username đã tồn tại
+
+    // Check if email is verified first
+    const otpCheck = await sql.query`
+      SELECT Id FROM OTPVerification 
+      WHERE Email = ${email} AND IsUsed = 1
+      ORDER BY CreatedAt DESC
+    `;
+    
+    if (otpCheck.recordset.length === 0) {
+      return res.status(400).json({ 
+        message: 'Email chưa được xác thực. Vui lòng xác thực email trước khi đăng ký.',
+        requireOTP: true 
+      });
+    }
+
+    // Check if email or username already exists
     const check = await sql.query`
       SELECT * FROM Users WHERE Email = ${email} OR Username = ${username}
     `;
     if (check.recordset.length > 0) {
       return res.status(400).json({ message: 'Email hoặc username đã tồn tại' });
     }
+    
     let userId;
     if (role === 'coach') {
-      // Đăng ký coach: chưa duyệt
+      // Register coach: pending approval
       const insert = await sql.query`
-        INSERT INTO Users (Username, Email, Password, PhoneNumber, Address, Role, IsMemberVip, CreatedAt, CoachId, IsCoachApproved)
-        VALUES (${username}, ${email}, ${password}, ${phoneNumber}, ${address}, 'coach', 0, GETDATE(), NULL, 0);
+        INSERT INTO Users (Username, Email, Password, PhoneNumber, Address, Role, IsMemberVip, CreatedAt, CoachId, IsCoachApproved, IsEmailVerified)
+        VALUES (${username}, ${email}, ${password}, ${phoneNumber}, ${address}, 'coach', 0, GETDATE(), NULL, 0, 1);
         SELECT SCOPE_IDENTITY() AS Id;
       `;
       userId = insert.recordset[0].Id;
-      // Khởi tạo SmokingProfiles cho coach (có thể bỏ qua nếu không cần)
+      // Initialize SmokingProfiles for coach (optional)
       await sql.query`
         INSERT INTO SmokingProfiles (UserId, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, QuitReason)
         VALUES (${userId}, 0, 0, '', '', '', '')
       `;
       return res.status(201).json({ message: 'Đăng ký tài khoản huấn luyện viên thành công! Vui lòng chờ admin xác nhận.' });
     } else {
-      // Đăng ký member như cũ
+      // Register member as usual
       const insert = await sql.query`
-        INSERT INTO Users (Username, Email, Password, PhoneNumber, Address, Role, IsMemberVip, CreatedAt, CoachId)
-        VALUES (${username}, ${email}, ${password}, ${phoneNumber}, ${address}, 'member', 0, GETDATE(), NULL);
+        INSERT INTO Users (Username, Email, Password, PhoneNumber, Address, Role, IsMemberVip, CreatedAt, CoachId, IsEmailVerified)
+        VALUES (${username}, ${email}, ${password}, ${phoneNumber}, ${address}, 'member', 0, GETDATE(), NULL, 1);
         SELECT SCOPE_IDENTITY() AS Id;
       `;
       userId = insert.recordset[0].Id;
@@ -44,10 +60,10 @@ exports.register = async (req, res) => {
         INSERT INTO SmokingProfiles (UserId, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, QuitReason)
         VALUES (${userId}, 0, 0, '', '', '', '')
       `;
-      // Lấy thông tin user vừa tạo
+      // Get newly created user info
       const userResult = await sql.query`SELECT * FROM Users WHERE Id = ${userId}`;
       const user = userResult.recordset[0];
-      // Tạo token
+      // Create token
       const token = jwt.sign({ userId: user.Id, role: user.Role }, SECRET_KEY, { expiresIn: '24h' });
       res.status(201).json({
         token,
@@ -61,7 +77,8 @@ exports.register = async (req, res) => {
           isMemberVip: user.IsMemberVip,
           createdAt: user.CreatedAt,
           password: user.Password,
-          coachId: user.CoachId
+          coachId: user.CoachId,
+          isEmailVerified: user.IsEmailVerified
         }
       });
     }
@@ -69,7 +86,7 @@ exports.register = async (req, res) => {
     console.error('Register error:', error);
     res.status(500).json({ message: 'Registration failed', error: error.message });
   }
-};
+};;
 
 // Đăng nhập
 exports.login = async (req, res) => {
@@ -428,8 +445,6 @@ exports.updateSmokingStatus = async (req, res) => {
           healthStatus = ${healthStatus},
           cigaretteType = ${dbCigaretteType},
           CustomCigaretteType = ${dbCustomCigaretteType},
-          cigaretteType = ${cigaretteType},
-          customCigaretteType = ${customCigaretteType},
           QuitReason = ${quitReason}
         WHERE UserId = ${userId}
       `;
@@ -437,7 +452,6 @@ exports.updateSmokingStatus = async (req, res) => {
       // Tạo bản ghi mới nếu chưa tồn tại
       await sql.query`
         INSERT INTO SmokingProfiles (UserId, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, CustomCigaretteType, QuitReason)
-        INSERT INTO SmokingProfiles (UserId, cigarettesPerDay, costPerPack, smokingFrequency, healthStatus, cigaretteType, customCigaretteType, QuitReason)
         VALUES (
           ${userId},
           ${cigarettesPerDay},
@@ -446,8 +460,6 @@ exports.updateSmokingStatus = async (req, res) => {
           ${healthStatus},
           ${dbCigaretteType},
           ${dbCustomCigaretteType},
-          ${cigaretteType},
-          ${customCigaretteType},
           ${quitReason}
         )
       `;
@@ -537,38 +549,209 @@ exports.createOrUpdateQuitPlan = async (req, res) => {
 exports.getQuitPlan = async (req, res) => {
   try {
     const userId = req.user.id;
-    const result = await sql.query`
-      SELECT * FROM QuitPlans WHERE UserId = ${userId}
+
+    // 1. Check for custom quit plan
+    const customPlanResult = await sql.query`
+      SELECT *, 'custom' as planType, NULL as Title, NULL as Description FROM QuitPlans WHERE UserId = ${userId} ORDER BY CreatedAt DESC
     `;
-    if (result.recordset.length === 0) {
+
+    // 2. Check for user-selected suggested plan
+    const userSuggestedPlanResult = await sql.query`
+      SELECT 
+        usp.Id, 
+        usp.StartDate, 
+        usp.TargetDate, 
+        sp.Title, 
+        sp.Description, 
+        sp.PlanDetail, 
+        usp.CreatedAt,
+        'suggested' as planType,
+        NULL as InitialCigarettes,
+        NULL as DailyReduction
+      FROM UserSuggestedQuitPlans usp
+      JOIN SuggestedQuitPlans sp ON usp.SuggestedPlanId = sp.Id
+      WHERE usp.UserId = ${userId}
+      ORDER BY usp.CreatedAt DESC
+    `;
+
+    // 3. Check for coach-assigned plan
+    const coachPlanResult = await sql.query`
+      SELECT *, 'coach' as planType FROM CoachSuggestedQuitPlans WHERE UserId = ${userId} AND Status = 'accepted' ORDER BY CreatedAt DESC
+    `;
+
+    const allPlans = [
+      ...customPlanResult.recordset,
+      ...userSuggestedPlanResult.recordset,
+      ...coachPlanResult.recordset
+    ];
+
+    if (allPlans.length === 0) {
       return res.status(404).json({ message: 'Không tìm thấy kế hoạch cai thuốc' });
     }
-    const plan = result.recordset[0];
-    const startDate = new Date(plan.StartDate);
-    const targetDate = new Date(plan.TargetDate);
+
+    // Sort all plans by CreatedAt date in descending order and take the latest one
+    allPlans.sort((a, b) => new Date(b.CreatedAt) - new Date(a.CreatedAt));
+    const latestPlan = allPlans[0];
+
+    const startDate = new Date(latestPlan.StartDate);
+    const targetDate = new Date(latestPlan.TargetDate);
     const today = new Date();
     const totalDurationMs = targetDate.getTime() - startDate.getTime();
     const elapsedDurationMs = today.getTime() - startDate.getTime();
     let progressPercentage = 0;
+
     if (totalDurationMs > 0) {
       progressPercentage = (elapsedDurationMs / totalDurationMs) * 100;
       if (progressPercentage > 100) progressPercentage = 100;
       if (progressPercentage < 0) progressPercentage = 0;
     }
+
     res.json({
       quitPlan: {
-        id: plan.Id,
-        startDate: plan.StartDate.toISOString().slice(0, 10),
-        targetDate: plan.TargetDate.toISOString().slice(0, 10),
-        initialCigarettes: plan.InitialCigarettes || 0,
-        dailyReduction: plan.DailyReduction || 0,
+        id: latestPlan.Id,
+        startDate: startDate.toISOString().slice(0, 10),
+        targetDate: targetDate.toISOString().slice(0, 10),
+        initialCigarettes: latestPlan.InitialCigarettes || 0,
+        dailyReduction: latestPlan.DailyReduction || 0,
         currentProgress: progressPercentage,
-        planDetail: plan.PlanDetail || '',
-        createdAt: plan.CreatedAt || null
+        planDetail: latestPlan.PlanDetail || '',
+        createdAt: latestPlan.CreatedAt || null,
+        title: latestPlan.Title || 'Custom Plan',
+        description: latestPlan.Description || '',
+        planType: latestPlan.planType,
       }
     });
   } catch (error) {
+    console.error('Error in getQuitPlan:', error);
     res.status(500).json({ message: 'Failed to get quit plan', error: error.message });
+  }
+};;
+
+// Delete quit plan for the current user (handles both custom and suggested plans)
+exports.deleteQuitPlan = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Check if user has a custom quit plan
+    const existingCustomPlanResult = await sql.query`
+      SELECT Id FROM QuitPlans WHERE UserId = ${userId}
+    `;
+    
+    // Check if user has suggested quit plans
+    const existingSuggestedPlansResult = await sql.query`
+      SELECT Id, SuggestedPlanId FROM UserSuggestedQuitPlans WHERE UserId = ${userId}
+    `;
+    
+    // Check if user has coach suggested plans
+    const existingCoachPlansResult = await sql.query`
+      SELECT Id FROM CoachSuggestedQuitPlans WHERE UserId = ${userId}
+    `;
+    
+    const hasCustomPlan = existingCustomPlanResult.recordset.length > 0;
+    const hasSuggestedPlans = existingSuggestedPlansResult.recordset.length > 0;
+    const hasCoachPlans = existingCoachPlansResult.recordset.length > 0;
+    
+    if (!hasCustomPlan && !hasSuggestedPlans && !hasCoachPlans) {
+      return res.status(404).json({ message: 'Không tìm thấy kế hoạch cai thuốc để xóa' });
+    }
+    
+    // Start transaction to ensure data integrity
+    const transaction = new sql.Transaction();
+    await transaction.begin();
+    
+    try {
+      let deletedPlansInfo = [];
+      
+      // Handle custom quit plan deletion
+      if (hasCustomPlan) {
+        const quitPlanId = existingCustomPlanResult.recordset[0].Id;
+        
+        // 1. Delete SmokingDailyLog records that reference this specific plan
+        await transaction.request()
+          .input('planId', sql.Int, quitPlanId)
+          .query('DELETE FROM SmokingDailyLog WHERE PlanId = @planId');
+        
+        // 2. Delete UserStageActivities that are linked through UserQuitPlanStages
+        await transaction.request()
+          .input('planId', sql.Int, quitPlanId)
+          .query(`
+            DELETE usa FROM UserStageActivities usa
+            INNER JOIN UserQuitPlanStages uqs ON usa.UserQuitPlanStageId = uqs.Id
+            WHERE uqs.QuitPlanId = @planId
+          `);
+        
+        // 3. Delete UserQuitPlanStages
+        await transaction.request()
+          .input('planId', sql.Int, quitPlanId)
+          .query('DELETE FROM UserQuitPlanStages WHERE QuitPlanId = @planId');
+        
+        // 4. Delete the main quit plan
+        await transaction.request()
+          .input('planId', sql.Int, quitPlanId)
+          .query('DELETE FROM QuitPlans WHERE Id = @planId');
+        
+        deletedPlansInfo.push('kế hoạch tự tạo');
+      }
+      
+      // Handle suggested quit plans deletion
+      if (hasSuggestedPlans) {
+        // Delete SmokingDailyLog records that reference suggested plans for this user
+        await transaction.request()
+          .input('userId', sql.Int, userId)
+          .query(`
+            DELETE sdl FROM SmokingDailyLog sdl
+            INNER JOIN UserSuggestedQuitPlans usp ON sdl.SuggestedPlanId = usp.SuggestedPlanId
+            WHERE usp.UserId = @userId
+          `);
+        
+        // Delete from UserSuggestedQuitPlans
+        await transaction.request()
+          .input('userId', sql.Int, userId)
+          .query('DELETE FROM UserSuggestedQuitPlans WHERE UserId = @userId');
+        
+        deletedPlansInfo.push('kế hoạch đề xuất hệ thống');
+      }
+      
+      // Handle coach suggested plans deletion
+      if (hasCoachPlans) {
+        // Delete SmokingDailyLog records that reference coach plans for this user
+        await transaction.request()
+          .input('userId', sql.Int, userId)
+          .query(`
+            DELETE sdl FROM SmokingDailyLog sdl
+            INNER JOIN CoachSuggestedQuitPlans csp ON sdl.CoachSuggestedPlanId = csp.Id
+            WHERE csp.UserId = @userId
+          `);
+        
+        // Delete from CoachSuggestedQuitPlans
+        await transaction.request()
+          .input('userId', sql.Int, userId)
+          .query('DELETE FROM CoachSuggestedQuitPlans WHERE UserId = @userId');
+        
+        deletedPlansInfo.push('kế hoạch đề xuất từ huấn luyện viên');
+      }
+      
+      // Delete any remaining SmokingDailyLog records for this user (to be safe)
+      await transaction.request()
+        .input('userId', sql.Int, userId)
+        .query('DELETE FROM SmokingDailyLog WHERE UserId = @userId AND PlanId IS NULL AND SuggestedPlanId IS NULL AND CoachSuggestedPlanId IS NULL');
+      
+      await transaction.commit();
+      
+      const deletedPlansText = deletedPlansInfo.join(', ');
+      res.json({ 
+        message: `Đã xóa thành công: ${deletedPlansText} và tất cả dữ liệu liên quan`,
+        deletedPlans: deletedPlansInfo
+      });
+      
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+    
+  } catch (error) {
+    console.error('Error deleting quit plan:', error);
+    res.status(500).json({ message: 'Lỗi khi xóa kế hoạch cai thuốc', error: error.message });
   }
 };
 
@@ -1084,18 +1267,97 @@ exports.getUserBadges = async (req, res) => {
 
 // Thêm hoặc cập nhật kế hoạch mẫu đã chọn của user
 exports.createUserSuggestedQuitPlan = async (req, res) => {
+  const transaction = new sql.Transaction();
+  
   try {
     const userId = req.user.id;
     const { suggestedPlanId, startDate, targetDate } = req.body;
-    await sql.query`
-      INSERT INTO UserSuggestedQuitPlans (UserId, SuggestedPlanId, StartDate, TargetDate)
-      VALUES (${userId}, ${suggestedPlanId}, ${startDate}, ${targetDate})
-    `;
-    res.json({ message: 'Lưu kế hoạch mẫu thành công!' });
+    
+    // Begin explicit SQL transaction
+    await transaction.begin();
+
+    // 1. Insert into UserSuggestedQuitPlans, capture INSERTED.Id as userSuggestedQuitPlanId
+    const userSuggestedPlanResult = await transaction.request()
+      .input('UserId', sql.Int, userId)
+      .input('SuggestedPlanId', sql.Int, suggestedPlanId)
+      .input('StartDate', sql.Date, new Date(startDate))
+      .input('TargetDate', sql.Date, new Date(targetDate))
+      .query(`
+        INSERT INTO UserSuggestedQuitPlans (UserId, SuggestedPlanId, StartDate, TargetDate)
+        OUTPUT INSERTED.Id
+        VALUES (@UserId, @SuggestedPlanId, @StartDate, @TargetDate)
+      `);
+    
+    const userSuggestedQuitPlanId = userSuggestedPlanResult.recordset[0].Id;
+
+    // 2. Create a QuitPlans record to get quitPlanId for UserQuitPlanStages
+    const quitPlanResult = await transaction.request()
+      .input('UserId', sql.Int, userId)
+      .input('StartDate', sql.Date, new Date(startDate))
+      .input('TargetDate', sql.Date, new Date(targetDate))
+      .input('Status', sql.NVarChar, 'In Progress')
+      .query(`
+        INSERT INTO QuitPlans (UserId, StartDate, TargetDate, Status, CreatedAt)
+        OUTPUT INSERTED.Id
+        VALUES (@UserId, @StartDate, @TargetDate, @Status, GETDATE())
+      `);
+    
+    const quitPlanId = quitPlanResult.recordset[0].Id;
+
+    // 3. Fetch ordered stages via helper (step 3)
+    const { getSuggestedQuitPlanStages } = require('../services/quitPlanService');
+    const stages = await getSuggestedQuitPlanStages(suggestedPlanId);
+
+    // 4. Loop stages and insert each into UserQuitPlanStages with calculated dates
+    const createdStages = [];
+    let currentStageStartDate = new Date(startDate);
+    
+    for (const [index, stage] of stages.entries()) {
+      const status = (stage.StageOrder === 1) ? 'In Progress' : 'Not Started';
+      
+      // Calculate stage end date based on duration (default to 7 days if null)
+      const duration = stage.DurationInDays || 7;
+      const stageEndDate = new Date(currentStageStartDate);
+      stageEndDate.setDate(stageEndDate.getDate() + duration);
+      
+      const stageResult = await transaction.request()
+        .input('QuitPlanId', sql.Int, quitPlanId)
+        .input('StageName', sql.NVarChar, stage.StageName)
+        .input('Objective', sql.NVarChar, stage.Objective)
+        .input('InitialCigarettes', sql.Int, stage.InitialCigarettes)
+        .input('TargetCigarettes', sql.Int, stage.TargetCigarettes)
+        .input('StartDate', sql.DateTime, currentStageStartDate)
+        .input('EndDate', sql.DateTime, stageEndDate)
+        .input('Status', sql.NVarChar, status)
+        .query(`
+          INSERT INTO UserQuitPlanStages (QuitPlanId, StageName, Objective, InitialCigarettes, TargetCigarettes, StartDate, EndDate, Status)
+          OUTPUT INSERTED.Id, INSERTED.StageName, INSERTED.Objective, INSERTED.InitialCigarettes, INSERTED.TargetCigarettes, INSERTED.StartDate, INSERTED.EndDate, INSERTED.Status
+          VALUES (@QuitPlanId, @StageName, @Objective, @InitialCigarettes, @TargetCigarettes, @StartDate, @EndDate, @Status)
+        `);
+      
+      createdStages.push(stageResult.recordset[0]);
+      
+      // Set the next stage start date to current stage end date
+      currentStageStartDate = new Date(stageEndDate);
+    }
+
+    // 5. Commit transaction
+    await transaction.commit();
+    
+    // 6. Respond with success + created stage list
+    res.json({ 
+      message: 'Lưu kế hoạch mẫu thành công!', 
+      userSuggestedQuitPlanId,
+      quitPlanId,
+      stages: createdStages
+    });
+
   } catch (error) {
+    // On error, roll back and return 500
+    await transaction.rollback();
     res.status(500).json({ message: 'Lưu kế hoạch mẫu thất bại.', error: error.message });
   }
-};
+};;;
 
 // Lấy kế hoạch cai thuốc tự tạo
 exports.getCustomQuitPlan = async (req, res) => {
@@ -1115,7 +1377,9 @@ exports.getCustomQuitPlan = async (req, res) => {
       planDetail: plan.PlanDetail,
       initialCigarettes: plan.InitialCigarettes,
       dailyReduction: plan.DailyReduction,
-      createdAt: plan.CreatedAt
+      createdAt: plan.CreatedAt,
+      Status: plan.Status,  // Add Status field
+      status: plan.Status   // Add both cases for compatibility
     };
     res.json({ quitPlan });
   } catch (error) {
@@ -1125,65 +1389,176 @@ exports.getCustomQuitPlan = async (req, res) => {
 
 // Tạo kế hoạch cai thuốc tự tạo (chỉ cho memberVip)
 exports.createQuitPlan = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { reason, startDate, endDate, stages, isDraft } = req.body;
+
+        if (!reason || !startDate) {
+            return res.status(400).json({ message: 'Vui lòng cung cấp lý do và ngày bắt đầu bỏ thuốc.' });
+        }
+
+        const transaction = new sql.Transaction();
+        await transaction.begin();
+
+        try {
+            // 1. Create a master Quit Plan record
+            const quitPlanResult = await transaction.request()
+                .input('UserId', sql.Int, userId)
+                .input('QuitReason', sql.NVarChar, reason)
+                .input('StartDate', sql.Date, new Date(startDate))
+                .input('TargetDate', sql.Date, endDate ? new Date(endDate) : null)
+                .query(`
+                    INSERT INTO QuitPlans (UserId, QuitReason, StartDate, TargetDate, Status)
+                    OUTPUT INSERTED.Id
+                    VALUES (@UserId, @QuitReason, @StartDate, @TargetDate, N'In Progress');
+                `);
+            const quitPlanId = quitPlanResult.recordset[0].Id;
+
+            // 2. Create user-specific stages from the request
+            for (const [index, stage] of stages.entries()) {
+                const status = (index === 0) ? 'In Progress' : 'Not Started';
+                await transaction.request()
+                    .input('QuitPlanId', sql.Int, quitPlanId)
+                    .input('StageName', sql.NVarChar, stage.name)
+                    .input('Objective', sql.NVarChar, stage.goal)
+                    .input('StartDate', sql.Date, new Date(stage.stageStart))
+                    .input('EndDate', sql.Date, new Date(stage.stageEnd))
+                    .input('InitialCigarettes', sql.Int, stage.initial)
+                    .input('TargetCigarettes', sql.Int, stage.target)
+                    .input('Status', sql.NVarChar, status)
+                    .query(`
+                        INSERT INTO UserQuitPlanStages (QuitPlanId, StageName, Objective, StartDate, EndDate, InitialCigarettes, TargetCigarettes, Status)
+                        VALUES (@QuitPlanId, @StageName, @Objective, @StartDate, @EndDate, @InitialCigarettes, @TargetCigarettes, @Status);
+                    `);
+            }
+
+            await transaction.commit();
+            res.status(201).json({ message: `Kế hoạch bỏ thuốc ${stages.length} giai đoạn đã được tạo thành công!`, quitPlanId });
+
+        } catch (error) {
+            await transaction.rollback();
+            res.status(500).json({ message: 'Lỗi trong quá trình giao dịch', error: error.message });
+        }
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi khi tạo kế hoạch bỏ thuốc', error: error.message });
+    }
+};
+
+// Enhanced function to handle stage progression based on completion criteria
+exports.updateStageProgression = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { startDate, targetDate, planDetail, initialCigarettes, dailyReduction } = req.body;
-
-    // Kiểm tra quyền memberVip
-    const userCheck = await sql.query`
-      SELECT Id, Role, IsMemberVip, CoachId FROM Users WHERE Id = ${userId}
-    `;
-    if (userCheck.recordset.length === 0) {
-      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
-    }
-    const user = userCheck.recordset[0];
-    if (user.Role !== 'member' && user.Role !== 'memberVip') {
-      return res.status(403).json({ message: 'Chỉ thành viên mới có thể tự tạo kế hoạch cai thuốc' });
-    }
+    const { userQuitPlanStageId, completionCriteria } = req.body;
 
     // Validate input
-    if (!startDate || !targetDate || !planDetail) {
-      return res.status(400).json({ message: 'Vui lòng điền đầy đủ thông tin bắt buộc' });
-    }
-    if (new Date(startDate) >= new Date(targetDate)) {
-      return res.status(400).json({ message: 'Ngày kết thúc phải sau ngày bắt đầu' });
+    if (!userQuitPlanStageId || !completionCriteria) {
+      return res.status(400).json({ message: 'Thiếu thông tin giai đoạn hoặc tiêu chí hoàn thành.' });
     }
 
-    // Xóa kế hoạch cũ nếu có (để user chỉ có 1 kế hoạch active)
-    await sql.query`
-      DELETE FROM QuitPlans WHERE UserId = ${userId}
+    // Get the current stage and quit plan info
+    const stageResult = await sql.query`
+      SELECT uqs.*, qs.StageOrder, qs.StageName, qp.Id as QuitPlanId
+      FROM UserQuitPlanStages uqs
+      JOIN QuitPlanStages qs ON uqs.StageId = qs.Id
+      JOIN QuitPlans qp ON uqs.QuitPlanId = qp.Id
+      WHERE uqs.Id = ${userQuitPlanStageId} AND qp.UserId = ${userId}
     `;
 
-    // Tạo kế hoạch mới
-    const insertResult = await sql.query`
-      INSERT INTO QuitPlans (UserId, CoachId, StartDate, TargetDate, PlanDetail, InitialCigarettes, DailyReduction, CreatedAt)
-      VALUES (${userId}, ${user.CoachId || null}, ${startDate}, ${targetDate}, ${planDetail}, ${initialCigarettes || 0}, ${dailyReduction || 0}, GETDATE());
-      SELECT SCOPE_IDENTITY() AS Id;
-    `;
-    const newPlanId = insertResult.recordset[0].Id;
+    if (stageResult.recordset.length === 0) {
+      return res.status(404).json({ message: 'Không tìm thấy giai đoạn này.' });
+    }
 
-    // Lấy thông tin kế hoạch vừa tạo
-    const planResult = await sql.query`
-      SELECT * FROM QuitPlans WHERE Id = ${newPlanId}
-    `;
-    const createdPlan = planResult.recordset[0];
+    const currentStage = stageResult.recordset[0];
+    const quitPlanId = currentStage.QuitPlanId;
+    const currentOrder = currentStage.StageOrder;
 
-    res.status(201).json({
-      message: 'Đã tạo kế hoạch cai thuốc thành công!',
-      plan: {
-        id: createdPlan.Id,
-        startDate: createdPlan.StartDate ? createdPlan.StartDate.toISOString().slice(0, 10) : null,
-        targetDate: createdPlan.TargetDate ? createdPlan.TargetDate.toISOString().slice(0, 10) : null,
-        planDetail: createdPlan.PlanDetail,
-        initialCigarettes: createdPlan.InitialCigarettes,
-        dailyReduction: createdPlan.DailyReduction,
-        createdAt: createdPlan.CreatedAt
+    // Check if stage completion criteria are met
+    const isStageComplete = await checkStageCompletionCriteria(currentOrder, completionCriteria);
+
+    if (isStageComplete) {
+      const transaction = new sql.Transaction();
+      await transaction.begin();
+
+      try {
+        // Mark current stage as completed
+        await transaction.request()
+          .input('UserQuitPlanStageId', sql.Int, userQuitPlanStageId)
+          .query('UPDATE UserQuitPlanStages SET Status = N\'Completed\', EndDate = GETDATE() WHERE Id = @UserQuitPlanStageId');
+
+        // If not the last stage, activate the next stage
+        if (currentOrder < 6) {
+          const nextStageResult = await transaction.request()
+            .input('QuitPlanId', sql.Int, quitPlanId)
+            .input('NextOrder', sql.Int, currentOrder + 1)
+            .query(`
+              UPDATE uqs SET Status = N'In Progress', StartDate = GETDATE()
+              FROM UserQuitPlanStages uqs
+              JOIN QuitPlanStages qs ON uqs.StageId = qs.Id
+              WHERE uqs.QuitPlanId = @QuitPlanId AND qs.StageOrder = @NextOrder
+            `);
+        } else {
+          // Mark the entire quit plan as completed
+          await transaction.request()
+            .input('QuitPlanId', sql.Int, quitPlanId)
+            .query('UPDATE QuitPlans SET Status = N\'Completed\', CompletionDate = GETDATE() WHERE Id = @QuitPlanId');
+        }
+
+        await transaction.commit();
+        res.json({ 
+          message: `Giai đoạn ${currentStage.StageName} đã hoàn thành!`, 
+          nextStage: currentOrder < 6 ? currentOrder + 1 : null,
+          planCompleted: currentOrder === 6
+        });
+
+      } catch (error) {
+        await transaction.rollback();
+        throw error;
       }
-    });
+    } else {
+      res.status(400).json({ message: 'Chưa đạt đủ tiêu chí để hoàn thành giai đoạn này.' });
+    }
+
   } catch (error) {
-    res.status(500).json({ message: 'Lỗi khi tạo kế hoạch cai thuốc', error: error.message });
+    res.status(500).json({ message: 'Lỗi khi cập nhật tiến độ giai đoạn', error: error.message });
   }
 };
+
+// Helper function to check stage completion criteria
+async function checkStageCompletionCriteria(stageOrder, completionCriteria) {
+  switch (stageOrder) {
+    case 1: // Pre-Contemplation/Assessment
+      return completionCriteria.assessmentCompleted && 
+             completionCriteria.smokingPatternsRecorded && 
+             completionCriteria.triggersIdentified &&
+             completionCriteria.readinessScoreThreshold >= 7; // Minimum readiness score
+    
+    case 2: // Contemplation/Preparation
+      return completionCriteria.quitReasonsDocumented &&
+             completionCriteria.quitDateSet &&
+             completionCriteria.supportPlanCreated &&
+             completionCriteria.environmentPrepared;
+    
+    case 3: // Action/Quit Day
+      return completionCriteria.quitDayActivated &&
+             completionCriteria.smokeFreeFor24Hours &&
+             completionCriteria.copingStrategiesUtilized;
+    
+    case 4: // Early Maintenance (Days 1-30)
+      return completionCriteria.dailyCheckInsCompleted >= 0.8 && // 80% completion
+             completionCriteria.cravingsTrendAnalyzed;
+    
+    case 5: // Extended Maintenance (Days 31-90)
+      return completionCriteria.weeklyMilestonesAchieved &&
+             completionCriteria.copingSkillsMastered;
+    
+    case 6: // Long-term Maintenance (Days 91+)
+      return completionCriteria.monthlyProgressMaintained &&
+             completionCriteria.communityContribution;
+    
+    default:
+      return false;
+  }
+}
 
 exports.deleteUser = async (req, res) => {
   try {
@@ -1254,5 +1629,339 @@ exports.rejectCoachPlan = async (req, res) => {
     res.json({ message: 'Đã từ chối kế hoạch coach đề xuất!' });
   } catch (error) {
     res.status(500).json({ message: 'Lỗi khi từ chối kế hoạch', error: error.message });
+  }
+};
+
+// Simple stage completion for custom stages
+exports.completeStage = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { userStageId } = req.body;
+
+    if (!userStageId) {
+      return res.status(400).json({ message: 'Thiếu thông tin giai đoạn.' });
+    }
+
+    // Check if the stage belongs to the user and get stage info
+    const stageResult = await sql.query`
+      SELECT uqs.*, qp.UserId
+      FROM UserQuitPlanStages uqs
+      JOIN QuitPlans qp ON uqs.QuitPlanId = qp.Id
+      WHERE uqs.Id = ${userStageId} AND qp.UserId = ${userId}
+    `;
+
+    if (stageResult.recordset.length === 0) {
+      return res.status(404).json({ message: 'Không tìm thấy giai đoạn này hoặc bạn không có quyền truy cập.' });
+    }
+
+    const currentStage = stageResult.recordset[0];
+    
+    // Check if stage is already completed
+    if (currentStage.Status === 'Completed') {
+      return res.status(400).json({ message: 'Giai đoạn này đã được hoàn thành.' });
+    }
+
+    // Update stage status to completed
+    await sql.query`
+      UPDATE UserQuitPlanStages 
+      SET Status = 'Completed', EndDate = GETDATE() 
+      WHERE Id = ${userStageId}
+    `;
+
+    // Find the next stage to activate (if any)
+    const nextStageResult = await sql.query`
+      SELECT Id FROM UserQuitPlanStages 
+      WHERE QuitPlanId = ${currentStage.QuitPlanId} 
+        AND Id != ${userStageId} 
+        AND Status = 'Not Started'
+      ORDER BY Id ASC
+    `;
+
+    let nextStageActivated = false;
+    if (nextStageResult.recordset.length > 0) {
+      const nextStageId = nextStageResult.recordset[0].Id;
+      await sql.query`
+        UPDATE UserQuitPlanStages 
+        SET Status = 'In Progress', StartDate = GETDATE() 
+        WHERE Id = ${nextStageId}
+      `;
+      nextStageActivated = true;
+    }
+
+    // Check if all stages are completed
+    const remainingStagesResult = await sql.query`
+      SELECT COUNT(*) as RemainingCount 
+      FROM UserQuitPlanStages 
+      WHERE QuitPlanId = ${currentStage.QuitPlanId} 
+        AND Status != 'Completed'
+    `;
+
+    const allStagesCompleted = remainingStagesResult.recordset[0].RemainingCount === 0;
+    
+    if (allStagesCompleted) {
+      // Mark the entire quit plan as completed
+      await sql.query`
+        UPDATE QuitPlans 
+        SET Status = 'Completed', CompletionDate = GETDATE() 
+        WHERE Id = ${currentStage.QuitPlanId}
+      `;
+    }
+
+    res.json({ 
+      message: 'Giai đoạn đã được hoàn thành!',
+      stageCompleted: true,
+      nextStageActivated,
+      planCompleted: allStagesCompleted
+    });
+
+  } catch (error) {
+    console.error('Complete stage error:', error);
+    res.status(500).json({ message: 'Lỗi khi hoàn thành giai đoạn', error: error.message });
+  }
+};
+
+exports.completeUserQuitPlan = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { planId } = req.params;
+
+    // 1. Try to find and complete a custom plan from QuitPlans
+    const customPlanResult = await sql.query`
+      SELECT * FROM QuitPlans WHERE Id = ${planId} AND UserId = ${userId}
+    `;
+
+    if (customPlanResult.recordset.length > 0) {
+      const plan = customPlanResult.recordset[0];
+      if (plan.Status === 'Completed') {
+        return res.status(400).json({ message: 'Kế hoạch này đã được hoàn thành trước đó.' });
+      }
+
+      const remainingStagesResult = await sql.query`
+        SELECT COUNT(*) as RemainingCount
+        FROM UserQuitPlanStages
+        WHERE QuitPlanId = ${planId} AND Status != 'Completed'
+      `;
+      const allStagesCompleted = remainingStagesResult.recordset[0].RemainingCount === 0;
+
+      if (!allStagesCompleted) {
+        return res.status(400).json({ message: 'Không phải tất cả các giai đoạn đều đã hoàn thành.' });
+      }
+
+      await sql.query`
+        UPDATE QuitPlans
+        SET Status = 'Completed', CompletionDate = GETDATE()
+        WHERE Id = ${planId}
+      `;
+
+      return res.json({ message: 'Chúc mừng! Kế hoạch đã được đánh dấu là hoàn thành.', planType: 'custom' });
+    }
+
+    // 2. Try to find and complete a user suggested plan
+    const userSuggestedPlanResult = await sql.query`
+      SELECT * FROM UserSuggestedQuitPlans WHERE Id = ${planId} AND UserId = ${userId}
+    `;
+
+    if (userSuggestedPlanResult.recordset.length > 0) {
+      await sql.query`
+        UPDATE UserSuggestedQuitPlans SET Status = 'Completed' WHERE Id = ${planId}
+      `;
+      return res.json({ message: 'Chúc mừng! Kế hoạch đã được đánh dấu là hoàn thành.', planType: 'suggested' });
+    }
+
+    // 3. Try to find and complete a coach suggested plan
+    const coachPlanResult = await sql.query`
+      SELECT * FROM CoachSuggestedQuitPlans WHERE Id = ${planId} AND UserId = ${userId}
+    `;
+
+    if (coachPlanResult.recordset.length > 0) {
+      await sql.query`
+        UPDATE CoachSuggestedQuitPlans SET Status = 'Completed' WHERE Id = ${planId}
+      `;
+      return res.json({ message: 'Chúc mừng! Kế hoạch đã được đánh dấu là hoàn thành.', planType: 'coach' });
+    }
+
+    // 4. If no plan was found in any table
+    return res.status(404).json({ message: 'Không tìm thấy kế hoạch hoặc bạn không có quyền.' });
+
+  } catch (error) {
+    console.error('Complete user quit plan error:', error);
+    res.status(500).json({ message: 'Lỗi khi hoàn thành kế hoạch.', error: error.message });
+  }
+};;
+
+// Xóa kế hoạch cai thuốc (tự tạo, coach gửi, hệ thống đề xuất)
+exports.getQuitPlanStages = async (req, res) => {
+  try {
+    const stages = await sql.query`
+      SELECT Id, StageName, StageOrder, Objective, Description
+      FROM QuitPlanStages
+      ORDER BY StageOrder ASC
+    `;
+    res.json(stages.recordset);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to get quit plan stages', error: error.message });
+  }
+};
+
+exports.getStageActivities = async (req, res) => {
+  try {
+    const { stageId } = req.params;
+    const activities = await sql.query`
+      SELECT Id, ActivityName, ActivityType
+      FROM StageActivities
+      WHERE StageId = ${stageId}
+    `;
+    res.json(activities.recordset);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to get stage activities', error: error.message });
+  }
+};
+
+exports.getUserQuitPlan = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    console.log('getUserQuitPlan called for userId:', userId);
+
+    // 1. Check for custom quit plan
+    const customPlanResult = await sql.query`
+      SELECT TOP 1 
+        Id, UserId, CoachId, 
+        CONVERT(varchar, StartDate, 127) as StartDate, 
+        CONVERT(varchar, TargetDate, 127) as TargetDate, 
+        PlanDetail, 
+        CONVERT(varchar, CreatedAt, 127) as CreatedAt, 
+        InitialCigarettes, DailyReduction, CurrentStageId, Status,
+        'custom' as planType,
+        NULL as Title,
+        NULL as Description
+      FROM QuitPlans 
+      WHERE UserId = ${userId}
+      ORDER BY CreatedAt DESC
+    `;
+
+    // 2. Check for user-selected suggested plan
+    const userSuggestedPlanResult = await sql.query`
+      SELECT 
+        usp.Id,
+        usp.UserId,
+        NULL as CoachId,
+        CONVERT(varchar, usp.StartDate, 127) as StartDate,
+        CONVERT(varchar, usp.TargetDate, 127) as TargetDate,
+        sp.PlanDetail,
+        CONVERT(varchar, usp.CreatedAt, 127) as CreatedAt,
+        NULL as InitialCigarettes,
+        NULL as DailyReduction,
+        NULL as CurrentStageId,
+        'active' as Status,
+        'suggested' as planType,
+        sp.Title,
+        sp.Description
+      FROM UserSuggestedQuitPlans usp
+      JOIN SuggestedQuitPlans sp ON usp.SuggestedPlanId = sp.Id
+      WHERE usp.UserId = ${userId}
+      ORDER BY usp.CreatedAt DESC
+    `;
+
+    // 3. Check for coach-assigned plan
+    const coachPlanResult = await sql.query`
+      SELECT TOP 1 
+        Id,
+        UserId,
+        CoachId,
+        CONVERT(varchar, StartDate, 127) as StartDate,
+        CONVERT(varchar, TargetDate, 127) as TargetDate,
+        PlanDetail,
+        CONVERT(varchar, CreatedAt, 127) as CreatedAt,
+        NULL as InitialCigarettes,
+        NULL as DailyReduction,
+        NULL as CurrentStageId,
+        Status,
+        'coach' as planType,
+        Title,
+        Description
+      FROM CoachSuggestedQuitPlans 
+      WHERE UserId = ${userId} AND Status = 'accepted'
+      ORDER BY CreatedAt DESC
+    `;
+
+    const allPlans = [
+      ...customPlanResult.recordset,
+      ...userSuggestedPlanResult.recordset,
+      ...coachPlanResult.recordset
+    ];
+
+    if (allPlans.length === 0) {
+      return res.status(404).json({ message: 'No quit plan found' });
+    }
+
+    // Sort all plans by CreatedAt date and take the latest one
+    allPlans.sort((a, b) => new Date(b.CreatedAt) - new Date(a.CreatedAt));
+    const latestPlan = allPlans[0];
+
+    let stages = [];
+    
+    // Get stages based on plan type
+    if (latestPlan.planType === 'custom') {
+      // Handle both custom stages (StageId = NULL) and standard stages (StageId not NULL)
+      const userStagesResult = await sql.query`
+        SELECT 
+          uqs.Id, 
+          uqs.StageId, 
+          uqs.Status, 
+          CONVERT(varchar, uqs.StartDate, 127) as StartDate, 
+          CONVERT(varchar, uqs.EndDate, 127) as EndDate,
+          uqs.InitialCigarettes,
+          uqs.TargetCigarettes,
+          -- Use custom stage info if StageId is NULL, otherwise use standard stage info
+          COALESCE(uqs.StageName, qs.StageName) as StageName,
+          COALESCE(uqs.Objective, qs.Objective) as Objective,
+          qs.StageOrder,
+          qs.Description
+        FROM UserQuitPlanStages uqs
+        LEFT JOIN QuitPlanStages qs ON uqs.StageId = qs.Id
+        WHERE uqs.QuitPlanId = ${latestPlan.Id}
+        ORDER BY 
+          CASE 
+            WHEN qs.StageOrder IS NOT NULL THEN qs.StageOrder 
+            ELSE uqs.Id 
+          END ASC
+      `;
+      stages = userStagesResult.recordset;
+    }
+    // For suggested and coach plans, stages are typically handled differently or may not have stages
+    // Add stage handling for suggested/coach plans if needed
+
+    const responseData = {
+      ...latestPlan,
+      stages,
+      planType: latestPlan.planType,
+      title: latestPlan.Title || 'Custom Plan',
+      description: latestPlan.Description || ''
+    };
+
+    res.json(responseData);
+
+  } catch (error) {
+    console.error('getUserQuitPlan error:', error);
+    res.status(500).json({ message: 'Failed to get user quit plan', error: error.message });
+  }
+};;;;
+
+exports.updateUserStageActivity = async (req, res) => {
+  try {
+    const { userQuitPlanStageId, activityId, isCompleted } = req.body;
+    const result = await sql.query`
+        MERGE UserStageActivities AS target
+        USING (SELECT ${userQuitPlanStageId} AS UserQuitPlanStageId, ${activityId} AS ActivityId) AS source
+        ON (target.UserQuitPlanStageId = source.UserQuitPlanStageId AND target.ActivityId = source.ActivityId)
+        WHEN MATCHED THEN
+            UPDATE SET IsCompleted = ${isCompleted}, CompletionDate = GETDATE()
+        WHEN NOT MATCHED THEN
+            INSERT (UserQuitPlanStageId, ActivityId, IsCompleted, CompletionDate)
+            VALUES (source.UserQuitPlanStageId, source.ActivityId, ${isCompleted}, GETDATE());
+    `;
+    res.status(200).json({ message: 'Activity status updated successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to update activity status', error: error.message });
   }
 };
