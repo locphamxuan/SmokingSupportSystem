@@ -95,5 +95,4 @@ router.put('/stage-activity', authenticateToken, authController.updateUserStageA
 router.put('/stage-progression', authenticateToken, authController.updateStageProgression);
 router.post('/complete-stage', authenticateToken, authController.completeStage);
 router.post('/user-quit-plan/:planId/complete', authenticateToken, authController.completeUserQuitPlan);
-router.get('/check-phone/:phoneNumber', authController.checkPhoneNumber);
 module.exports = router;

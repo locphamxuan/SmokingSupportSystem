@@ -13,7 +13,6 @@ ALTER TABLE Booking_Coach
 ADD Price DECIMAL(10,2);
 
 
-
 -- Thêm cột thời gian VIP
 ALTER TABLE Users 
 ADD VipStartDate DATETIME,
@@ -43,14 +42,25 @@ IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'sp_CheckVipSta
     DROP PROCEDURE sp_CheckVipStatus
 GO
 
-UPDATE MembershipPackages
-SET DurationInDays = -1 -- Sử dụng -1 để biểu thị không giới hạn
-WHERE Name = N'Gói Thường' OR Id = 1;
 
+-- Cập nhật gói thường
 UPDATE MembershipPackages
-SET Description = N'Truy cập blog chia sẻ cộng đòng',N'Tạo kế hoạch cai thuốc cho riêng mình',=
-    DurationInDays = -1
-WHERE Name = N'Gói Thường' OR Id = 1;
+SET Features = N'Truy cập blog chia sẻ cộng đồng
+Tự tạo kế hoạch cai thuốc cho riêng mình
+Trao thành tích khi đạt mốc',
+    Description = N'Gói thường với những tính năng cơ bản'
+WHERE Name = N'Gói Thường';
+
+-- Cập nhật gói VIP
+UPDATE MembershipPackages
+SET Features = 'Tất cả tính năng của gói Thường
+Chat với huấn luyện viên
+Đặt lịch hẹn'
+WHERE Name = N'Gói VIP';
+
+
+
+
 
 CREATE PROCEDURE sp_CheckVipStatus
 AS
