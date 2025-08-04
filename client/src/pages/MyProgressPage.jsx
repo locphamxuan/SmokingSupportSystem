@@ -79,6 +79,11 @@ const MyProgressPage = () => {
   const [logDate, setLogDate] = useState(new Date().toISOString().slice(0, 10));
 
   const [userData, setUserData] = useState({
+  // State tạm để chỉnh sửa trước khi cập nhật
+});
+const [tempSmokingStatus, setTempSmokingStatus] = useState({});
+
+const [userData2, setUserData2] = useState({
     username: "",
     email: "",
     phoneNumber: "",
@@ -395,6 +400,7 @@ const MyProgressPage = () => {
       }
 
       setUserData(fetchedUserData);
+setTempSmokingStatus(fetchedUserData.smokingStatus || {});
       console.log(
         "MyProgressPage - fetchedUserData after setState:",
         fetchedUserData,
@@ -455,7 +461,7 @@ const MyProgressPage = () => {
         setSuggestedPlans([]);
       }
     };
-    
+
     fetchSuggestedPlans();
   }, []);
 
@@ -1245,12 +1251,12 @@ const MyProgressPage = () => {
                         type="number"
                         className="form-control"
                         id="cigarettesPerDay"
-                        value={userData.smokingStatus.cigarettesPerDay}
+                        value={tempSmokingStatus.cigarettesPerDay || 0}
                         onChange={(e) =>
-                          handleUpdateSmokingStatus(
-                            "cigarettesPerDay",
-                            Number(e.target.value),
-                          )
+                          setTempSmokingStatus({
+                            ...tempSmokingStatus,
+                            cigarettesPerDay: Number(e.target.value),
+                          })
                         }
                         min="0"
                       />
@@ -1263,12 +1269,12 @@ const MyProgressPage = () => {
                         type="number"
                         className="form-control"
                         id="costPerPack"
-                        value={userData.smokingStatus.costPerPack}
+                        value={tempSmokingStatus.costPerPack || 0}
                         onChange={(e) =>
-                          handleUpdateSmokingStatus(
-                            "costPerPack",
-                            Number(e.target.value),
-                          )
+                          setTempSmokingStatus({
+                            ...tempSmokingStatus,
+                            costPerPack: Number(e.target.value),
+                          })
                         }
                         min="0"
                       />
@@ -1387,7 +1393,20 @@ const MyProgressPage = () => {
                           )
                         }
                       ></textarea>
-                    </div>
+                    
+<div className="d-flex justify-content-end">
+  <button
+    className="btn btn-success mt-2"
+    onClick={() => {
+      Object.entries(tempSmokingStatus).forEach(([field, value]) => {
+        handleUpdateSmokingStatus(field, value);
+      });
+    }}
+  >
+    Cập nhật
+  </button>
+</div>
+</div>
                   </div>
                 </div>
               </div>
@@ -3311,24 +3330,24 @@ const MyProgressPage = () => {
                                   startDate: planDates.startDate,
                                   targetDate,
                                 });
-                                
+
                                 // Show success message with stage creation info
                                 const stageCount = response.stages ? response.stages.length : 0;
                                 addNotification(
                                   `Đã lưu kế hoạch thành công! Tự động tạo ${stageCount} giai đoạn.`,
                                   "success"
                                 );
-                                
+
                                 console.log("Suggested plan saved with automatic stage creation:", {
                                   userSuggestedQuitPlanId: response.userSuggestedQuitPlanId,
                                   quitPlanId: response.quitPlanId,
                                   stagesCreated: response.stages
                                 });
-                                
+
                                 setShowDateForm(false);
                                 setSelectedPlan(null);
                                 setPlanDates({ startDate: "", targetDate: "" });
-                                
+
                                 // Refresh both user data and staged quit plan data
                                 await fetchUserData();
                                 await fetchStagedQuitPlan();
@@ -4235,7 +4254,20 @@ const MyProgressPage = () => {
                           Hủy kế hoạch
                         </button>
                       </div>
-                    </div>
+                    
+<div className="d-flex justify-content-end">
+  <button
+    className="btn btn-success mt-2"
+    onClick={() => {
+      Object.entries(tempSmokingStatus).forEach(([field, value]) => {
+        handleUpdateSmokingStatus(field, value);
+      });
+    }}
+  >
+    Cập nhật
+  </button>
+</div>
+</div>
                   </div>
                 </div>
               )}
@@ -4463,7 +4495,20 @@ const MyProgressPage = () => {
                           </div>
                         )}
                       </div>
-                    </div>
+                    
+<div className="d-flex justify-content-end">
+  <button
+    className="btn btn-success mt-2"
+    onClick={() => {
+      Object.entries(tempSmokingStatus).forEach(([field, value]) => {
+        handleUpdateSmokingStatus(field, value);
+      });
+    }}
+  >
+    Cập nhật
+  </button>
+</div>
+</div>
                   </div>
                 </div>
               )}
