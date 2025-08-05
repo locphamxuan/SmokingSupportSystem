@@ -160,6 +160,7 @@ const [userData2, setUserData2] = useState({
   // New state for 6-stage quit plan
   const [stagedQuitPlan, setStagedQuitPlan] = useState(null);
   const [loadingStagedPlan, setLoadingStagedPlan] = useState(false);
+  const [chartUpdateKey, setChartUpdateKey] = useState(0); // Key để force re-render biểu đồ
   const formatDateString = (dateStr) => {
     const datePart = dateStr.split("T")[0];
     const [year, month, day] = datePart.split("-");
@@ -203,6 +204,11 @@ const [userData2, setUserData2] = useState({
       setChartView("daily");
     }
   }, [userData.quitPlan, chartView]);
+
+  // Theo dõi thay đổi của smokingHistory để cập nhật biểu đồ
+  useEffect(() => {
+    setChartUpdateKey(prev => prev + 1);
+  }, [smokingHistory]);
 
   // Lấy kế hoạch coach đã xác nhận mới nhất
   const latestCoachPlan =
@@ -1008,9 +1014,11 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
           delete payload.coachSuggestedPlanId;
         }
       }
-      // ... gửi payload như cũ
+      
       const response = await addDailyLog(payload);
       addNotification("Cập nhật nhật ký thành công!", "success");
+      
+      // Cập nhật state ngay lập tức để biểu đồ refresh
       setUserData((prev) => ({
         ...prev,
         smokingStatus: {
@@ -1022,6 +1030,40 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
           },
         },
       }));
+      
+      // Cập nhật smokingHistory ngay lập tức để biểu đồ cập nhật
+      const logDate = updatedLog.date || new Date().toISOString().slice(0, 10);
+      console.log('Updating smoking history for date:', logDate, 'with cigarettes:', updatedLog.cigarettes);
+      setSmokingHistory((prevHistory) => {
+        const existingIndex = prevHistory.findIndex(
+          (entry) => entry.Date.slice(0, 10) === logDate
+        );
+        
+        if (existingIndex >= 0) {
+          // Cập nhật entry hiện có
+          const updatedHistory = [...prevHistory];
+          updatedHistory[existingIndex] = {
+            ...updatedHistory[existingIndex],
+            Cigarettes: updatedLog.cigarettes || 0,
+            Feeling: updatedLog.feeling || "",
+          };
+          console.log('Updated existing entry:', updatedHistory[existingIndex]);
+          return updatedHistory;
+        } else {
+          // Thêm entry mới
+          const newEntry = {
+            Date: logDate,
+            Cigarettes: updatedLog.cigarettes || 0,
+            Feeling: updatedLog.feeling || "",
+          };
+          console.log('Added new entry:', newEntry);
+          return [...prevHistory, newEntry];
+        }
+      });
+      
+      // Force re-render biểu đồ
+      setChartUpdateKey(prev => prev + 1);
+      
       if (response.newBadges && response.newBadges.length > 0) {
         setUserData((prev) => ({
           ...prev,
@@ -1032,6 +1074,8 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
           "success",
         );
       }
+      
+      // Refresh data từ server để đảm bảo đồng bộ
       await fetchUserData();
       await fetchSmokingHistory();
     } catch (error) {
@@ -1286,12 +1330,12 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                       <select
                         className="form-select"
                         id="smokingFrequency"
-                        value={userData.smokingStatus.smokingFrequency}
+                        value={tempSmokingStatus.smokingFrequency || ""}
                         onChange={(e) =>
-                          handleUpdateSmokingStatus(
-                            "smokingFrequency",
-                            e.target.value,
-                          )
+                          setTempSmokingStatus({
+                            ...tempSmokingStatus,
+                            smokingFrequency: e.target.value,
+                          })
                         }
                       >
                         <option value="">Chọn tần suất</option>
@@ -1308,12 +1352,12 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                         className="form-control"
                         id="healthStatus"
                         rows="3"
-                        value={userData.smokingStatus.healthStatus}
+                        value={tempSmokingStatus.healthStatus || ""}
                         onChange={(e) =>
-                          handleUpdateSmokingStatus(
-                            "healthStatus",
-                            e.target.value,
-                          )
+                          setTempSmokingStatus({
+                            ...tempSmokingStatus,
+                            healthStatus: e.target.value,
+                          })
                         }
                       ></textarea>
                     </div>
@@ -1324,19 +1368,19 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                       <select
                         className="form-select"
                         id="cigaretteType"
-                        value={userData.smokingStatus.cigaretteType || ""}
+                        value={tempSmokingStatus.cigaretteType || ""}
                         onChange={(e) => {
                           if (e.target.value === "other") {
-                            handleUpdateSmokingStatus("cigaretteType", "other");
+                            setTempSmokingStatus({
+                              ...tempSmokingStatus,
+                              cigaretteType: "other",
+                            });
                           } else {
-                            handleUpdateSmokingStatus(
-                              "cigaretteType",
-                              e.target.value,
-                            );
-                            handleUpdateSmokingStatus(
-                              "customCigaretteType",
-                              "",
-                            );
+                            setTempSmokingStatus({
+                              ...tempSmokingStatus,
+                              cigaretteType: e.target.value,
+                              customCigaretteType: "",
+                            });
                           }
                         }}
                       >
@@ -1360,19 +1404,19 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                         <option value="other">Khác</option>
                       </select>
                       {/* Nếu chọn Khác thì hiển thị ô nhập tự do */}
-                      {userData.smokingStatus.cigaretteType === "other" && (
+                      {tempSmokingStatus.cigaretteType === "other" && (
                         <input
                           type="text"
                           className="form-control mt-2"
                           placeholder="Nhập loại thuốc lá khác..."
                           value={
-                            userData.smokingStatus.customCigaretteType || ""
+                            tempSmokingStatus.customCigaretteType || ""
                           }
                           onChange={(e) =>
-                            handleUpdateSmokingStatus(
-                              "customCigaretteType",
-                              e.target.value,
-                            )
+                            setTempSmokingStatus({
+                              ...tempSmokingStatus,
+                              customCigaretteType: e.target.value,
+                            })
                           }
                         />
                       )}
@@ -1385,27 +1429,15 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                         className="form-control"
                         id="quitReason"
                         rows="3"
-                        value={userData.smokingStatus.quitReason}
+                        value={tempSmokingStatus.quitReason || ""}
                         onChange={(e) =>
-                          handleUpdateSmokingStatus(
-                            "quitReason",
-                            e.target.value,
-                          )
+                          setTempSmokingStatus({
+                            ...tempSmokingStatus,
+                            quitReason: e.target.value,
+                          })
                         }
                       ></textarea>
-                    
-<div className="d-flex justify-content-end">
-  <button
-    className="btn btn-success mt-2"
-    onClick={() => {
-      Object.entries(tempSmokingStatus).forEach(([field, value]) => {
-        handleUpdateSmokingStatus(field, value);
-      });
-    }}
-  >
-    Cập nhật
-  </button>
-</div>
+
 </div>
                   </div>
                 </div>
@@ -1596,9 +1628,15 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                             const daysPassed = Math.ceil(
                               (today - startDate) / (1000 * 60 * 60 * 24),
                             );
-                            const progressPercent = Math.round(
-                              (daysPassed / totalDays) * 100,
+                            
+                            // Tính mục tiêu số điếu theo kế hoạch tại thời điểm hiện tại
+                            const targetCigarettes = Math.max(
+                              0,
+                              userData.quitPlan.initialCigarettes -
+                                userData.quitPlan.dailyReduction * daysPassed
                             );
+                            
+                            // Lấy số điếu thực tế từ nhật ký gần nhất
                             const recentLogs = smokingHistory
                               .filter(
                                 (log) =>
@@ -1608,6 +1646,20 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                               .sort(
                                 (a, b) => new Date(b.Date) - new Date(a.Date),
                               );
+                            
+                            const latestLog = recentLogs[0];
+                            const actualCigarettes = latestLog ? latestLog.Cigarettes : userData.quitPlan.initialCigarettes;
+                            
+                            // Tính tiến độ dựa trên việc giảm số điếu thuốc
+                            let progressPercent = 0;
+                            if (userData.quitPlan.initialCigarettes > 0) {
+                              const totalReduction = userData.quitPlan.initialCigarettes - targetCigarettes;
+                              const actualReduction = userData.quitPlan.initialCigarettes - actualCigarettes;
+                              progressPercent = Math.round((actualReduction / totalReduction) * 100);
+                              progressPercent = Math.max(0, Math.min(100, progressPercent));
+                            }
+                            
+                            // Tính tỷ lệ ngày không hút thuốc
                             const noSmokingDays = recentLogs.filter(
                               (log) => log.Cigarettes === 0,
                             ).length;
@@ -1615,6 +1667,7 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                               noSmokingDays > 0
                                 ? Math.round((noSmokingDays / daysPassed) * 100)
                                 : 0;
+                            
                             return (
                               <div>
                                 <div
@@ -1622,17 +1675,15 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                                   style={{ height: 24 }}
                                 >
                                   <div
-                                    className={`progress-bar ${successRate >= 70 ? "bg-success" : successRate >= 40 ? "bg-warning" : "bg-danger"}`}
+                                    className={`progress-bar ${progressPercent >= 70 ? "bg-success" : progressPercent >= 40 ? "bg-warning" : "bg-danger"}`}
                                     style={{ width: `${progressPercent}%` }}
                                   >
-                                    {progressPercent}% - {successRate}% ngày
-                                    không hút thuốc
+                                    {progressPercent}% - Mục tiêu: {targetCigarettes} điếu, Thực tế: {actualCigarettes} điếu
                                   </div>
                                 </div>
                                 <div className="mt-2 d-flex justify-content-between">
                                   <small className="text-muted">
-                                    {noSmokingDays} ngày không hút /{" "}
-                                    {daysPassed} ngày đã qua
+                                    Mục tiêu: {targetCigarettes} điếu / Thực tế: {actualCigarettes} điếu
                                   </small>
                                   <small className="text-muted">
                                     Còn {totalDays - daysPassed} ngày
@@ -1645,51 +1696,32 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                         {/* Biểu đồ tiến độ hệ thống giữ nguyên như cũ */}
                         <div className="mt-4">
                           <label className="fw-bold mb-2">
-                            Biểu đồ tiến độ hút thuốc (kế hoạch hệ thống/tự tạo)
+                            Biểu đồ hút thuốc 7 ngày gần nhất
                           </label>
                           {(() => {
-                            let plan =
-                              userData.quitPlan ||
-                              userData.currentUserSuggestedPlan;
-                            if (!plan)
-                              return (
-                                <div className="text-muted">
-                                  Chưa có kế hoạch.
-                                </div>
-                              );
-                            const startDate = new Date(
-                              plan.startDate || plan.StartDate,
-                            );
-                            const endDate = new Date(
-                              plan.targetDate || plan.TargetDate,
-                            );
-
-                            const allDates = [];
-                            for (
-                              let d = new Date(startDate);
-                              d <= endDate;
-                              d.setDate(d.getDate() + 1)
-                            ) {
-                              allDates.push(new Date(d));
+                            // Lấy 7 ngày gần nhất từ smokingHistory
+                            const today = new Date();
+                            const last7Days = [];
+                            
+                            for (let i = 6; i >= 0; i--) {
+                              const date = new Date(today);
+                              date.setDate(today.getDate() - i);
+                              last7Days.push(date);
                             }
 
-                            const sampledDates = (dates, maxPoints = 30) => {
-                              if (dates.length <= maxPoints) return dates;
-                              const step = Math.ceil(dates.length / maxPoints);
-                              return dates.filter((_, i) => i % step === 0);
-                            };
-
-                            const displayDates = sampledDates(allDates);
-
-                            const chartData = displayDates.map((d) => {
+                            const chartData = last7Days.map((d) => {
                               const dateStr = d.toISOString().slice(0, 10);
                               const entry = smokingHistory.find(
                                 (e) => e.Date.slice(0, 10) === dateStr,
                               );
-                              return entry ? entry.Cigarettes : 0;
+                              const cigarettes = entry ? entry.Cigarettes : 0;
+                              // Đảm bảo số điếu thuốc là số nguyên và không âm
+                              const result = Math.max(0, Math.round(Number(cigarettes) || 0));
+                              console.log(`Chart data for ${dateStr}: ${cigarettes} -> ${result}`);
+                              return result;
                             });
 
-                            const chartLabels = displayDates.map((d) =>
+                            const chartLabels = last7Days.map((d) =>
                               d.toLocaleDateString("vi-VN", {
                                 weekday: "short",
                                 day: "2-digit",
@@ -1699,6 +1731,7 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
 
                             return (
                               <Line
+                                key={`plan-chart-${chartUpdateKey}`}
                                 data={{
                                   labels: chartLabels,
                                   datasets: [
@@ -1709,9 +1742,8 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                                       backgroundColor: "rgba(0, 123, 255, 0.1)",
                                       tension: 0.4,
                                       fill: true,
-                                      pointRadius: allDates.length > 60 ? 2 : 4, // Smaller points for long plans
-                                      pointHoverRadius:
-                                        allDates.length > 60 ? 4 : 8,
+                                      pointRadius: 4,
+                                      pointHoverRadius: 8,
                                     },
                                   ],
                                 }}
@@ -1725,14 +1757,14 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                                     legend: { position: "top" },
                                     title: {
                                       display: true,
-                                      text: "Biểu đồ hút thuốc theo kế hoạch",
+                                      text: "Biểu đồ hút thuốc 7 ngày gần nhất",
                                     },
                                     tooltip: {
                                       callbacks: {
                                         title: function (context) {
                                           const dataIndex =
                                             context[0].dataIndex;
-                                          return displayDates[
+                                          return last7Days[
                                             dataIndex
                                           ].toLocaleDateString("vi-VN", {
                                             dateStyle: "full",
@@ -1751,12 +1783,6 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                                   scales: {
                                     x: {
                                       title: { display: true, text: "Ngày" },
-                                      ticks: {
-                                        maxRotation:
-                                          allDates.length > 90 ? 90 : 0, // Rotate labels for long plans
-                                        minRotation:
-                                          allDates.length > 90 ? 90 : 0,
-                                      },
                                     },
                                     y: {
                                       type: "linear",
@@ -1767,6 +1793,12 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                                         text: "Số điếu thuốc",
                                       },
                                       min: 0,
+                                      ticks: {
+                                        stepSize: 1,
+                                        callback: function(value) {
+                                          return Math.round(value);
+                                        }
+                                      }
                                     },
                                   },
                                 }}
@@ -1789,7 +1821,6 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                               setShowNewPlanForm(true);
                               setPlanType("staged");
                             }}
-                            onArchive={() => setShowDeleteModal(true)}
                             onCancel={() => setShowDeleteModal(true)}
                           />
                         </div>
@@ -2605,48 +2636,57 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                           Bạn chưa có kế hoạch cai thuốc. Hãy tạo một kế hoạch
                           để bắt đầu hành trình của mình!
                         </p>
-                        <h6 className="mb-2">Chọn kế hoạch mẫu:</h6>
-                        <div>
-                          {suggestedPlans.length === 0 ? (
-                            <p>Không có kế hoạch mẫu.</p>
-                          ) : (
-                            suggestedPlans.map((plan, idx) => (
-                              <div
-                                key={plan.Id}
-                                className={`card mb-2 ${selectedPlanId === plan.Id ? "border-primary border-2" : ""}`}
-                                style={{ cursor: "pointer" }}
-                                onClick={() => setSelectedPlanId(plan.Id)}
-                              >
-                                <div className="card-body">
-                                  <h6>{plan.Title}</h6>
-                                  <p>{plan.Description}</p>
+                        
+                        {/* Sample Plan Selection - Always visible */}
+                        <div className="mb-4">
+                          <h6 className="mb-2">Chọn kế hoạch mẫu:</h6>
+                          <div>
+                            {suggestedPlans.length === 0 ? (
+                              <p>Không có kế hoạch mẫu.</p>
+                            ) : (
+                              suggestedPlans.map((plan, idx) => (
+                                <div
+                                  key={plan.Id}
+                                  className={`card mb-2 ${selectedPlanId === plan.Id ? "border-primary border-2" : ""}`}
+                                  style={{ cursor: "pointer" }}
+                                  onClick={() => setSelectedPlanId(plan.Id)}
+                                >
+                                  <div className="card-body">
+                                    <h6>{plan.Title}</h6>
+                                    <p>{plan.Description}</p>
+                                  </div>
                                 </div>
-                              </div>
-                            ))
-                          )}
+                              ))
+                            )}
+                          </div>
+                          <button
+                            className="btn btn-success me-2"
+                            disabled={!selectedPlanId}
+                            onClick={() => {
+                              const plan = suggestedPlans.find(
+                                (p) => p.Id === selectedPlanId,
+                              );
+                              setSelectedPlan(plan);
+                              setShowDateForm(true);
+                            }}
+                          >
+                            Chọn kế hoạch mẫu
+                          </button>
                         </div>
-                        <button
-                          className="btn btn-success me-2"
-                          disabled={!selectedPlanId}
-                          onClick={() => {
-                            const plan = suggestedPlans.find(
-                              (p) => p.Id === selectedPlanId,
-                            );
-                            setSelectedPlan(plan);
-                            setShowDateForm(true);
-                          }}
-                        >
-                          Chọn kế hoạch mẫu
-                        </button>
-                        <button
-                          className="btn btn-primary"
-                          onClick={() => {
-                            setShowNewPlanForm(true);
-                            setPlanType("staged");
-                          }}
-                        >
-                          Tự tạo kế hoạch
-                        </button>
+
+                        {/* Self-create Plan Section */}
+                        <div className="mb-3">
+                          <button
+                            className="btn btn-primary"
+                            onClick={() => {
+                              setShowNewPlanForm(!showNewPlanForm);
+                              setPlanType("staged");
+                            }}
+                          >
+                            {showNewPlanForm ? "Ẩn tạo kế hoạch" : "Tự tạo kế hoạch"}
+                          </button>
+                        </div>
+
                         {showNewPlanForm && (
                           <div className="mt-4 p-3 border rounded bg-white">
                             <div className="btn-group mb-3">
@@ -4111,9 +4151,8 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                           const daysPassed = Math.ceil(
                             (today - startDate) / (1000 * 60 * 60 * 24),
                           );
-                          const progressPercent = Math.round(
-                            (daysPassed / totalDays) * 100,
-                          );
+                          
+                          // Lấy số điếu thực tế từ nhật ký gần nhất
                           const recentLogs = smokingHistory
                             .filter(
                               (log) =>
@@ -4123,6 +4162,14 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                             .sort(
                               (a, b) => new Date(b.Date) - new Date(a.Date),
                             );
+                          
+                          const latestLog = recentLogs[0];
+                          const actualCigarettes = latestLog ? latestLog.Cigarettes : 0;
+                          
+                          // Tính tiến độ dựa trên thời gian và số điếu thuốc
+                          const timeProgress = Math.round((daysPassed / totalDays) * 100);
+                          
+                          // Tính tỷ lệ ngày không hút thuốc
                           const noSmokingDays = recentLogs.filter(
                             (log) => log.Cigarettes === 0,
                           ).length;
@@ -4130,21 +4177,23 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                             noSmokingDays > 0
                               ? Math.round((noSmokingDays / daysPassed) * 100)
                               : 0;
+                          
+                          // Tính tiến độ tổng hợp (thời gian + hiệu quả)
+                          const overallProgress = Math.round((timeProgress + successRate) / 2);
+                          
                           return (
                             <div>
                               <div className="progress" style={{ height: 24 }}>
                                 <div
-                                  className={`progress-bar ${successRate >= 70 ? "bg-success" : successRate >= 40 ? "bg-warning" : "bg-danger"}`}
-                                  style={{ width: `${progressPercent}%` }}
+                                  className={`progress-bar ${overallProgress >= 70 ? "bg-success" : overallProgress >= 40 ? "bg-warning" : "bg-danger"}`}
+                                  style={{ width: `${overallProgress}%` }}
                                 >
-                                  {progressPercent}% - {successRate}% ngày không
-                                  hút thuốc
+                                  {overallProgress}% - Thời gian: {timeProgress}%, Hiệu quả: {successRate}%
                                 </div>
                               </div>
                               <div className="mt-2 d-flex justify-content-between">
                                 <small className="text-muted">
-                                  {noSmokingDays} ngày không hút / {daysPassed}{" "}
-                                  ngày đã qua
+                                  {noSmokingDays} ngày không hút / {daysPassed} ngày đã qua
                                 </small>
                                 <small className="text-muted">
                                   Còn {totalDays - daysPassed} ngày
@@ -4157,34 +4206,39 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                       {/* Biểu đồ tiến độ cho kế hoạch coach */}
                       <div className="mt-4">
                         <label className="fw-bold mb-2">
-                          Biểu đồ tiến độ hút thuốc (kế hoạch coach)
+                          Biểu đồ hút thuốc 7 ngày gần nhất (Coach)
                         </label>
                         {(() => {
-                          // Lấy dữ liệu lịch sử trong khoảng ngày của kế hoạch coach
-                          const startDate = new Date(latestCoachPlan.StartDate);
-                          const endDate = new Date(latestCoachPlan.TargetDate);
-                          const chartData = [];
-                          const chartLabels = [];
-                          for (
-                            let d = new Date(startDate);
-                            d <= endDate;
-                            d.setDate(d.getDate() + 1)
-                          ) {
+                          // Lấy 7 ngày gần nhất từ smokingHistory
+                          const today = new Date();
+                          const last7Days = [];
+                          
+                          for (let i = 6; i >= 0; i--) {
+                            const date = new Date(today);
+                            date.setDate(today.getDate() - i);
+                            last7Days.push(date);
+                          }
+
+                          const chartData = last7Days.map((d) => {
                             const dateStr = d.toISOString().slice(0, 10);
-                            chartLabels.push(
-                              d.toLocaleDateString("vi-VN", {
-                                weekday: "short",
-                                day: "2-digit",
-                                month: "2-digit",
-                              }),
-                            );
                             const entry = smokingHistory.find(
                               (e) => e.Date.slice(0, 10) === dateStr,
                             );
-                            chartData.push(entry ? entry.Cigarettes : 0);
-                          }
+                            const cigarettes = entry ? entry.Cigarettes : 0;
+                            // Đảm bảo số điếu thuốc là số nguyên và không âm
+                            return Math.max(0, Math.round(Number(cigarettes) || 0));
+                          });
+
+                          const chartLabels = last7Days.map((d) =>
+                            d.toLocaleDateString("vi-VN", {
+                              weekday: "short",
+                              day: "2-digit",
+                              month: "2-digit",
+                            }),
+                          );
                           return chartData.length > 0 ? (
                             <Line
+                              key={`coach-chart-${chartUpdateKey}`}
                               data={{
                                 labels: chartLabels,
                                 datasets: [
@@ -4195,6 +4249,8 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                                     backgroundColor: "rgba(0, 123, 255, 0.1)",
                                     tension: 0.4,
                                     fill: true,
+                                    pointRadius: 4,
+                                    pointHoverRadius: 8,
                                   },
                                 ],
                               }}
@@ -4208,10 +4264,18 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                                   legend: { position: "top" },
                                   title: {
                                     display: true,
-                                    text: "Biểu đồ hút thuốc theo kế hoạch coach",
+                                    text: "Biểu đồ hút thuốc 7 ngày gần nhất (Coach)",
                                   },
                                   tooltip: {
                                     callbacks: {
+                                      title: function (context) {
+                                        const dataIndex = context[0].dataIndex;
+                                        return last7Days[
+                                          dataIndex
+                                        ].toLocaleDateString("vi-VN", {
+                                          dateStyle: "full",
+                                        });
+                                      },
                                       afterBody: function (context) {
                                         const dataIndex = context[0].dataIndex;
                                         const cigarettes =
@@ -4232,6 +4296,12 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                                       text: "Số điếu thuốc",
                                     },
                                     min: 0,
+                                    ticks: {
+                                      stepSize: 1,
+                                      callback: function(value) {
+                                        return Math.round(value);
+                                      }
+                                    }
                                   },
                                 },
                               }}
@@ -4255,18 +4325,6 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                         </button>
                       </div>
                     
-<div className="d-flex justify-content-end">
-  <button
-    className="btn btn-success mt-2"
-    onClick={() => {
-      Object.entries(tempSmokingStatus).forEach(([field, value]) => {
-        handleUpdateSmokingStatus(field, value);
-      });
-    }}
-  >
-    Cập nhật
-  </button>
-</div>
 </div>
                   </div>
                 </div>
@@ -4364,14 +4422,6 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                         <PlanActions
                           isCompleted={stagedQuitPlan?.Status === "Completed"}
                           onNew={() => setShowNewPlanForm(true)}
-                          onArchive={() =>
-                            archivePlan(
-                              stagedQuitPlan.Id ||
-                                stagedQuitPlan.id ||
-                                stagedQuitPlan._id,
-                            )
-                          }
-                          onCancel={() => setShowDeleteModal(true)}
                         />
                       </div>
 
@@ -4496,18 +4546,6 @@ setTempSmokingStatus(fetchedUserData.smokingStatus || {});
                         )}
                       </div>
                     
-<div className="d-flex justify-content-end">
-  <button
-    className="btn btn-success mt-2"
-    onClick={() => {
-      Object.entries(tempSmokingStatus).forEach(([field, value]) => {
-        handleUpdateSmokingStatus(field, value);
-      });
-    }}
-  >
-    Cập nhật
-  </button>
-</div>
 </div>
                   </div>
                 </div>
